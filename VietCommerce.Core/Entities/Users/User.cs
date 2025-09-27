@@ -23,7 +23,7 @@ public class User : AuditableEntity, ISoftDelete
     // 🟡 Các trường từ ISoftDelete
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
-    public int? DeletedBy { get; set; }
+    public Guid? DeletedBy { get; set; }
 
     public DateTime? LastLogin { get; set; }
     // ⭐ THÊM VÀO:
@@ -46,4 +46,5 @@ public class User : AuditableEntity, ISoftDelete
     public virtual ICollection<Order> CreatedOrders { get; set; } = new List<Order>();
     public virtual ICollection<InventoryMovement> InventoryMovements { get; set; } = new List<InventoryMovement>();
     public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
+    
 }

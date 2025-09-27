@@ -16,8 +16,8 @@ public class Cart : BaseEntity , ISoftDelete
     public virtual User User { get; set; } = null!;
     public virtual Customer? Customer { get; set; } 
     public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
-    public bool IsActive { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public bool IsDeleted { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public DateTime? DeletedAt { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public int? DeletedBy { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public bool IsActive {get; set; }
+    public bool IsDeleted {get; set; }
+    public DateTime? DeletedAt {get; set; }
+    public Guid? DeletedBy {get; set; }
 }

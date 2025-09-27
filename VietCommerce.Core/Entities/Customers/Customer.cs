@@ -26,8 +26,8 @@ public class Customer : BaseEntity,ISoftDelete
     public virtual Tenant Tenant { get; set; } = null!;
     public virtual ICollection<CustomerAddress> Addresses { get; set; } = new List<CustomerAddress>();
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
-    public bool IsActive { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public bool IsDeleted { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public DateTime? DeletedAt { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public int? DeletedBy { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public bool IsActive {get;set; }
+    public bool IsDeleted {get;set; }
+    public DateTime? DeletedAt {get;set; }
+    public Guid? DeletedBy {get;set; }
 }

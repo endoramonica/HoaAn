@@ -1,6 +1,7 @@
-﻿using System;
-using System.IdentityModel.Tokens.Jwt;
+﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using System;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using VietCommerce.Core.Entities.Users;
@@ -11,9 +12,9 @@ public class JwtHelper
 {
     private readonly JwtSettings _jwtSettings;
 
-    public JwtHelper(JwtSettings jwtSettings)
+    public JwtHelper(IOptions<JwtSettings> options)
     {
-        _jwtSettings = jwtSettings;
+        _jwtSettings = options.Value;
     }
 
     public string GenerateToken(User user)

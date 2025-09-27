@@ -20,8 +20,8 @@ public class Inventory : BaseEntity , ISoftDelete
     public virtual Tenant Tenant { get; set; } = null!;
     public virtual Product Product { get; set; } = null!;
     public virtual ICollection<InventoryMovement> InventoryMovements { get; set; } = new List<InventoryMovement>();
-    public bool IsActive { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public bool IsDeleted { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public DateTime? DeletedAt { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public int? DeletedBy { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public bool IsActive {get;set; }
+    public bool IsDeleted {get;set; }
+    public DateTime? DeletedAt {get;set; }
+    public Guid? DeletedBy {get;set; }
 }

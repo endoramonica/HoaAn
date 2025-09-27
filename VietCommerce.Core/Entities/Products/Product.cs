@@ -15,7 +15,7 @@ public class Product : BaseEntity, ISoftDelete
     // 🟡 Các trường từ ISoftDelete
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
-    public int? DeletedBy { get; set; }
+    public Guid? DeletedBy { get; set; }
     public string SKU { get; set; } = string.Empty;       // thêm SKU
     
     public bool IsActive { get; set; } = true;

@@ -1,4 +1,4 @@
-namespace VietCommerce.Core.Models;
+﻿namespace VietCommerce.Core.Models;
 
 public class ApiResponse<T>
 {
@@ -7,18 +7,34 @@ public class ApiResponse<T>
     public string? Message { get; set; }
     public string[]? Errors { get; set; }
 
-    public ApiResponse()
+    private ApiResponse() { }
+
+    // -----------------------
+    // ✅ Factory methods
+    // -----------------------
+
+    public static ApiResponse<T> SuccessResponse(
+        T data,
+        string message = "Success")
     {
-        Success = true;
+        return new ApiResponse<T>
+        {
+            Success = true,
+            Data = data,
+            Message = message
+        };
     }
 
-    public static ApiResponse<T> SuccessResponse(T data, string message = "Success")
+    public static ApiResponse<T> FailureResponse(
+        string message = "Failed",
+        string[]? errors = null)
     {
-        return new ApiResponse<T> { Data = data, Message = message };
-    }
-
-    public static ApiResponse<object> ErrorResponse(string message, string[]? errors)
-    {
-        return new ApiResponse<object> { Success = false, Message = message, Errors = errors ?? new[] { message } };
+        return new ApiResponse<T>
+        {
+            Success = false,
+            Data = default,
+            Message = message,
+            Errors = errors ?? new[] { message }
+        };
     }
 }

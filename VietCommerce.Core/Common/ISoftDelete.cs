@@ -6,5 +6,5 @@ public interface ISoftDelete
     bool IsDeleted { get; set; }
     DateTime? DeletedAt { get; set; }
     // ⭐ THÊM VÀO:
-    int? DeletedBy { get; set; }  // Người xóa
+    Guid? DeletedBy { get; set; }  // Người xóa
 }

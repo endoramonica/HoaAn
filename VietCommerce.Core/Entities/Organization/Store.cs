@@ -27,7 +27,7 @@ public class Store : BaseEntity, ISoftDelete
     public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
     public virtual ICollection<UserAddress> Addresses { get; set; } = new List<UserAddress>();
-    public bool IsDeleted { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public DateTime? DeletedAt { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public int? DeletedBy { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public bool IsDeleted {get;set; }
+    public DateTime? DeletedAt {get;set; }
+    public Guid? DeletedBy {get;set; }
 }

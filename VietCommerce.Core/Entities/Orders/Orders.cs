@@ -29,8 +29,8 @@ public class Order : AuditableEntity , ISoftDelete
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
     public virtual ICollection<OrderStatusHistory> OrderStatusHistories { get; set; } = new List<OrderStatusHistory>();
     public virtual OrderShipping? OrderShipping { get; set; }
-    public bool IsActive { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public bool IsDeleted { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public DateTime? DeletedAt { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public int? DeletedBy { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public bool IsActive {get;set; }
+    public bool IsDeleted {get;set; }
+    public DateTime? DeletedAt {get;set; }
+    public Guid? DeletedBy {get;set; }
 }
