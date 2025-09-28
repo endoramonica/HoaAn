@@ -1,0 +1,32 @@
+Đã ghi đè file: VietCommerce.Data/Repositories/RoleRepository.cs
+Đã ghi đè file: VietCommerce.Data/Repositories/PermissionRepository.cs
+Đã ghi đè file: VietCommerce.Data/Repositories/UserRoleRepository.cs
+Đã ghi đè file: VietCommerce.Data/Repositories/RolePermissionRepository.cs
+Đã ghi đè file: VietCommerce.Data/Repositories/UnitOfWork.cs
+Đã ghi đè file: VietCommerce.Api/Controllers/RoleController.cs
+Đã ghi đè file: VietCommerce.Api/Controllers/PermissionController.cs
+Đã ghi đè file: VietCommerce.Api/Controllers/UserRoleController.cs
+Đã ghi đè file: VietCommerce.Api/Extensions/AuthorizationExtensions.cs
+Đã ghi đè file: VietCommerce.Api/Program.cs
+
+
+Write-Host "✅ All RBAC files created successfully!"
+Write-Host ""
+Write-Host "Files created by phase:"
+Write-Host "Phase 1 (Core): 6 files"
+Write-Host "Phase 2 (Services): 4 files"
+Write-Host "Phase 3 (Repositories): 8 files"
+Write-Host "Phase 4 (Controllers): 3 files"
+Write-Host "Phase 5 (Config): 2 files"
+Write-Host "Phase 6 (DTOs): 9 files"
+Write-Host "Phase 7 (Seeds): 3 files"
+Write-Host "Validators: 5 files"
+Write-Host ""
+Write-Host "Total: 40 new files created"
+Write-Host ""
+Write-Host "Next steps:"
+Write-Host "1. Implement core authorization attributes & handlers (Phase 1)"
+Write-Host "2. Create seed data for permissions & roles (Phase 7)"
+Write-Host "3. Implement repositories & services (Phase 2-3)"
+Write-Host "4. Build API controllers (Phase 4)"
+Write-Host "5. Configure authorization in Program.cs (Phase 5)"
