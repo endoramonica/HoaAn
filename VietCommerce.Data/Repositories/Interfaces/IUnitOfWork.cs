@@ -1,14 +1,17 @@
-// Data/Repositories/Interfaces/IUnitOfWork.cs
-namespace VietCommerce.Data.Repositories.Interfaces;
+﻿namespace VietCommerce.Data.Repositories.Interfaces;
 
 public interface IUnitOfWork : IDisposable
 {
     IUserRepository Users { get; }
-    // Add other repositories as needed
+    IRefreshTokenRepository RefreshTokens { get; }
+    
+    IRoleRepository Roles { get; }
+    IPermissionRepository Permissions { get; }
+    IUserRoleRepository UserRoles { get; }
+    IRolePermissionRepository RolePermissions { get; }
     
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync();
     Task CommitTransactionAsync();
     Task RollbackTransactionAsync();
-    IRefreshTokenRepository RefreshTokens { get; }
 }
