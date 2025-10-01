@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
-namespace VietCommerce.Core.Authorization;
+namespace VietCommerce.Api.Authorization;
 
 public class RoleAuthorizationHandler : AuthorizationHandler<RoleRequirement>
 {

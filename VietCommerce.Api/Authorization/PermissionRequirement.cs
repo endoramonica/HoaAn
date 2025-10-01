@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 
-namespace VietCommerce.Core.Authorization;
+namespace VietCommerce.Api.Authorization;
 
 public class PermissionRequirement : IAuthorizationRequirement
 {

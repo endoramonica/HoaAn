@@ -1,0 +1,608 @@
+N?i dung c?a VietCommerce.Api/Controllers/UsersController.cs :
+----------------------------------------
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using VietCommerce.Api.Services.Interfaces;
+using VietCommerce.Core.DTOs.Users;
+using VietCommerce.Core.Models;
+
+namespace VietCommerce.Api.Controllers;
+
+[ApiController]
+[Route("api/v1/[controller]")]
+[Produces("application/json")]
+[Authorize(Roles = "Admin")]
+public class UsersController : ControllerBase
+{
+    private readonly IUserService _userService;
+    private readonly ILogger<UsersController> _logger;
+
+    public UsersController(IUserService userService, ILogger<UsersController> logger)
+    {
+        _userService = userService;
+        _logger = logger;
+    }
+
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetUsers([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
+    {
+        var response = await _userService.GetUsersAsync(pageNumber, pageSize, search);
+        return Ok(response);
+    }
+
+    [HttpGet("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetUserById(Guid id)
+    {
+        var response = await _userService.GetUserByIdAsync(id);
+        if (!response.Success || response.Data == null)
+            return NotFound(response);
+
+        return Ok(response);
+    }
+
+    [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UserUpdateDTO dto)
+    {
+        var response = await _userService.UpdateUserProfileAsync(id, dto);
+        if (!response.Success)
+            return BadRequest(response);
+
+        return Ok(response);
+    }
+
+    [HttpPost("{id}/deactivate")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> DeactivateUser(Guid id)
+    {
+        var response = await _userService.DeactivateUserAsync(id);
+        return Ok(response);
+    }
+
+    [HttpPost("{id}/activate")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ActivateUser(Guid id)
+    {
+        var response = await _userService.ActivateUserAsync(id);
+        return Ok(response);
+    }
+}
+
+----------------------------------------
+N?i dung c?a VietCommerce.Api/Services/UserService.cs :
+----------------------------------------
+using Microsoft.Extensions.Logging;
+using System.Linq.Expressions;
+using VietCommerce.Api.Services.Interfaces;
+using VietCommerce.Core.DTOs.Users;
+using VietCommerce.Core.Entities.Users;
+using VietCommerce.Core.Enums.Users;
+using VietCommerce.Core.Models;
+using VietCommerce.Data.Repositories.Interfaces;
+
+namespace VietCommerce.Api.Services;
+
+public class UserService : IUserService
+{
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<UserService> _logger;
+    private readonly IGenericServices<User> _userGenericService;
+
+    public UserService(
+        IUnitOfWork unitOfWork,
+        ILogger<UserService> logger,
+        IGenericServices<User> userGenericService)
+    {
+        _unitOfWork = unitOfWork;
+        _logger = logger;
+        _userGenericService = userGenericService;
+    }
+
+    // T?n d?ng generic service CRUD
+    public Task<IEnumerable<User>> GetAllAsync() => _userGenericService.GetAllAsync();
+    public Task<User?> GetByIdAsync(Guid id) => _userGenericService.GetByIdAsync(id);
+    public Task<IEnumerable<User>> FindAsync(Expression<Func<User, bool>> predicate) => _userGenericService.FindAsync(predicate);
+    public Task<User> AddAsync(User entity) => _userGenericService.AddAsync(entity);
+    public Task<IEnumerable<User>> AddRangeAsync(IEnumerable<User> entities) => _userGenericService.AddRangeAsync(entities);
+    public Task<User> UpdateAsync(User entity) => _userGenericService.UpdateAsync(entity);
+    public Task DeleteAsync(User entity) => _userGenericService.DeleteAsync(entity);
+    public Task DeleteByIdAsync(Guid id) => _userGenericService.DeleteByIdAsync(id);
+    public Task DeleteRangeAsync(IEnumerable<User> entities) => _userGenericService.DeleteRangeAsync(entities);
+    public Task<bool> ExistsAsync(Expression<Func<User, bool>> predicate) => _userGenericService.ExistsAsync(predicate);
+    public Task<int> CountAsync(Expression<Func<User, bool>> predicate) => _userGenericService.CountAsync(predicate);
+
+    // Business logic d?c thù
+    public async Task<ApiResponse<UserDetailDTO>> GetUserByIdAsync(Guid id)
+    {
+        try
+        {
+            var user = await _unitOfWork.Users.GetByIdWithRolesAsync(id);
+            if (user == null)
+                return ApiResponse<UserDetailDTO>.FailureResponse("User not found", null);
+
+            return ApiResponse<UserDetailDTO>.SuccessResponse(MapToUserDetailDTO(user));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting user {UserId}", id);
+            return ApiResponse<UserDetailDTO>.FailureResponse("An error occurred while retrieving user", null);
+        }
+    }
+
+    public Task<ApiResponse<UserDetailDTO>> GetUserProfileAsync(Guid userId)
+        => GetUserByIdAsync(userId);
+
+    public async Task<ApiResponse<UserDetailDTO>> UpdateUserProfileAsync(Guid userId, UserUpdateDTO request)
+    {
+        try
+        {
+            await _unitOfWork.BeginTransactionAsync();
+
+            var user = await _unitOfWork.Users.GetByIdWithRolesAsync(userId);
+            if (user == null)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return ApiResponse<UserDetailDTO>.FailureResponse("User not found", null);
+            }
+
+            if (!string.IsNullOrEmpty(request.Email) && request.Email != user.Email)
+            {
+                if (await _unitOfWork.Users.EmailExistsAsync(request.Email))
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    return ApiResponse<UserDetailDTO>.FailureResponse("Email is already in use", null);
+                }
+                user.Email = request.Email.ToLower();
+            }
+
+            if (!string.IsNullOrEmpty(request.FullName))
+                user.Name = request.FullName;
+
+            if (!string.IsNullOrEmpty(request.PhoneNumber))
+                user.Phone = request.PhoneNumber;
+
+            user.IsActive = request.IsActive;
+
+            _unitOfWork.Users.Update(user);
+            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+
+            return ApiResponse<UserDetailDTO>.SuccessResponse(MapToUserDetailDTO(user), "Profile updated successfully");
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            _logger.LogError(ex, "Error updating profile for user {UserId}", userId);
+            return ApiResponse<UserDetailDTO>.FailureResponse("An error occurred while updating profile", null);
+        }
+    }
+
+    public async Task<ApiResponse<PaginatedResult<UserListDTO>>> GetUsersAsync(int pageNumber, int pageSize, string? searchTerm = null)
+    {
+        try
+        {
+            var (users, totalCount) = await _unitOfWork.Users.GetUsersPagedAsync(pageNumber, pageSize, searchTerm);
+
+            var paginatedResult = new PaginatedResult<UserListDTO>
+            {
+                Items = users.ToList(),
+                TotalItems = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
+
+            return ApiResponse<PaginatedResult<UserListDTO>>.SuccessResponse(paginatedResult);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting users list with search term: {SearchTerm}", searchTerm);
+            return ApiResponse<PaginatedResult<UserListDTO>>.FailureResponse("An error occurred while retrieving users", null);
+        }
+    }
+
+    public async Task<ApiResponse<bool>> DeactivateUserAsync(Guid id)
+    {
+        try
+        {
+            await _unitOfWork.BeginTransactionAsync();
+
+            var user = await _unitOfWork.Users.GetByIdAsync(id);
+            if (user == null)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return ApiResponse<bool>.FailureResponse("User not found", null);
+            }
+
+            user.IsActive = false;
+            user.Status = UserStatus.INACTIVE;
+
+            _unitOfWork.Users.Update(user);
+            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+
+            _logger.LogInformation("User {UserId} deactivated successfully", id);
+            return ApiResponse<bool>.SuccessResponse(true, "User deactivated successfully");
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            _logger.LogError(ex, "Error deactivating user {UserId}", id);
+            return ApiResponse<bool>.FailureResponse("An error occurred while deactivating user", null);
+        }
+    }
+
+    public async Task<ApiResponse<bool>> ActivateUserAsync(Guid id)
+    {
+        try
+        {
+            await _unitOfWork.BeginTransactionAsync();
+
+            var user = await _unitOfWork.Users.GetByIdAsync(id);
+            if (user == null)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return ApiResponse<bool>.FailureResponse("User not found", null);
+            }
+
+            user.IsActive = true;
+            user.Status = UserStatus.ACTIVE;
+
+            _unitOfWork.Users.Update(user);
+            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+
+            _logger.LogInformation("User {UserId} activated successfully", id);
+            return ApiResponse<bool>.SuccessResponse(true, "User activated successfully");
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            _logger.LogError(ex, "Error activating user {UserId}", id);
+            return ApiResponse<bool>.FailureResponse("An error occurred while activating user", null);
+        }
+    }
+
+    private UserDetailDTO MapToUserDetailDTO(User user)
+    {
+        return new UserDetailDTO
+        {
+            Id = user.Id,
+            Email = user.Email,
+            Name = user.Name,
+            Phone = user.Phone,
+            IsActive = user.IsActive,
+            Status = user.Status,
+            LastLogin = user.LastLogin,
+            StoreId = user.StoreId,
+            StoreName = user.Store?.Name ?? "",
+            CreatedAt = user.CreatedAt,
+            Roles = user.UserRoles?.Select(ur => ur.Role.Name).ToList() ?? new List<string>()
+        };
+    }
+}
+
+----------------------------------------
+N?i dung c?a VietCommerce.Api/Services/Interfaces/IUserService.cs :
+----------------------------------------
+// Core/Services/Interfaces/IUserService.cs
+using VietCommerce.Core.DTOs.Users;
+using VietCommerce.Core.Entities.Users;
+using VietCommerce.Core.Models;
+
+namespace VietCommerce.Api.Services.Interfaces;
+
+public interface IUserService : IGenericServices<User>
+{
+    Task<ApiResponse<UserDetailDTO>> GetUserByIdAsync(Guid id);
+    Task<ApiResponse<UserDetailDTO>> GetUserProfileAsync(Guid userId);
+    Task<ApiResponse<UserDetailDTO>> UpdateUserProfileAsync(Guid userId, UserUpdateDTO request);
+    Task<ApiResponse<PaginatedResult<UserListDTO>>> GetUsersAsync(int pageNumber, int pageSize, string? searchTerm = null);
+    Task<ApiResponse<bool>> DeactivateUserAsync(Guid id);
+    Task<ApiResponse<bool>> ActivateUserAsync(Guid id);
+}
+----------------------------------------
+N?i dung c?a VietCommerce.Data/Repositories/UserRepository.cs :
+----------------------------------------
+// Data/Repositories/UserRepository.cs
+using Microsoft.EntityFrameworkCore;
+using VietCommerce.Core.Entities.Users;
+using VietCommerce.Core.DTOs.Users;
+using VietCommerce.Data.Context;
+using VietCommerce.Data.Repositories.Interfaces;
+
+namespace VietCommerce.Data.Repositories;
+
+public class UserRepository : GenericRepository<User>, IUserRepository
+{
+    public UserRepository(AppDbContext context) : base(context)
+    {
+    }
+
+    public async Task<User?> GetByEmailAsync(string email)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(u => u.Email == email.ToLower());
+    }
+   
+    public async Task<User?> GetByIdWithRolesAsync(Guid id)
+    {
+        return await _dbSet
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+            .Include(u => u.Store)
+            .FirstOrDefaultAsync(u => u.Id == id);
+    }
+
+    public async Task<User?> GetByEmailWithRolesAsync(string email)
+    {
+        return await _dbSet
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+            .Include(u => u.Store)
+            .FirstOrDefaultAsync(u => u.Email == email.ToLower());
+    }
+
+    public async Task<bool> EmailExistsAsync(string email)
+    {
+        return await _dbSet.AnyAsync(u => u.Email == email.ToLower());
+    }
+
+    public async Task<(IEnumerable<UserListDTO> users, int totalCount)> GetUsersPagedAsync(
+        int pageNumber, 
+        int pageSize, 
+        string? searchTerm = null)
+    {
+        var query = _dbSet
+            .Include(u => u.Store)
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+            .AsQueryable();
+
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            var lowerSearchTerm = searchTerm.ToLower();
+            query = query.Where(u => 
+                u.Email.ToLower().Contains(lowerSearchTerm) ||
+                (u.Name != null && u.Name.ToLower().Contains(lowerSearchTerm)) ||
+                (u.Phone != null && u.Phone.Contains(searchTerm)));
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var users = await query
+            .OrderBy(u => u.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(u => new UserListDTO
+            {
+                Id = u.Id,
+                Email = u.Email,
+                FullName = u.Name,
+                PhoneNumber = u.Phone,
+                IsActive = u.IsActive,
+                StoreName = u.Store.Name,
+                CreatedDate = u.CreatedAt,
+                Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
+            })
+            .ToListAsync();
+
+        return (users, totalCount);
+    }
+}
+
+----------------------------------------
+N?i dung c?a VietCommerce.Api/Services/Interfaces/IGenericServices.cs :
+----------------------------------------
+using System.Linq.Expressions;
+using VietCommerce.Core.Common;
+
+namespace VietCommerce.Api.Services.Interfaces;
+
+public interface IGenericServices<T> where T : BaseEntity
+{
+    Task<IEnumerable<T>> GetAllAsync();
+    Task<T?> GetByIdAsync(Guid id);
+    Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
+    Task<T> AddAsync(T entity);
+    Task<IEnumerable<T>> AddRangeAsync(IEnumerable<T> entities);
+    Task<T> UpdateAsync(T entity);
+    Task DeleteAsync(T entity);
+    Task DeleteByIdAsync(Guid id);
+    Task DeleteRangeAsync(IEnumerable<T> entities);
+    Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate);
+    Task<int> CountAsync(Expression<Func<T, bool>> predicate);
+}
+
+----------------------------------------
+N?i dung c?a VietCommerce.Data/Repositories/Interfaces/IGenericRepository.cs :
+----------------------------------------
+// Data/Repositories/Interfaces/IGenericRepository.cs
+using System.Linq.Expressions;
+using VietCommerce.Core.Common;
+
+namespace VietCommerce.Data.Repositories.Interfaces;
+
+public interface IGenericRepository<T> where T : BaseEntity
+{
+    Task<T?> GetByIdAsync(Guid id);
+    Task<IEnumerable<T>> GetAllAsync();
+    Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
+    Task<T?> GetFirstOrDefaultAsync(Expression<Func<T, bool>> predicate);
+    Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
+    Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null);
+    Task<T> AddAsync(T entity);
+    Task AddRangeAsync(IEnumerable<T> entities);
+    void Update(T entity);
+    void UpdateRange(IEnumerable<T> entities);
+    void Delete(T entity);
+    void DeleteRange(IEnumerable<T> entities);
+    Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
+        int pageNumber, 
+        int pageSize, 
+        Expression<Func<T, bool>>? predicate = null,
+        Expression<Func<T, object>>? orderBy = null,
+        bool ascending = true);
+}
+
+----------------------------------------
+N?i dung c?a VietCommerce.Core/DTOs/Roles/RoleDetailDTO.cs :
+----------------------------------------
+using VietCommerce.Core.DTOs.Permissions;
+
+namespace VietCommerce.Core.DTOs.Roles;
+
+public class RoleDetailDTO
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public List<PermissionListDTO> Permissions { get; set; } = new List<PermissionListDTO>();
+    public int UserCount { get; set; }
+}
+
+----------------------------------------
+N?i dung c?a VietCommerce.Core/DTOs/Roles/RoleListDTO.cs :
+----------------------------------------
+namespace VietCommerce.Core.DTOs.Roles;
+
+public class RoleListDTO
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public int UserCount { get; set; }
+    public int PermissionCount { get; set; }
+}
+
+----------------------------------------
+N?i dung c?a VietCommerce.Core/DTOs/Roles/RoleCreateDTO.cs :
+----------------------------------------
+using System.ComponentModel.DataAnnotations;
+
+namespace VietCommerce.Core.DTOs.Roles;
+
+public class RoleCreateDTO
+{
+    [Required(ErrorMessage = "Role name is required")]
+    [StringLength(100, ErrorMessage = "Role name cannot exceed 100 characters")]
+    [RegularExpression(@"^[a-zA-Z0-9_\-\s]+$", ErrorMessage = "Role name can only contain letters, numbers, underscores, hyphens, and spaces")]
+    public string Name { get; set; } = string.Empty;
+
+    [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
+    public string? Description { get; set; }
+}
+
+----------------------------------------
+N?i dung c?a VietCommerce.Core/DTOs/Roles/RoleUpdateDTO.cs :
+----------------------------------------
+using System.ComponentModel.DataAnnotations;
+
+namespace VietCommerce.Core.DTOs.Roles;
+
+public class RoleUpdateDTO
+{
+    [Required(ErrorMessage = "Role name is required")]
+    [StringLength(100, ErrorMessage = "Role name cannot exceed 100 characters")]
+    [RegularExpression(@"^[a-zA-Z0-9_\-\s]+$", ErrorMessage = "Role name can only contain letters, numbers, underscores, hyphens, and spaces")]
+    public string Name { get; set; } = string.Empty;
+
+    [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
+    public string? Description { get; set; }
+}
+
+----------------------------------------
+N?i dung c?a VietCommerce.Core/DTOs/Permissions/PermissionListDTO.cs :
+----------------------------------------
+namespace VietCommerce.Core.DTOs.Permissions;
+
+public class PermissionListDTO
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public int RoleCount { get; set; }
+}
+
+----------------------------------------
+N?i dung c?a VietCommerce.Core/Models/ApiResponse.cs :
+----------------------------------------
+namespace VietCommerce.Core.Models;
+
+public class ApiResponse<T>
+{
+    public bool Success { get; set; }
+    public T? Data { get; set; }
+    public string? Message { get; set; }
+    public string[]? Errors { get; set; }
+
+    private ApiResponse() { }
+
+    // -----------------------
+    // ? Factory methods
+    // -----------------------
+
+    public static ApiResponse<T> SuccessResponse(
+        T data,
+        string message = "Success")
+    {
+        return new ApiResponse<T>
+        {
+            Success = true,
+            Data = data,
+            Message = message
+        };
+    }
+
+    public static ApiResponse<T> FailureResponse(
+        string message = "Failed",
+        string[]? errors = null)
+    {
+        return new ApiResponse<T>
+        {
+            Success = false,
+            Data = default,
+            Message = message,
+            Errors = errors ?? new[] { message }
+        };
+    }
+}
+
+----------------------------------------
+N?i dung c?a VietCommerce.Core/Models/PaginatedResult.cs :
+----------------------------------------
+namespace VietCommerce.Core.Models;
+
+public class PaginatedResult<T>
+{
+    public IEnumerable<T> Items { get; set; }
+    public int PageNumber { get; set; }
+    public int PageSize { get; set; }
+    public int TotalItems { get; set; }
+    public int TotalPages { get; set; }
+
+    public PaginatedResult()
+    {
+        Items = Enumerable.Empty<T>();
+    }
+
+    public PaginatedResult(IEnumerable<T> items, int pageNumber, int pageSize, int totalItems, int totalPages = 0)
+    {
+        Items = items;
+        PageNumber = pageNumber;
+        PageSize = pageSize;
+        TotalItems = totalItems;
+        TotalPages = totalPages > 0 ? totalPages : (int)Math.Ceiling((double)totalItems / pageSize);
+    }
+}
+----------------------------------------

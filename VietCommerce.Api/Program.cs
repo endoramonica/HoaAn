@@ -1,33 +1,27 @@
 ﻿using FluentValidation;
-//using VietCommerce.Api.Middlewares;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Diagnostics;
-using System.Reflection;
 using System.Text;
 using VietCommerce.Api.Services;
 using VietCommerce.Api.Services.Interfaces;
+using VietCommerce.Api.Validators.Staff;
+using VietCommerce.Api.Validators.Manager;
+using VietCommerce.Api.Validators.Admin;
+using VietCommerce.Core.DTOs.Staff;
+using VietCommerce.Core.DTOs.Manager;
+using VietCommerce.Core.DTOs.Admin;
 using VietCommerce.Core.Helpers;
 using VietCommerce.Data.Context;
 using VietCommerce.Data.Repositories;
 using VietCommerce.Data.Repositories.Interfaces;
-// <summary>
-//Các tính năng chính:
 
-//Full DI Configuration: Tất cả services, repositories, helpers đều được register
-//JWT Authentication: Cấu hình hoàn chỉnh với error handling
-//Swagger/OpenAPI: Với JWT Bearer authorization
-//CORS Policy: Cho phép cross-origin requests
-//Database Migration: Tự động migration trong development
-//Comprehensive Logging: Console + Debug logging
-//FluentValidation: Auto validation cho tất cả requests
-//Error Handling: Global exception middleware
-//Health Check: / health endpoint
-// </summary>
 var builder = WebApplication.CreateBuilder(args);
 
+// ============================================
+// 1. CONTROLLERS & API BEHAVIOR
+// ============================================
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
     {
@@ -51,6 +45,9 @@ builder.Services.AddControllers()
         };
     });
 
+// ============================================
+// 2. SWAGGER/OPENAPI CONFIGURATION
+// ============================================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -86,6 +83,9 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// ============================================
+// 3. DATABASE CONTEXT
+// ============================================
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlServer(
@@ -100,8 +100,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     }
 });
 
+// ============================================
+// 4. JWT AUTHENTICATION & AUTHORIZATION
+// ============================================
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 builder.Services.Configure<JwtSettings>(jwtSettings);
+builder.Services.AddScoped<JwtHelper>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -143,42 +147,51 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
-//builder.Services.AddFluentValidationAutoValidation();
-//builder.Services.AddFluentValidationClientsideAdapters();
-//builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
-// Bind JwtSettings từ appsettings.json
-builder.Services.Configure<JwtSettings>(
-    builder.Configuration.GetSection("JwtSettings"));
-
-// Đăng ký JwtHelper
-builder.Services.AddScoped<JwtHelper>();
-
-// Đăng ký repositories và services
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-// Add after existing services registration:
-
-// Add Memory Cache for permission caching
+// ============================================
+// 5. MEMORY CACHE
+// ============================================
 builder.Services.AddMemoryCache();
 
-// Add RBAC Services
-builder.Services.AddScoped<IPermissionService, PermissionService>();
-builder.Services.AddScoped<IRoleService, RoleService>();
-// Add RBAC Repositories
+// ============================================
+// 6. REPOSITORIES (UnitOfWork Pattern)
+// ============================================
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
 builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
 builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
-
+// ============================================
+// 7. BUSINESS SERVICES
+// ============================================
+builder.Services.AddScoped(typeof(IGenericServices<>), typeof(GenericServices<>));
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped(typeof(IGenericServices<>), typeof(GenericServices<>));
-// Add RBAC Authorization
-builder.Services.AddRBACAuthorization();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IStaffService, StaffService>();
+builder.Services.AddScoped<IManagerService, ManagerService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 
+// ============================================
+// 8. VALIDATORS (FluentValidation)
+// ============================================
+builder.Services.AddScoped<IValidator<StaffCreateDTO>, StaffCreateValidator>();
+builder.Services.AddScoped<IValidator<StaffUpdateDTO>, StaffUpdateValidator>();
+builder.Services.AddScoped<IValidator<ManagerCreateDTO>, ManagerCreateValidator>();
+builder.Services.AddScoped<IValidator<ManagerUpdateDTO>, ManagerUpdateValidator>();
+builder.Services.AddScoped<IValidator<AdminUserCreateDTO>, AdminUserCreateValidator>();
+builder.Services.AddScoped<IValidator<AdminUserUpdateDTO>, AdminUserUpdateValidator>();
+
+// ============================================
+// 9. CORS POLICY
+// ============================================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("VietCommercePolicy", policy =>
@@ -189,6 +202,9 @@ builder.Services.AddCors(options =>
     });
 });
 
+// ============================================
+// 10. LOGGING
+// ============================================
 builder.Services.AddLogging(logging =>
 {
     logging.ClearProviders();
@@ -205,10 +221,19 @@ builder.Services.AddLogging(logging =>
     }
 });
 
+// ============================================
+// 11. HTTP CLIENT
+// ============================================
 builder.Services.AddHttpClient();
 
+// ============================================
+// BUILD APPLICATION
+// ============================================
 var app = builder.Build();
 
+// ============================================
+// MIDDLEWARE PIPELINE
+// ============================================
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -218,12 +243,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("VietCommercePolicy");
-//app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapGet("/health", () => new { Status = "Healthy", Timestamp = DateTime.UtcNow });
 
+// ============================================
+// DATABASE MIGRATION (Development Only)
+// ============================================
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
@@ -239,8 +266,8 @@ if (app.Environment.IsDevelopment())
     }
 }
 
-Console.WriteLine("🚀 VietCommerce API is starting...");
+Console.WriteLine("VietCommerce API is starting...");
 Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");
-Console.WriteLine($"Swagger UI: {(app.Environment.IsDevelopment() ? "Available at /" : "Disabled in production")}");
+Console.WriteLine($"Swagger UI: {(app.Environment.IsDevelopment() ? "Available at /swagger" : "Disabled in production")}");
 
-app.Run();
+app.Run();  

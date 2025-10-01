@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 using VietCommerce.Api.Services.Interfaces;
 
-namespace VietCommerce.Core.Authorization;
+namespace VietCommerce.Api.Authorization;
 
 public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionRequirement>
 {

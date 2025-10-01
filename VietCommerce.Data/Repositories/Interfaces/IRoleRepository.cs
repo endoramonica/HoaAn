@@ -1,12 +1,15 @@
-﻿using VietCommerce.Core.Entities.Users;
+// Updated IRoleRepository.cs
+using VietCommerce.Core.Entities.Users;
+using VietCommerce.Data.Repositories.Interfaces;
 
 namespace VietCommerce.Data.Repositories.Interfaces;
 
 public interface IRoleRepository : IGenericRepository<Role>
 {
-    Task<List<Role>> GetUserRolesAsync(Guid userId);
     Task<Role?> GetRoleWithPermissionsAsync(Guid roleId);
-    Task<List<Role>> GetRolesWithPermissionsAsync();
+    Task<List<Role>> GetUserRolesAsync(Guid userId);
     Task<bool> RoleExistsAsync(string roleName);
-    Task<Role?> GetByNameAsync(string roleName);
+    
+    // New method added
+    Task<Role?> GetRoleByNameAsync(string roleName);
 }
