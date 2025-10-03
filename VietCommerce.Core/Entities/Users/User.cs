@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using VietCommerce.Core.Common;
 using VietCommerce.Core.Entities.Audit;
 using VietCommerce.Core.Entities.Marketing;
@@ -7,6 +8,10 @@ using VietCommerce.Core.Entities.Orders;
 using VietCommerce.Core.Entities.Organization;
 using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Enums.Users;
+using VietCommerce.Core.Entities.HRM;
+using VietCommerce.Core.Entities.CRM;
+using VietCommerce.Core.Entities.Logistics;
+using VietCommerce.Core.Entities.Tasks;
 
 
 namespace VietCommerce.Core.Entities.Users;
@@ -14,7 +19,7 @@ namespace VietCommerce.Core.Entities.Users;
 public class User : AuditableEntity, ISoftDelete
 {
     public Guid StoreId { get; set; }
-    
+
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string? Name { get; set; }
@@ -32,9 +37,9 @@ public class User : AuditableEntity, ISoftDelete
 
     // ⭐ THÊM NAVIGATION PROPERTIES:
     public virtual ICollection<UserAddress> UserAddresses { get; set; } = new List<UserAddress>();
-    
+
     public virtual ICollection<ProductPrice> CreatedPrices { get; set; } = new List<ProductPrice>();
-   
+
     // Navigation properties
     public virtual Store Store { get; set; } = null!;
     public virtual ICollection<Campaign> CreatedCampaigns { get; set; } = new List<Campaign>();
@@ -46,5 +51,25 @@ public class User : AuditableEntity, ISoftDelete
     public virtual ICollection<Order> CreatedOrders { get; set; } = new List<Order>();
     public virtual ICollection<InventoryMovement> InventoryMovements { get; set; } = new List<InventoryMovement>();
     public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
+// Thêm vào User.cs
+[InverseProperty(nameof(Shift.Staff))]
+public ICollection<Shift> Shifts { get; set; } = new List<Shift>();
+
+[InverseProperty(nameof(WorkTask.AssignedTo))]
+public ICollection<Task> AssignedTasks { get; set; } = new List<Task>();
+
+[InverseProperty(nameof(WorkTask.AssignedBy))]
+public ICollection<Task> CreatedTasks { get; set; } = new List<Task>();
+
+[InverseProperty(nameof(CRMInteraction.CreatedByUser))]
+public ICollection<CRMInteraction> CRMInteractions { get; set; } = new List<CRMInteraction>();
+
+[InverseProperty(nameof(StockTransfer.RequestedByUser))]
+public ICollection<StockTransfer> RequestedTransfers { get; set; } = new List<StockTransfer>();
+
+[InverseProperty(nameof(StockTransfer.ApprovedByUser))]
+public ICollection<StockTransfer> ApprovedTransfers { get; set; } = new List<StockTransfer>();
+
+    
     
 }

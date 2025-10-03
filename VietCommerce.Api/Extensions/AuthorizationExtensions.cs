@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using VietCommerce.Core.Authorization;
+using VietCommerce.Api.Authorization;
 
 namespace VietCommerce.Api.Extensions;
 

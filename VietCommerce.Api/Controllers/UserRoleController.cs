@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using VietCommerce.Api.Services.Interfaces;
-using VietCommerce.Core.Attributes;
 using VietCommerce.Core.DTOs.Authorization;
 using VietCommerce.Core.DTOs.UserRoles;
 

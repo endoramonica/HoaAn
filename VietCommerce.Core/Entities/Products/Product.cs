@@ -3,6 +3,9 @@ using VietCommerce.Core.Common;
 using VietCommerce.Core.Entities.Marketing;
 using VietCommerce.Core.Entities.Orders;
 using VietCommerce.Core.Entities.Organization;
+using System.ComponentModel.DataAnnotations.Schema;
+using VietCommerce.Core.Entities.Logistics;
+
 
 namespace VietCommerce.Core.Entities.Products;
 
@@ -17,12 +20,12 @@ public class Product : BaseEntity, ISoftDelete
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedBy { get; set; }
     public string SKU { get; set; } = string.Empty;       // thêm SKU
-    
+
     public bool IsActive { get; set; } = true;
 
     // Navigation properties
     public virtual Store Store { get; set; } = null!;
-   
+
     public virtual Category? Category { get; set; }
     public virtual ICollection<PromotionProduct> PromotionProducts { get; set; } = new List<PromotionProduct>();
     public virtual ICollection<ProductPrice> Prices { get; set; } = new List<ProductPrice>();
@@ -31,4 +34,10 @@ public class Product : BaseEntity, ISoftDelete
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
     public virtual ICollection<InventoryMovement> InventoryMovements { get; set; } = new List<InventoryMovement>();
+    // Thêm vào Product.cs
+[InverseProperty(nameof(TransferItem.Product))]
+public ICollection<TransferItem> TransferItems { get; set; } = new List<TransferItem>();
+
+// Many-to-many với Supplier
+public ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();
 }
