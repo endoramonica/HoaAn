@@ -12,7 +12,7 @@ namespace VietCommerce.Core.Entities.CRM
     [Index(nameof(CustomerId), nameof(CreatedAt))]
     [Index(nameof(Type))]
     [Index(nameof(Status))]
-    public class CRMInteraction : BaseEntity
+    public class CRMInteraction :  AuditableEntity
     {
         
         

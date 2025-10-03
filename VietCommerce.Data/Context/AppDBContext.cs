@@ -114,13 +114,13 @@ public class AppDbContext : DbContext
         ConfigureCategoryEntities(modelBuilder);
         ConfigureProductEntities(modelBuilder);
         ConfigureInventoryEntities(modelBuilder);
-        ConfigureOrderEntities(modelBuilder);
-        ConfigurePaymentEntities(modelBuilder);
-        ConfigureCartEntities(modelBuilder);
-        ConfigureMarketingEntities(modelBuilder);
+        // ConfigureOrderEntities(modelBuilder);
+        // ConfigurePaymentEntities(modelBuilder);
+        // ConfigureCartEntities(modelBuilder);
+        // ConfigureMarketingEntities(modelBuilder);
         ConfigureNotificationEntities(modelBuilder);
         ConfigureCRMEntities(modelBuilder);
-        ConfigureLogisticsEntities(modelBuilder);
+        // ConfigureLogisticsEntities(modelBuilder);
         ConfigureHRMEntities(modelBuilder);
         ConfigureShiftEntities(modelBuilder);
         ConfigureTaskEntities(modelBuilder);
@@ -234,7 +234,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(rt => rt.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasMany(u => u.Addresses)
+            entity.HasMany(u => u.UserAddresses)
                 .WithOne(a => a.User)
                 .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
@@ -423,121 +423,121 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<InventoryMovement>(entity =>
-        {
-            entity.HasOne(im => im.Order)
-                .WithMany(o => o.InventoryMovements)
-                .HasForeignKey(im => im.OrderId)
-                .OnDelete(DeleteBehavior.SetNull);
+        // modelBuilder.Entity<InventoryMovement>(entity =>
+        // {
+        //     entity.HasOne(im => im.Order)
+        //         .WithMany(o => o.InventoryMovements)
+        //         .HasForeignKey(im => im.OrderId)
+        //         .OnDelete(DeleteBehavior.SetNull);
 
-            entity.HasOne(im => im.Transfer)
-                .WithMany(t => t.InventoryMovements)
-                .HasForeignKey(im => im.TransferId)
-                .OnDelete(DeleteBehavior.SetNull);
-        });
+        //     entity.HasOne(im => im.Transfer)
+        //         .WithMany(t => t.InventoryMovements)
+        //         .HasForeignKey(im => im.TransferId)
+        //         .OnDelete(DeleteBehavior.SetNull);
+        // });
     }
 
-    private void ConfigureOrderEntities(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<Order>(entity =>
-        {
-            entity.HasIndex(o => o.Code).IsUnique();
-            entity.HasIndex(o => o.OrderNumber)
-                .IsUnique()
-                .HasFilter("IsDeleted = 0");
-            entity.HasIndex(o => new { o.StoreId, o.CreatedAt });
+    // private void ConfigureOrderEntities(ModelBuilder modelBuilder)
+    // {
+    //     modelBuilder.Entity<Order>(entity =>
+    //     {
+    //         entity.HasIndex(o => o.Code).IsUnique();
+    //         entity.HasIndex(o => o.OrderNumber)
+    //             .IsUnique()
+    //             .HasFilter("IsDeleted = 0");
+    //         entity.HasIndex(o => new { o.StoreId, o.CreatedAt });
 
-            // Staff relationship
-            entity.HasOne(o => o.Staff)
-                .WithMany(u => u.Orders)
-                .HasForeignKey(o => o.StaffId)
-                .OnDelete(DeleteBehavior.Restrict);
+    //         // Staff relationship
+    //         entity.HasOne(o => o.Staff)
+    //             .WithMany(u => u.Orders)
+    //             .HasForeignKey(o => o.StaffId)
+    //             .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasMany(o => o.OrderItems)
-                .WithOne(oi => oi.Order)
-                .HasForeignKey(oi => oi.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
+    //         entity.HasMany(o => o.OrderItems)
+    //             .WithOne(oi => oi.Order)
+    //             .HasForeignKey(oi => oi.OrderId)
+    //             .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasMany(o => o.Payments)
-                .WithOne(p => p.Order)
-                .HasForeignKey(p => p.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
+    //         entity.HasMany(o => o.Payments)
+    //             .WithOne(p => p.Order)
+    //             .HasForeignKey(p => p.OrderId)
+    //             .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasMany(o => o.OrderStatusHistories)
-                .WithOne(osh => osh.Order)
-                .HasForeignKey(osh => osh.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
+    //         entity.HasMany(o => o.OrderStatusHistories)
+    //             .WithOne(osh => osh.Order)
+    //             .HasForeignKey(osh => osh.OrderId)
+    //             .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(o => o.OrderShipping)
-                .WithOne(os => os.Order)
-                .HasForeignKey<OrderShipping>(os => os.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
+    //         entity.HasOne(o => o.OrderShipping)
+    //             .WithOne(os => os.Order)
+    //             .HasForeignKey<OrderShipping>(os => os.OrderId)
+    //             .OnDelete(DeleteBehavior.Cascade);
+    //     });
 
-        modelBuilder.Entity<OrderItem>(entity =>
-        {
-            entity.HasOne(oi => oi.Order)
-                .WithMany(o => o.Items)
-                .HasForeignKey(oi => oi.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-    }
+    //     modelBuilder.Entity<OrderItem>(entity =>
+    //     {
+    //         entity.HasOne(oi => oi.Order)
+    //             .WithMany(o => o.Items)
+    //             .HasForeignKey(oi => oi.OrderId)
+    //             .OnDelete(DeleteBehavior.Cascade);
+    //     });
+    // }
 
-    private void ConfigurePaymentEntities(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<Payment>(entity =>
-        {
-            entity.HasOne(p => p.PaymentMethod)
-                .WithMany(pm => pm.Payments)
-                .HasForeignKey(p => p.MethodId)
-                .OnDelete(DeleteBehavior.Restrict);
+    // private void ConfigurePaymentEntities(ModelBuilder modelBuilder)
+    // {
+    //     modelBuilder.Entity<Payment>(entity =>
+    //     {
+    //         entity.HasOne(p => p.PaymentMethod)
+    //             .WithMany(pm => pm.Payments)
+    //             .HasForeignKey(p => p.MethodId)
+    //             .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasMany(p => p.PaymentTransactions)
-                .WithOne(pt => pt.Payment)
-                .HasForeignKey(pt => pt.PaymentId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-    }
+    //         entity.HasMany(p => p.PaymentTransactions)
+    //             .WithOne(pt => pt.Payment)
+    //             .HasForeignKey(pt => pt.PaymentId)
+    //             .OnDelete(DeleteBehavior.Cascade);
+    //     });
+    // }
 
-    private void ConfigureCartEntities(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<Cart>(entity =>
-        {
-            entity.HasIndex(c => c.UserId)
-                .IsUnique()
-                .HasFilter("UserId IS NOT NULL AND IsDeleted = 0");
+    // private void ConfigureCartEntities(ModelBuilder modelBuilder)
+    // {
+    //     modelBuilder.Entity<Cart>(entity =>
+    //     {
+    //         entity.HasIndex(c => c.UserId)
+    //             .IsUnique()
+    //             .HasFilter("UserId IS NOT NULL AND IsDeleted = 0");
 
-            entity.HasIndex(c => c.CustomerId)
-                .IsUnique()
-                .HasFilter("CustomerId IS NOT NULL AND IsDeleted = 0");
+    //         entity.HasIndex(c => c.CustomerId)
+    //             .IsUnique()
+    //             .HasFilter("CustomerId IS NOT NULL AND IsDeleted = 0");
 
-            entity.HasMany(c => c.CartItems)
-                .WithOne(ci => ci.Cart)
-                .HasForeignKey(ci => ci.CartId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-    }
+    //         entity.HasMany(c => c.CartItems)
+    //             .WithOne(ci => ci.Cart)
+    //             .HasForeignKey(ci => ci.CartId)
+    //             .OnDelete(DeleteBehavior.Cascade);
+    //     });
+    // }
 
-    private void ConfigureMarketingEntities(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<Campaign>()
-            .HasMany(c => c.Promotions)
-            .WithOne(p => p.Campaign)
-            .HasForeignKey(p => p.CampaignId)
-            .OnDelete(DeleteBehavior.Cascade);
+    // private void ConfigureMarketingEntities(ModelBuilder modelBuilder)
+    // {
+    //     modelBuilder.Entity<Campaign>()
+    //         .HasMany(c => c.Promotions)
+    //         .WithOne(p => p.Campaign)
+    //         .HasForeignKey(p => p.CampaignId)
+    //         .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Promotion>()
-            .HasMany(p => p.PromotionProducts)
-            .WithOne(pp => pp.Promotion)
-            .HasForeignKey(pp => pp.PromotionId)
-            .OnDelete(DeleteBehavior.Cascade);
-    }
+    //     modelBuilder.Entity<Promotion>()
+    //         .HasMany(p => p.PromotionProducts)
+    //         .WithOne(pp => pp.Promotion)
+    //         .HasForeignKey(pp => pp.PromotionId)
+    //         .OnDelete(DeleteBehavior.Cascade);
+    // }
 
     private void ConfigureNotificationEntities(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Notification>(entity =>
         {
-            entity.HasIndex(n => new { n.UserId, n.IsRead });
+            // entity.HasIndex(n => new { n.UserId, n.IsRead });
             entity.HasIndex(n => new { n.UserId, n.Read });
         });
 
@@ -559,44 +559,44 @@ public class AppDbContext : DbContext
         });
     }
 
-    private void ConfigureLogisticsEntities(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<StockTransfer>(entity =>
-        {
-            entity.HasMany(st => st.TransferItems)
-                .WithOne(ti => ti.StockTransfer)
-                .HasForeignKey(ti => ti.StockTransferId)
-                .OnDelete(DeleteBehavior.Cascade);
+    // private void ConfigureLogisticsEntities(ModelBuilder modelBuilder)
+    // {
+    //     modelBuilder.Entity<StockTransfer>(entity =>
+    //     {
+    //         entity.HasMany(st => st.TransferItems)
+    //             .WithOne(ti => ti.StockTransfer)
+    //             .HasForeignKey(ti => ti.StockTransferId)
+    //             .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(st => st.RequestedByUser)
-                .WithMany()
-                .HasForeignKey(st => st.RequestedBy)
-                .OnDelete(DeleteBehavior.Restrict);
+    //         entity.HasOne(st => st.RequestedByUser)
+    //             .WithMany()
+    //             .HasForeignKey(st => st.RequestedBy)
+    //             .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(st => st.ApprovedByUser)
-                .WithMany()
-                .HasForeignKey(st => st.ApprovedBy)
-                .OnDelete(DeleteBehavior.Restrict);
+    //         entity.HasOne(st => st.ApprovedByUser)
+    //             .WithMany()
+    //             .HasForeignKey(st => st.ApprovedBy)
+    //             .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(st => st.Supplier)
-                .WithMany(s => s.StockTransfers)
-                .HasForeignKey(st => st.SupplierId)
-                .OnDelete(DeleteBehavior.SetNull);
-        });
-    }
+    //         entity.HasOne(st => st.Supplier)
+    //             .WithMany(s => s.StockTransfers)
+    //             .HasForeignKey(st => st.SupplierId)
+    //             .OnDelete(DeleteBehavior.SetNull);
+    //     });
+    // }
 
     private void ConfigureHRMEntities(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Employee>(entity =>
         {
-            entity.HasIndex(e => e.Code).IsUnique();
+            // entity.HasIndex(e => e.Code).IsUnique();
             entity.HasIndex(e => e.Email).IsUnique();
 
             // Self-referencing relationship for Manager
-            entity.HasOne(e => e.Manager)
-                .WithMany(e => e.Subordinates)
-                .HasForeignKey(e => e.ManagerId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // entity.HasOne(e => e.Manager)
+            //     .WithMany(e => e.Subordinates)
+            //     .HasForeignKey(e => e.ManagerId)
+            //     .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(e => e.User)
                 .WithMany()
@@ -649,12 +649,12 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<WorkTask>(entity =>
         {
-            entity.HasIndex(t => t.Code).IsUnique();
+            // entity.HasIndex(t => t.Code).IsUnique();
 
-            entity.HasOne(t => t.AssignedTo)
-                .WithMany(u => u.AssignedTasks)
-                .HasForeignKey(t => t.AssignedToId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // entity.HasOne(t => t.AssignedTo)
+            //     // .WithMany(u => u.AssignedTasks)
+            //     .HasForeignKey(t => t.AssignedToId)
+            //     .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(t => t.AssignedByUser)
                 .WithMany(u => u.CreatedTasks)

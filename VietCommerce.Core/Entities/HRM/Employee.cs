@@ -5,18 +5,25 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using VietCommerce.Core.Common;
 using VietCommerce.Core.Entities.Organization;
-using VietCommerce.Core.Entities.HRM;
+using VietCommerce.Core.Entities.Users;
 
 namespace VietCommerce.Core.Entities.HRM
 {
     [Table("Employees")]
+    [Index(nameof(UserId), IsUnique = true)]
     [Index(nameof(Email), IsUnique = true)]
     [Index(nameof(Department))]
     [Index(nameof(Status))]
     public class Employee : BaseEntity
     {
+        // 1-1 relationship with User
+        [Required]
+        public Guid UserId { get; set; }
         
+        [ForeignKey(nameof(UserId))]
+        public virtual User User { get; set; } = null!;
         
+        // Employee info
         [Required]
         [MaxLength(100)]
         public string Name { get; set; } = string.Empty;
@@ -44,40 +51,24 @@ namespace VietCommerce.Core.Entities.HRM
         [Required]
         [Precision(10, 2)]
         public decimal Salary { get; set; }
-        
         [Required]
         public EmployeeStatus Status { get; set; } = EmployeeStatus.Active;
-        
-        [MaxLength(36)]
-        public string? ManagerId { get; set; }
-        
-        [MaxLength(36)]
-        public string? StoreId { get; set; }
-        
+        public Guid? StoreId { get; set; }
         [MaxLength(500)]
         public string? Avatar { get; set; }
-        
         [Column(TypeName = "nvarchar(max)")]
         public string Skills { get; set; } = "[]";
-        
         // Navigation properties
-        [ForeignKey(nameof(ManagerId))]
-        public Employee? Manager { get; set; }
-        
         [ForeignKey(nameof(StoreId))]
-        public Store? Store { get; set; }
-        
-        [InverseProperty(nameof(Manager))]
-        public ICollection<Employee> Subordinates { get; set; } = new List<Employee>();
-        
+        public virtual Store? Store { get; set; }
         [InverseProperty(nameof(PerformanceMetric.Employee))]
-        public ICollection<PerformanceMetric> Performance { get; set; } = new List<PerformanceMetric>();
+        public virtual ICollection<PerformanceMetric> Performance { get; set; } = new List<PerformanceMetric>();
         
         [InverseProperty(nameof(LeaveRequest.Employee))]
-        public ICollection<LeaveRequest> LeaveRequests { get; set; } = new List<LeaveRequest>();
+        public virtual ICollection<LeaveRequest> LeaveRequests { get; set; } = new List<LeaveRequest>();
         
         [InverseProperty(nameof(WorkSchedule.Employee))]
-        public ICollection<WorkSchedule> WorkSchedules { get; set; } = new List<WorkSchedule>();
+        public virtual ICollection<WorkSchedule> WorkSchedules { get; set; } = new List<WorkSchedule>();
     }
     
     public enum EmployeeStatus
