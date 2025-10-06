@@ -165,7 +165,7 @@ builder.Services.AddMemoryCache();
 
 // Add RBAC Services
 builder.Services.AddScoped<IPermissionService, PermissionService>();
-builder.Services.AddScoped<IRoleService, RoleService>();
+//builder.Services.AddScoped<IRoleService, RoleService>();
 // Add RBAC Repositories
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
@@ -177,7 +177,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped(typeof(IGenericServices<>), typeof(GenericServices<>));
 // Add RBAC Authorization
-builder.Services.AddRBACAuthorization();
+//builder.Services.AddRBACAuthorization();
 
 builder.Services.AddCors(options =>
 {

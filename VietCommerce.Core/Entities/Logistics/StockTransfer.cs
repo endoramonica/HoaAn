@@ -54,7 +54,7 @@ namespace VietCommerce.Core.Entities.Logistics
         public Supplier? Supplier { get; set; }
         
         [InverseProperty(nameof(TransferItem.StockTransfer))]
-        public ICollection<TransferItem> Items { get; set; } = new List<TransferItem>();
+        public ICollection<TransferItem> TransferItems { get; set; } = new List<TransferItem>();
         
         
         public ICollection<InventoryMovement> InventoryMovements { get; set; } = new List<InventoryMovement>();

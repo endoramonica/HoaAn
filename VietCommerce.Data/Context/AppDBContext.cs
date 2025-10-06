@@ -114,20 +114,20 @@ public class AppDbContext : DbContext
         ConfigureCategoryEntities(modelBuilder);
         ConfigureProductEntities(modelBuilder);
         ConfigureInventoryEntities(modelBuilder);
-        // ConfigureOrderEntities(modelBuilder);
-        // ConfigurePaymentEntities(modelBuilder);
-        // ConfigureCartEntities(modelBuilder);
-        // ConfigureMarketingEntities(modelBuilder);
+        ConfigureOrderEntities(modelBuilder);
+        ConfigurePaymentEntities(modelBuilder);
+        ConfigureCartEntities(modelBuilder);
+        ConfigureMarketingEntities(modelBuilder);
         ConfigureNotificationEntities(modelBuilder);
         ConfigureCRMEntities(modelBuilder);
-        // ConfigureLogisticsEntities(modelBuilder);
+        ConfigureLogisticsEntities(modelBuilder);
         ConfigureHRMEntities(modelBuilder);
         ConfigureShiftEntities(modelBuilder);
         ConfigureTaskEntities(modelBuilder);
         ConfigureAuditEntities(modelBuilder);
 
         // Composite Keys
-        modelBuilder.Entity<UserRole>().HasKey(ur => new { ur.UserId, ur.RoleId });
+        modelBuilder.Entity<UserRole>().HasKey(ur => new { ur.TenantId ,ur.UserId, ur.RoleId });
         modelBuilder.Entity<RolePermission>().HasKey(rp => new { rp.RoleId, rp.PermissionId });
         modelBuilder.Entity<PromotionProduct>().HasKey(pp => new { pp.PromotionId, pp.ProductId });
 
@@ -368,6 +368,7 @@ public class AppDbContext : DbContext
         {
             entity.HasIndex(p => p.Code).IsUnique();
             entity.HasIndex(p => p.Slug).IsUnique();
+            entity.HasIndex(p => new { p.CategoryId, p.IsDeleted });
             entity.HasIndex(p => p.SKU)
                 .IsUnique()
                 .HasFilter("IsDeleted = 0");
@@ -423,121 +424,122 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // modelBuilder.Entity<InventoryMovement>(entity =>
-        // {
-        //     entity.HasOne(im => im.Order)
-        //         .WithMany(o => o.InventoryMovements)
-        //         .HasForeignKey(im => im.OrderId)
-        //         .OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<InventoryMovement>(entity =>
+        {
+            entity.HasOne(im => im.Order)
+                .WithMany(o => o.InventoryMovements)
+                .HasForeignKey(im => im.OrderId)
+                .OnDelete(DeleteBehavior.SetNull);
 
-        //     entity.HasOne(im => im.Transfer)
-        //         .WithMany(t => t.InventoryMovements)
-        //         .HasForeignKey(im => im.TransferId)
-        //         .OnDelete(DeleteBehavior.SetNull);
-        // });
+            entity.HasOne(im => im.Transfer)
+                .WithMany(t => t.InventoryMovements)
+                .HasForeignKey(im => im.TransferId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
     }
 
-    // private void ConfigureOrderEntities(ModelBuilder modelBuilder)
-    // {
-    //     modelBuilder.Entity<Order>(entity =>
-    //     {
-    //         entity.HasIndex(o => o.Code).IsUnique();
-    //         entity.HasIndex(o => o.OrderNumber)
-    //             .IsUnique()
-    //             .HasFilter("IsDeleted = 0");
-    //         entity.HasIndex(o => new { o.StoreId, o.CreatedAt });
+    private void ConfigureOrderEntities(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Order>(entity =>
+        {
+            entity.HasIndex(o => o.OrderNumber)
+                .IsUnique()
+                .HasFilter("IsDeleted = 0");
+            entity.HasIndex(o => new { o.StoreId, o.CreatedAt });
 
-    //         // Staff relationship
-    //         entity.HasOne(o => o.Staff)
-    //             .WithMany(u => u.Orders)
-    //             .HasForeignKey(o => o.StaffId)
-    //             .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(o => o.CreatedByUser)
+                .WithMany(u => u.CreatedOrders)
+                .HasForeignKey(o => o.CreatedById)
+                .OnDelete(DeleteBehavior.Restrict);
 
-    //         entity.HasMany(o => o.OrderItems)
-    //             .WithOne(oi => oi.Order)
-    //             .HasForeignKey(oi => oi.OrderId)
-    //             .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(o => o.OrderItems)
+                .WithOne(oi => oi.Order)
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-    //         entity.HasMany(o => o.Payments)
-    //             .WithOne(p => p.Order)
-    //             .HasForeignKey(p => p.OrderId)
-    //             .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(o => o.Payments)
+                .WithOne(p => p.Order)
+                .HasForeignKey(p => p.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-    //         entity.HasMany(o => o.OrderStatusHistories)
-    //             .WithOne(osh => osh.Order)
-    //             .HasForeignKey(osh => osh.OrderId)
-    //             .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(o => o.OrderStatusHistories)
+                .WithOne(osh => osh.Order)
+                .HasForeignKey(osh => osh.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-    //         entity.HasOne(o => o.OrderShipping)
-    //             .WithOne(os => os.Order)
-    //             .HasForeignKey<OrderShipping>(os => os.OrderId)
-    //             .OnDelete(DeleteBehavior.Cascade);
-    //     });
+            entity.HasOne(o => o.OrderShipping)
+                .WithOne(os => os.Order)
+                .HasForeignKey<OrderShipping>(os => os.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
-    //     modelBuilder.Entity<OrderItem>(entity =>
-    //     {
-    //         entity.HasOne(oi => oi.Order)
-    //             .WithMany(o => o.Items)
-    //             .HasForeignKey(oi => oi.OrderId)
-    //             .OnDelete(DeleteBehavior.Cascade);
-    //     });
-    // }
+        modelBuilder.Entity<OrderItem>(entity =>
+        {
+            entity.HasOne(oi => oi.Order)
+                .WithMany(o => o.OrderItems)
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+    }
 
-    // private void ConfigurePaymentEntities(ModelBuilder modelBuilder)
-    // {
-    //     modelBuilder.Entity<Payment>(entity =>
-    //     {
-    //         entity.HasOne(p => p.PaymentMethod)
-    //             .WithMany(pm => pm.Payments)
-    //             .HasForeignKey(p => p.MethodId)
-    //             .OnDelete(DeleteBehavior.Restrict);
+    private void ConfigurePaymentEntities(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Payment>(entity =>
+        {
+            entity
+                .HasIndex(p => new { p.OrderId, p.Status });
+                
+            entity.HasOne(p => p.PaymentMethod)
+                .WithMany(pm => pm.Payments)
+                .HasForeignKey(p => p.MethodId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-    //         entity.HasMany(p => p.PaymentTransactions)
-    //             .WithOne(pt => pt.Payment)
-    //             .HasForeignKey(pt => pt.PaymentId)
-    //             .OnDelete(DeleteBehavior.Cascade);
-    //     });
-    // }
+            entity.HasMany(p => p.PaymentTransactions)
+                .WithOne(pt => pt.Payment)
+                .HasForeignKey(pt => pt.PaymentId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+    }
 
-    // private void ConfigureCartEntities(ModelBuilder modelBuilder)
-    // {
-    //     modelBuilder.Entity<Cart>(entity =>
-    //     {
-    //         entity.HasIndex(c => c.UserId)
-    //             .IsUnique()
-    //             .HasFilter("UserId IS NOT NULL AND IsDeleted = 0");
+    private void ConfigureCartEntities(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Cart>(entity =>
+        {
+            entity.HasIndex(c => c.UserId)
+                .IsUnique()
+                .HasFilter("UserId IS NOT NULL AND IsDeleted = 0");
 
-    //         entity.HasIndex(c => c.CustomerId)
-    //             .IsUnique()
-    //             .HasFilter("CustomerId IS NOT NULL AND IsDeleted = 0");
+            entity.HasIndex(c => c.CustomerId)
+                .IsUnique()
+                .HasFilter("CustomerId IS NOT NULL AND IsDeleted = 0");
 
-    //         entity.HasMany(c => c.CartItems)
-    //             .WithOne(ci => ci.Cart)
-    //             .HasForeignKey(ci => ci.CartId)
-    //             .OnDelete(DeleteBehavior.Cascade);
-    //     });
-    // }
+            entity.HasMany(c => c.CartItems)
+                .WithOne(ci => ci.Cart)
+                .HasForeignKey(ci => ci.CartId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+    }
 
-    // private void ConfigureMarketingEntities(ModelBuilder modelBuilder)
-    // {
-    //     modelBuilder.Entity<Campaign>()
-    //         .HasMany(c => c.Promotions)
-    //         .WithOne(p => p.Campaign)
-    //         .HasForeignKey(p => p.CampaignId)
-    //         .OnDelete(DeleteBehavior.Cascade);
+    private void ConfigureMarketingEntities(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Campaign>()
+            .HasMany(c => c.Promotions)
+            .WithOne(p => p.Campaign)
+            .HasForeignKey(p => p.CampaignId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-    //     modelBuilder.Entity<Promotion>()
-    //         .HasMany(p => p.PromotionProducts)
-    //         .WithOne(pp => pp.Promotion)
-    //         .HasForeignKey(pp => pp.PromotionId)
-    //         .OnDelete(DeleteBehavior.Cascade);
-    // }
+        modelBuilder.Entity<Promotion>()
+            .HasMany(p => p.PromotionProducts)
+            .WithOne(pp => pp.Promotion)
+            .HasForeignKey(pp => pp.PromotionId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
 
     private void ConfigureNotificationEntities(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Notification>(entity =>
         {
-            // entity.HasIndex(n => new { n.UserId, n.IsRead });
+            
             entity.HasIndex(n => new { n.UserId, n.Read });
         });
 
@@ -559,44 +561,44 @@ public class AppDbContext : DbContext
         });
     }
 
-    // private void ConfigureLogisticsEntities(ModelBuilder modelBuilder)
-    // {
-    //     modelBuilder.Entity<StockTransfer>(entity =>
-    //     {
-    //         entity.HasMany(st => st.TransferItems)
-    //             .WithOne(ti => ti.StockTransfer)
-    //             .HasForeignKey(ti => ti.StockTransferId)
-    //             .OnDelete(DeleteBehavior.Cascade);
+    private void ConfigureLogisticsEntities(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<StockTransfer>(entity =>
+        {
+            entity.HasMany(st => st.TransferItems)
+                .WithOne(ti => ti.StockTransfer)
+                .HasForeignKey(ti => ti.StockTransferId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-    //         entity.HasOne(st => st.RequestedByUser)
-    //             .WithMany()
-    //             .HasForeignKey(st => st.RequestedBy)
-    //             .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(st => st.RequestedByUser)
+                .WithMany()
+                .HasForeignKey(st => st.RequestedBy)
+                .OnDelete(DeleteBehavior.Restrict);
 
-    //         entity.HasOne(st => st.ApprovedByUser)
-    //             .WithMany()
-    //             .HasForeignKey(st => st.ApprovedBy)
-    //             .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(st => st.ApprovedByUser)
+                .WithMany()
+                .HasForeignKey(st => st.ApprovedBy)
+                .OnDelete(DeleteBehavior.Restrict);
 
-    //         entity.HasOne(st => st.Supplier)
-    //             .WithMany(s => s.StockTransfers)
-    //             .HasForeignKey(st => st.SupplierId)
-    //             .OnDelete(DeleteBehavior.SetNull);
-    //     });
-    // }
+            entity.HasOne(st => st.Supplier)
+                .WithMany(s => s.StockTransfers)
+                .HasForeignKey(st => st.SupplierId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+    }
 
     private void ConfigureHRMEntities(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Employee>(entity =>
         {
-            // entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => e.Code).IsUnique();
             entity.HasIndex(e => e.Email).IsUnique();
 
-            // Self-referencing relationship for Manager
-            // entity.HasOne(e => e.Manager)
-            //     .WithMany(e => e.Subordinates)
-            //     .HasForeignKey(e => e.ManagerId)
-            //     .OnDelete(DeleteBehavior.Restrict);
+           // Self-referencing relationship for Manager
+            entity.HasOne(e => e.Manager)
+                .WithMany(e => e.Subordinates)
+                .HasForeignKey(e => e.ManagerId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(e => e.User)
                 .WithMany()
@@ -649,12 +651,12 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<WorkTask>(entity =>
         {
-            // entity.HasIndex(t => t.Code).IsUnique();
+            
 
-            // entity.HasOne(t => t.AssignedTo)
-            //     // .WithMany(u => u.AssignedTasks)
-            //     .HasForeignKey(t => t.AssignedToId)
-            //     .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(t => t.AssignedToUser)
+                 .WithMany(u => u.AssignedTasks)
+                .HasForeignKey(t => t.AssignedTo)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(t => t.AssignedByUser)
                 .WithMany(u => u.CreatedTasks)
@@ -729,6 +731,29 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Inventory>()
             .HasIndex(i => new { i.StoreId, i.IsDeleted });
+        // Product
+        modelBuilder.Entity<Product>()
+            .HasIndex(p => p.Name); // Tìm kiếm theo tên
+
+        // Customer  
+        modelBuilder.Entity<Customer>()
+            .HasIndex(c => new { c.StoreId, c.CreatedAt }); // Báo cáo khách hàng mới
+
+        // Employee
+        modelBuilder.Entity<Employee>()
+            .HasIndex(e => new { e.StoreId, e.Status }); // Lọc nhân viên theo trạng thái
+    // Cần bổ sung:
+modelBuilder.Entity<Product>()
+    .HasIndex(p => new { p.CategoryId, p.IsDeleted });
+
+modelBuilder.Entity<Payment>()
+    .HasIndex(p => new { p.OrderId, p.Status });
+
+modelBuilder.Entity<InventoryMovement>()
+    .HasIndex(im => new { im.InventoryId, im.CreatedAt });
+
+modelBuilder.Entity<OrderStatusHistory>()
+    .HasIndex(osh => new { osh.OrderId, osh.CreatedAt });
     }
 
     #endregion
@@ -803,33 +828,31 @@ public class AppDbContext : DbContext
         await Task.CompletedTask;
     }
 
-    private async Task GenerateOrderNumbersAsync(CancellationToken cancellationToken)
+   private async Task GenerateOrderNumbersAsync(CancellationToken cancellationToken)
+{
+    var newOrders = ChangeTracker.Entries<Order>()
+        .Where(e => e.State == EntityState.Added && string.IsNullOrEmpty(e.Entity.OrderNumber))
+        .Select(e => e.Entity)
+        .ToList();
+
+    if (!newOrders.Any()) return;
+
+    foreach (var order in newOrders)
     {
-        var newOrders = ChangeTracker.Entries<Order>()
-            .Where(e => e.State == EntityState.Added && string.IsNullOrEmpty(e.Entity.OrderNumber))
-            .Select(e => e.Entity)
-            .ToList();
-
-        if (!newOrders.Any()) return;
-
         var currentTime = DateTime.UtcNow;
         var datePart = currentTime.ToString("yyyyMMdd");
-        var timePart = currentTime.ToString("HHmmss");
-        var todayStart = currentTime.Date;
-        var todayEnd = todayStart.AddDays(1);
 
-        var existingOrdersToday = await Orders
-            .Where(o => o.CreatedAt >= todayStart && o.CreatedAt < todayEnd)
-            .CountAsync(cancellationToken);
-
-        for (int i = 0; i < newOrders.Count; i++)
+        string orderNumber;
+        bool exists;
+        do
         {
-            var order = newOrders[i];
-            var sequenceNumber = existingOrdersToday + i + 1;
-            var randomSuffix = Random.Shared.Next(100, 999);
-            order.OrderNumber = $"ORD{datePart}-{timePart}-{sequenceNumber:D3}-{randomSuffix}";
-        }
-    }
+            var uniqueId = Guid.NewGuid().ToString("N")[..8].ToUpper();
+            orderNumber = $"ORD{datePart}-{uniqueId}";
+            exists = await Orders.AnyAsync(o => o.OrderNumber == orderNumber, cancellationToken);
+        } while (exists);
 
+        order.OrderNumber = orderNumber;
+    }
+}
     #endregion
 }

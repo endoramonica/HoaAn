@@ -32,6 +32,10 @@ namespace VietCommerce.Core.Entities.HRM
         [EmailAddress]
         [MaxLength(255)]
         public string Email { get; set; } = string.Empty;
+        [Required]
+        [EmailAddress]
+        [MaxLength(255)]
+        public string Code { get; set; } = string.Empty;
         
         [Required]
         [MaxLength(20)]
@@ -58,6 +62,14 @@ namespace VietCommerce.Core.Entities.HRM
         public string? Avatar { get; set; }
         [Column(TypeName = "nvarchar(max)")]
         public string Skills { get; set; } = "[]";
+
+        // Self-referencing relationship for Manager
+        public Guid? ManagerId { get; set; }
+        [ForeignKey(nameof(ManagerId))]
+        public virtual Employee? Manager { get; set; }
+        [InverseProperty(nameof(Manager))]
+        public virtual ICollection<Employee> Subordinates { get; set; } = new List<Employee>();
+
         // Navigation properties
         [ForeignKey(nameof(StoreId))]
         public virtual Store? Store { get; set; }

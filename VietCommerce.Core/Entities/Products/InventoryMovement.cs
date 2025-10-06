@@ -1,32 +1,48 @@
-﻿using VietCommerce.Core.Common;
+﻿using System;
+using System.ComponentModel.DataAnnotations.Schema;
+using VietCommerce.Core.Common;
 using VietCommerce.Core.Entities.Users;
 using VietCommerce.Core.Enums;
 using VietCommerce.Core.Enums.Products;
-using System.ComponentModel.DataAnnotations.Schema;
 using VietCommerce.Core.Entities.Logistics;
-//log chi tiết các hoạt động làm thay đổi tồn kho, giúp audit và truy vết
-namespace VietCommerce.Core.Entities.Products;
+using VietCommerce.Core.Entities.Orders;
 
-public class InventoryMovement : AuditableEntity
+namespace VietCommerce.Core.Entities.Products
 {
-    public Guid InventoryId { get; set; }
-    public int ChangeAmount { get; set; }
-    public InventoryMovementType MovementType { get; set; }
+    // Log chi tiết các hoạt động làm thay đổi tồn kho, giúp audit và truy vết
+    public class InventoryMovement : AuditableEntity
+    {
+        public Guid InventoryId { get; set; }
 
-    // Optional improvements
-    public int? QuantityBefore { get; set; }
-    public int? QuantityAfter { get; set; }
-    public string? Reason { get; set; }
+        [ForeignKey(nameof(InventoryId))]
+        public virtual Inventory Inventory { get; set; } = null!;
 
-    public Guid? PerformedById { get; set; }
+        // Đơn hàng liên quan (nếu có)
+        public Guid? OrderId { get; set; }
 
-    // Navigation properties
-    public virtual Inventory Inventory { get; set; } = null!;
-    public virtual User? PerformedBy { get; set; }
-    // Thêm vào InventoryMovement.cs
+        [ForeignKey(nameof(OrderId))]
+        public Order? Order { get; set; }
 
-public string? TransferId { get; set; }
+        // Phiếu chuyển kho liên quan (nếu có)
+        public Guid? TransferId { get; set; }
 
-[ForeignKey(nameof(TransferId))]
-public StockTransfer? Transfer { get; set; }
+        [ForeignKey(nameof(TransferId))]
+        public StockTransfer? Transfer { get; set; }
+
+        // Số lượng thay đổi (có thể là dương hoặc âm)
+        public int ChangeAmount { get; set; }
+
+        public InventoryMovementType MovementType { get; set; }
+
+        // Thông tin bổ sung
+        public int? QuantityBefore { get; set; }
+        public int? QuantityAfter { get; set; }
+        public string? Reason { get; set; }
+
+        // Người thực hiện
+        public Guid? PerformedById { get; set; }
+
+        [ForeignKey(nameof(PerformedById))]
+        public virtual User? PerformedBy { get; set; }
+    }
 }

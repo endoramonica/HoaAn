@@ -12,6 +12,7 @@ using VietCommerce.Core.Entities.HRM;
 using VietCommerce.Core.Entities.CRM;
 using VietCommerce.Core.Entities.Logistics;
 using VietCommerce.Core.Entities.Tasks;
+using System.Collections;
 
 namespace VietCommerce.Core.Entities.Users;
 

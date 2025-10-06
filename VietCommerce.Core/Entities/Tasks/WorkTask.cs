@@ -24,11 +24,11 @@ namespace VietCommerce.Core.Entities.Tasks
         
         [Required]
         [MaxLength(36)]
-        public string AssignedTo { get; set; } = string.Empty;
+        public Guid AssignedTo { get; set; } = Guid.Empty;
         
         [Required]
         [MaxLength(36)]
-        public string AssignedBy { get; set; } = string.Empty;
+        public Guid AssignedBy { get; set; } = Guid.Empty;
         
         [Required]
         public TaskPriority Priority { get; set; } = TaskPriority.Medium;

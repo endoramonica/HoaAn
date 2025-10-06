@@ -8,7 +8,7 @@ using VietCommerce.Data.Repositories.Interfaces;
 
 namespace VietCommerce.Api.Services;
 
-public class RoleService : IRoleService
+public class RoleService 
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPermissionService _permissionService;
@@ -24,160 +24,160 @@ public class RoleService : IRoleService
         _logger = logger;
     }
 
-    public async Task<ApiResponse<RoleDetailDTO>> GetRoleByIdAsync(Guid roleId)
-    {
-        try
-        {
-            var role = await _unitOfWork.Roles.GetRoleWithPermissionsAsync(roleId);
-            if (role == null)
-                return ApiResponse<RoleDetailDTO>.FailureResponse("Role not found");
+    // public async Task<ApiResponse<RoleDetailDTO>> GetRoleByIdAsync(Guid roleId)
+    // {
+    //     try
+    //     {
+    //         var role = await _unitOfWork.Roles.GetRoleWithPermissionsAsync(roleId);
+    //         if (role == null)
+    //             return ApiResponse<RoleDetailDTO>.FailureResponse("Role not found");
 
-            var roleDto = new RoleDetailDTO
-            {
-                Id = role.Id,
-                Name = role.Name,
-                Description = role.Description,
-                CreatedAt = role.CreatedAt,
-                UpdatedAt = role.UpdatedAt,
-                Permissions = role.RolePermissions.Select(rp => new PermissionListDTO
-                {
-                    Id = rp.Permission.Id,
-                    Name = rp.Permission.Name,
-                    Description = rp.Permission.Description
-                }).ToList()
-            };
+    //         var roleDto = new RoleDetailDTO
+    //         {
+    //             Id = role.Id,
+    //             Name = role.Name,
+    //             Description = role.Description,
+    //             CreatedAt = role.CreatedAt,
+    //             UpdatedAt = role.UpdatedAt,
+    //             Permissions = role.RolePermissions.Select(rp => new PermissionListDTO
+    //             {
+    //                 Id = rp.Permission.Id,
+    //                 Name = rp.Permission.Name,
+    //                 Description = rp.Permission.Description
+    //             }).ToList()
+    //         };
 
-            return ApiResponse<RoleDetailDTO>.SuccessResponse(roleDto, "Role retrieved successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving role {RoleId}", roleId);
-            return ApiResponse<RoleDetailDTO>.FailureResponse("Failed to retrieve role");
-        }
-    }
+    //         return ApiResponse<RoleDetailDTO>.SuccessResponse(roleDto, "Role retrieved successfully");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         _logger.LogError(ex, "Error retrieving role {RoleId}", roleId);
+    //         return ApiResponse<RoleDetailDTO>.FailureResponse("Failed to retrieve role");
+    //     }
+    // }
 
-    public async Task<ApiResponse<PaginatedResult<RoleListDTO>>> GetRolesAsync(int page, int pageSize, string? searchTerm = null)
-    {
-        try
-        {
-            var roles = await _unitOfWork.Roles.GetAllAsync();
+    // public async Task<ApiResponse<PaginatedResult<RoleListDTO>>> GetRolesAsync(int page, int pageSize, string? searchTerm = null)
+    // {
+    //     try
+    //     {
+    //         var roles = await _unitOfWork.Roles.GetAllAsync();
             
-            if (!string.IsNullOrWhiteSpace(searchTerm))
-            {
-                roles = roles.Where(r => r.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                                       (!string.IsNullOrEmpty(r.Description) && r.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
-                            .ToList();
-            }
+    //         if (!string.IsNullOrWhiteSpace(searchTerm))
+    //         {
+    //             roles = roles.Where(r => r.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+    //                                    (!string.IsNullOrEmpty(r.Description) && r.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
+    //                         .ToList();
+    //         }
 
-            var totalCount = roles.Count;
-            var pagedRoles = roles.Skip((page - 1) * pageSize).Take(pageSize);
+    //         var totalCount = roles.Count;
+    //         var pagedRoles = roles.Skip((page - 1) * pageSize).Take(pageSize);
 
-            var roleDtos = pagedRoles.Select(r => new RoleListDTO
-            {
-                Id = r.Id,
-                Name = r.Name,
-                Description = r.Description,
-                CreatedAt = r.CreatedAt,
-                UpdatedAt = r.UpdatedAt
-            }).ToList();
+    //         var roleDtos = pagedRoles.Select(r => new RoleListDTO
+    //         {
+    //             Id = r.Id,
+    //             Name = r.Name,
+    //             Description = r.Description,
+    //             CreatedAt = r.CreatedAt,
+    //             UpdatedAt = r.UpdatedAt
+    //         }).ToList();
 
-            var result = new PaginatedResult<RoleListDTO>
-            {
-                Data = roleDtos,
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize,
-                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
-            };
+    //         var result = new PaginatedResult<RoleListDTO>
+    //         {
+    //             Data = roleDtos,
+    //             TotalCount = totalCount,
+    //             Page = page,
+    //             PageSize = pageSize,
+    //             TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+    //         };
 
-            return ApiResponse<PaginatedResult<RoleListDTO>>.SuccessResponse(result, "Roles retrieved successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving roles");
-            return ApiResponse<PaginatedResult<RoleListDTO>>.FailureResponse("Failed to retrieve roles");
-        }
-    }
+    //         return ApiResponse<PaginatedResult<RoleListDTO>>.SuccessResponse(result, "Roles retrieved successfully");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         _logger.LogError(ex, "Error retrieving roles");
+    //         return ApiResponse<PaginatedResult<RoleListDTO>>.FailureResponse("Failed to retrieve roles");
+    //     }
+    // }
 
-    public async Task<ApiResponse<RoleDetailDTO>> CreateRoleAsync(RoleCreateDTO request)
-    {
-        try
-        {
-            if (await RoleExistsAsync(request.Name))
-                return ApiResponse<RoleDetailDTO>.FailureResponse("Role name already exists");
+    // public async Task<ApiResponse<RoleDetailDTO>> CreateRoleAsync(RoleCreateDTO request)
+    // {
+    //     try
+    //     {
+    //         if (await RoleExistsAsync(request.Name))
+    //             return ApiResponse<RoleDetailDTO>.FailureResponse("Role name already exists");
 
-            var role = new Role
-            {
-                Name = request.Name,
-                Description = request.Description
-            };
+    //         var role = new Role
+    //         {
+    //             Name = request.Name,
+    //             Description = request.Description
+    //         };
 
-            await _unitOfWork.Roles.AddAsync(role);
-            await _unitOfWork.SaveChangesAsync();
+    //         await _unitOfWork.Roles.AddAsync(role);
+    //         await _unitOfWork.SaveChangesAsync();
 
-            var createdRole = await _unitOfWork.Roles.GetRoleWithPermissionsAsync(role.Id);
-            var roleDto = new RoleDetailDTO
-            {
-                Id = createdRole!.Id,
-                Name = createdRole.Name,
-                Description = createdRole.Description,
-                CreatedAt = createdRole.CreatedAt,
-                UpdatedAt = createdRole.UpdatedAt,
-                Permissions = new List<PermissionListDTO>()
-            };
+    //         var createdRole = await _unitOfWork.Roles.GetRoleWithPermissionsAsync(role.Id);
+    //         var roleDto = new RoleDetailDTO
+    //         {
+    //             Id = createdRole!.Id,
+    //             Name = createdRole.Name,
+    //             Description = createdRole.Description,
+    //             CreatedAt = createdRole.CreatedAt,
+    //             UpdatedAt = createdRole.UpdatedAt,
+    //             Permissions = new List<PermissionListDTO>()
+    //         };
 
-            _logger.LogInformation("Role {RoleName} created successfully with ID {RoleId}", request.Name, role.Id);
-            return ApiResponse<RoleDetailDTO>.SuccessResponse(roleDto, "Role created successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating role {RoleName}", request.Name);
-            return ApiResponse<RoleDetailDTO>.FailureResponse("Failed to create role");
-        }
-    }
+    //         _logger.LogInformation("Role {RoleName} created successfully with ID {RoleId}", request.Name, role.Id);
+    //         return ApiResponse<RoleDetailDTO>.SuccessResponse(roleDto, "Role created successfully");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         _logger.LogError(ex, "Error creating role {RoleName}", request.Name);
+    //         return ApiResponse<RoleDetailDTO>.FailureResponse("Failed to create role");
+    //     }
+    // }
 
-    public async Task<ApiResponse<RoleDetailDTO>> UpdateRoleAsync(Guid roleId, RoleUpdateDTO request)
-    {
-        try
-        {
-            var role = await _unitOfWork.Roles.GetByIdAsync(roleId);
-            if (role == null)
-                return ApiResponse<RoleDetailDTO>.FailureResponse("Role not found");
+    // public async Task<ApiResponse<RoleDetailDTO>> UpdateRoleAsync(Guid roleId, RoleUpdateDTO request)
+    // {
+    //     try
+    //     {
+    //         var role = await _unitOfWork.Roles.GetByIdAsync(roleId);
+    //         if (role == null)
+    //             return ApiResponse<RoleDetailDTO>.FailureResponse("Role not found");
 
-            if (role.Name != request.Name && await RoleExistsAsync(request.Name))
-                return ApiResponse<RoleDetailDTO>.FailureResponse("Role name already exists");
+    //         if (role.Name != request.Name && await RoleExistsAsync(request.Name))
+    //             return ApiResponse<RoleDetailDTO>.FailureResponse("Role name already exists");
 
-            role.Name = request.Name;
-            role.Description = request.Description;
+    //         role.Name = request.Name;
+    //         role.Description = request.Description;
 
-            _unitOfWork.Roles.Update(role);
-            await _unitOfWork.SaveChangesAsync();
+    //         _unitOfWork.Roles.Update(role);
+    //         await _unitOfWork.SaveChangesAsync();
 
-            var updatedRole = await _unitOfWork.Roles.GetRoleWithPermissionsAsync(roleId);
-            var roleDto = new RoleDetailDTO
-            {
-                Id = updatedRole!.Id,
-                Name = updatedRole.Name,
-                Description = updatedRole.Description,
-                CreatedAt = updatedRole.CreatedAt,
-                UpdatedAt = updatedRole.UpdatedAt,
-                Permissions = updatedRole.RolePermissions.Select(rp => new PermissionListDTO
-                {
-                    Id = rp.Permission.Id,
-                    Name = rp.Permission.Name,
-                    Description = rp.Permission.Description
-                }).ToList()
-            };
+    //         var updatedRole = await _unitOfWork.Roles.GetRoleWithPermissionsAsync(roleId);
+    //         var roleDto = new RoleDetailDTO
+    //         {
+    //             Id = updatedRole!.Id,
+    //             Name = updatedRole.Name,
+    //             Description = updatedRole.Description,
+    //             CreatedAt = updatedRole.CreatedAt,
+    //             UpdatedAt = updatedRole.UpdatedAt,
+    //             Permissions = updatedRole.RolePermissions.Select(rp => new PermissionListDTO
+    //             {
+    //                 Id = rp.Permission.Id,
+    //                 Name = rp.Permission.Name,
+    //                 Description = rp.Permission.Description
+    //             }).ToList()
+    //         };
 
-            _logger.LogInformation("Role {RoleId} updated successfully", roleId);
-            return ApiResponse<RoleDetailDTO>.SuccessResponse(roleDto, "Role updated successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating role {RoleId}", roleId);
-            return ApiResponse<RoleDetailDTO>.FailureResponse("Failed to update role");
-        }
-    }
+    //         _logger.LogInformation("Role {RoleId} updated successfully", roleId);
+    //         return ApiResponse<RoleDetailDTO>.SuccessResponse(roleDto, "Role updated successfully");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         _logger.LogError(ex, "Error updating role {RoleId}", roleId);
+    //         return ApiResponse<RoleDetailDTO>.FailureResponse("Failed to update role");
+    //     }
+    // }
 
     public async Task<ApiResponse<bool>> DeleteRoleAsync(Guid roleId)
     {
