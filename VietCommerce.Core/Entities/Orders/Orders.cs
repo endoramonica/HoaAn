@@ -13,7 +13,7 @@ namespace VietCommerce.Core.Entities.Orders;
 public class Order : AuditableEntity , ISoftDelete
 {
     public Guid StoreId { get; set; }
-    public Guid CustomerId { get; set; }
+    public Guid? CustomerId { get; set; }
    
     public OrderStatus Status { get; set; } 
     public decimal TotalAmount { get; set; }

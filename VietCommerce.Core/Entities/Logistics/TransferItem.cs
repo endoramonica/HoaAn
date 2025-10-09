@@ -17,11 +17,11 @@ namespace VietCommerce.Core.Entities.Logistics
         
         [Required]
         [MaxLength(36)]
-        public string StockTransferId { get; set; } = string.Empty;
+        public Guid StockTransferId { get; set; } 
         
         [Required]
         [MaxLength(36)]
-        public string ProductId { get; set; } = string.Empty;
+        public Guid ProductId { get; set; } 
         
         [Required]
         public int Quantity { get; set; }

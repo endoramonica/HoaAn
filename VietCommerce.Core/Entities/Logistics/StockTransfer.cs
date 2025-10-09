@@ -30,13 +30,13 @@ namespace VietCommerce.Core.Entities.Logistics
         
         [Required]
         [MaxLength(36)]
-        public string RequestedBy { get; set; } = string.Empty;
+        public Guid? RequestedBy { get; set; } 
         
         [MaxLength(36)]
-        public string? ApprovedBy { get; set; }
+        public Guid? ApprovedBy { get; set; }
         
         [MaxLength(36)]
-        public string? SupplierId { get; set; }
+        public Guid? SupplierId { get; set; }
         
         public DateTime? DeliveryDate { get; set; }
         

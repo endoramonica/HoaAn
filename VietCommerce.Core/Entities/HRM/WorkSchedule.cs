@@ -16,7 +16,7 @@ namespace VietCommerce.Core.Entities.HRM
         
         [Required]
         [MaxLength(36)]
-        public string EmployeeId { get; set; } = string.Empty;
+        public Guid EmployeeId { get; set; } 
         
         [Required]
         public DateTime Date { get; set; }

@@ -406,7 +406,8 @@ public class AppDbContext : DbContext
             entity.HasMany(p => p.TransferItems)
                 .WithOne(ti => ti.Product)
                 .HasForeignKey(ti => ti.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
         });
     }
 
@@ -450,6 +451,7 @@ public class AppDbContext : DbContext
             entity.HasOne(o => o.CreatedByUser)
                 .WithMany(u => u.CreatedOrders)
                 .HasForeignKey(o => o.CreatedById)
+                .IsRequired(false) // nếu User bị xóa mềm , EF vânx cho phép Order tồn tại mà ko lỗi 
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasMany(o => o.OrderItems)
@@ -471,6 +473,11 @@ public class AppDbContext : DbContext
                 .WithOne(os => os.Order)
                 .HasForeignKey<OrderShipping>(os => os.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(o => o.Customer)
+                .WithMany(c => c.Orders)
+                .HasForeignKey(o => o.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         });
 
         modelBuilder.Entity<OrderItem>(entity =>
@@ -557,7 +564,8 @@ public class AppDbContext : DbContext
             entity.HasOne(i => i.Customer)
                 .WithMany(c => c.Interactions)
                 .HasForeignKey(i => i.CustomerId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
         });
     }
 
@@ -565,26 +573,31 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<StockTransfer>(entity =>
         {
+            // 1️ StockTransfer ↔ TransferItem (1-nhiều)
             entity.HasMany(st => st.TransferItems)
                 .WithOne(ti => ti.StockTransfer)
                 .HasForeignKey(ti => ti.StockTransferId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // 2️ StockTransfer.RequestedByUser ↔ User.RequestedTransfers (1-nhiều)
             entity.HasOne(st => st.RequestedByUser)
-                .WithMany()
+                .WithMany(u => u.RequestedTransfers)
                 .HasForeignKey(st => st.RequestedBy)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // 3️1 StockTransfer.ApprovedByUser ↔ User.ApprovedTransfers (1-nhiều)
             entity.HasOne(st => st.ApprovedByUser)
-                .WithMany()
+                .WithMany(u => u.ApprovedTransfers)
                 .HasForeignKey(st => st.ApprovedBy)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // 4️⃣ StockTransfer.Supplier ↔ Supplier.StockTransfers (1-nhiều)
             entity.HasOne(st => st.Supplier)
                 .WithMany(s => s.StockTransfers)
                 .HasForeignKey(st => st.SupplierId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
+
     }
 
     private void ConfigureHRMEntities(ModelBuilder modelBuilder)
@@ -600,9 +613,10 @@ public class AppDbContext : DbContext
                 .HasForeignKey(e => e.ManagerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // 1–1 Employee ↔ User
             entity.HasOne(e => e.User)
-                .WithMany()
-                .HasForeignKey(e => e.UserId)
+                .WithOne(u => u.EmployeeProfile)
+                .HasForeignKey<Employee>(e => e.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasMany(e => e.Performance)
@@ -638,11 +652,11 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<Shift>(entity =>
         {
-            entity.HasIndex(s => new { s.StaffId, s.StartTime });
+            entity.HasIndex(s => new { s.UserId, s.StartTime });
 
             entity.HasOne(s => s.Staff)
                 .WithMany(u => u.Shifts)
-                .HasForeignKey(s => s.StaffId)
+                .HasForeignKey(s => s.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VietCommerce.Data.Context;
 
@@ -11,9 +12,11 @@ using VietCommerce.Data.Context;
 namespace VietCommerce.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251007050403_entitiesFix")]
+    partial class entitiesFix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1919,6 +1922,9 @@ namespace VietCommerce.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<Guid?>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -1961,6 +1967,8 @@ namespace VietCommerce.Data.Migrations
                     b.HasIndex("Email")
                         .IsUnique()
                         .HasFilter("IsDeleted = 0");
+
+                    b.HasIndex("EmployeeId");
 
                     b.HasIndex("ManagerId");
 
@@ -2104,7 +2112,8 @@ namespace VietCommerce.Data.Migrations
                     b.HasOne("VietCommerce.Core.Entities.Customers.Customer", "Customer")
                         .WithMany("Interactions")
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("CreatedByUser");
 
@@ -2169,8 +2178,8 @@ namespace VietCommerce.Data.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("VietCommerce.Core.Entities.Users.User", "User")
-                        .WithOne("EmployeeProfile")
-                        .HasForeignKey("VietCommerce.Core.Entities.HRM.Employee", "UserId")
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -2270,7 +2279,8 @@ namespace VietCommerce.Data.Migrations
                     b.HasOne("VietCommerce.Core.Entities.Products.Product", "Product")
                         .WithMany("TransferItems")
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("VietCommerce.Core.Entities.Logistics.StockTransfer", "StockTransfer")
                         .WithMany("TransferItems")
@@ -2696,6 +2706,10 @@ namespace VietCommerce.Data.Migrations
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Users.User", b =>
                 {
+                    b.HasOne("VietCommerce.Core.Entities.HRM.Employee", "EmployeeProfile")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId");
+
                     b.HasOne("VietCommerce.Core.Entities.Users.User", "Manager")
                         .WithMany("Subordinates")
                         .HasForeignKey("ManagerId")
@@ -2710,6 +2724,8 @@ namespace VietCommerce.Data.Migrations
                     b.HasOne("VietCommerce.Core.Entities.Organization.Tenant", null)
                         .WithMany("Users")
                         .HasForeignKey("TenantId");
+
+                    b.Navigation("EmployeeProfile");
 
                     b.Navigation("Manager");
 
@@ -2933,8 +2949,6 @@ namespace VietCommerce.Data.Migrations
                     b.Navigation("CreatedPrices");
 
                     b.Navigation("CreatedTasks");
-
-                    b.Navigation("EmployeeProfile");
 
                     b.Navigation("InventoryMovements");
 

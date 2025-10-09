@@ -18,7 +18,7 @@ namespace VietCommerce.Core.Entities.CRM
         
         [Required]
         [MaxLength(36)]
-        public string CustomerId { get; set; } = string.Empty;
+        public Guid CustomerId { get; set; } 
         
         [Required]
         public CRMInteractionType Type { get; set; }

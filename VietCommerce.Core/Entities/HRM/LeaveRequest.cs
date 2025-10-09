@@ -15,7 +15,7 @@ namespace VietCommerce.Core.Entities.HRM
         
         [Required]
         [MaxLength(36)]
-        public string EmployeeId { get; set; } = string.Empty;
+        public Guid EmployeeId { get; set; } 
         
         [Required]
         public LeaveRequestType Type { get; set; }
@@ -37,7 +37,7 @@ namespace VietCommerce.Core.Entities.HRM
         public LeaveRequestStatus Status { get; set; } = LeaveRequestStatus.Pending;
         
         [MaxLength(36)]
-        public string? ApprovedBy { get; set; }
+        public Guid? ApprovedBy { get; set; }
         
         public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
         

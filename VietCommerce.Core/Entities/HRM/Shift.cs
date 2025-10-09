@@ -9,7 +9,7 @@ using VietCommerce.Core.Entities.Organization;
 namespace VietCommerce.Core.Entities.HRM
 {
     [Table("Shifts")]
-    [Index(nameof(StaffId), nameof(StartTime))]
+    [Index(nameof(UserId), nameof(StartTime))]
     [Index(nameof(Status))]
     public class Shift : BaseEntity
     {
@@ -17,11 +17,11 @@ namespace VietCommerce.Core.Entities.HRM
         
         [Required]
         [MaxLength(36)]
-        public string StaffId { get; set; } = string.Empty;
+        public Guid UserId { get; set; } 
         
         [Required]
         [MaxLength(36)]
-        public string StoreId { get; set; } = string.Empty;
+        public Guid StoreId { get; set; } 
         
         [Required]
         public DateTime StartTime { get; set; }
@@ -49,7 +49,7 @@ namespace VietCommerce.Core.Entities.HRM
         public string? Notes { get; set; }
         
         // Navigation properties
-        [ForeignKey(nameof(StaffId))]
+        [ForeignKey(nameof(UserId))]
         public User Staff { get; set; } = null!;
         
         [ForeignKey(nameof(StoreId))]
