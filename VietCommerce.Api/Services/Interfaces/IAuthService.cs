@@ -14,4 +14,7 @@ public interface IAuthService
     Task<ApiResponse<bool>> ValidateTokenAsync(string token);
     Task<ApiResponse<bool>> VerifyEmailAsync(string token);
     Task SendVerificationEmailAsync(string email, string token);
+    Task<ApiResponse<AuthResponseDTO>> FindOrCreateGoogleUserAsync(SocialLoginRequestDTO request);
+    string GenerateJwtToken(RegisterRequestDTO request);
+
 }
