@@ -1,9 +1,7 @@
 // Core/Services/Interfaces/IAuthService.cs
 using VietCommerce.Core.DTOs.Auth;
 using VietCommerce.Core.Models;
-
 namespace VietCommerce.Api.Services.Interfaces;
-
 public interface IAuthService
 {
     Task<ApiResponse<AuthResponseDTO>> LoginAsync(LoginDTO request);
@@ -16,5 +14,4 @@ public interface IAuthService
     Task<ApiResponse<bool>> ValidateTokenAsync(string token);
     Task<ApiResponse<bool>> VerifyEmailAsync(string token);
     Task SendVerificationEmailAsync(string email, string token);
-
 }

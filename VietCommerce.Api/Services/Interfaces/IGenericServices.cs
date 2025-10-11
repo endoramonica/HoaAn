@@ -1,8 +1,6 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using VietCommerce.Core.Common;
-
 namespace VietCommerce.Api.Services.Interfaces;
-
 public interface IGenericServices<T> where T : BaseEntity
 {
     Task<IEnumerable<T>> GetAllAsync();

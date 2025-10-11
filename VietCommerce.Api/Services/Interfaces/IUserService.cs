@@ -2,9 +2,7 @@
 using VietCommerce.Core.DTOs.Users;
 using VietCommerce.Core.Entities.Users;
 using VietCommerce.Core.Models;
-
 namespace VietCommerce.Api.Services.Interfaces;
-
 public interface IUserService : IGenericServices<User>
 {
     Task<ApiResponse<UserDetailDTO>> GetUserByIdAsync(Guid id);

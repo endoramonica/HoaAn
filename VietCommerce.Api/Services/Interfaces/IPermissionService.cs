@@ -1,9 +1,7 @@
-﻿// VietCommerce.Api/Services/Interfaces/IPermissionService.cs
+// VietCommerce.Api/Services/Interfaces/IPermissionService.cs
 using VietCommerce.Core.Entities.Users;
 using VietCommerce.Core.Models;
-
 namespace VietCommerce.Api.Services.Interfaces;
-
 public interface IPermissionService
 {
     Task<List<Permission>> GetUserPermissionsAsync(Guid userId);
