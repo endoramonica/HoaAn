@@ -141,7 +141,7 @@ builder.Services.AddAuthentication(options =>
         }
     };
 });
-
+builder.Services.AddAutoMapper(typeof(AuthMappingProfile).Assembly);
 builder.Services.AddAuthorization();
 //builder.Services.AddFluentValidationAutoValidation();
 //builder.Services.AddFluentValidationClientsideAdapters();

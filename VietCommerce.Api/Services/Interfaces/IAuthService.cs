@@ -14,4 +14,7 @@ public interface IAuthService
     Task<ApiResponse<bool>> ForgotPasswordAsync(ForgotPasswordRequestDTO request);
     Task<ApiResponse<bool>> ResetPasswordAsync(ResetPasswordRequestDTO request);
     Task<ApiResponse<bool>> ValidateTokenAsync(string token);
+    Task<ApiResponse<bool>> VerifyEmailAsync(string token);
+    Task SendVerificationEmailAsync(string email, string token);
+
 }

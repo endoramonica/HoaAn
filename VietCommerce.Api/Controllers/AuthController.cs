@@ -82,5 +82,11 @@ public class AuthController : ControllerBase
 
         return Ok(new { Success = result.Data, Message = "Logged out successfully" });
     }
+    [HttpGet("verify-email")]
+public async Task<IActionResult> VerifyEmail([FromQuery] string token)
+{
+    var result = await _authService.VerifyEmailAsync(token);
+    return Ok(result);
+}
 
 }

@@ -61,7 +61,7 @@ namespace VietCommerce.Core.Entities.HRM
         [MaxLength(500)]
         public string? Avatar { get; set; }
         [Column(TypeName = "nvarchar(max)")]
-        public string Skills { get; set; } = "[]";
+        public string Skills { get; set; }= string.Empty;
 
         // Self-referencing relationship for Manager
         public Guid? ManagerId { get; set; }

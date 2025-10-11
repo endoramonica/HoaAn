@@ -7,6 +7,8 @@ using VietCommerce.Core.Helpers;
 using VietCommerce.Core.Models;
 using VietCommerce.Data.Repositories.Interfaces;
 using VietCommerce.Api.Services.Interfaces;
+using Microsoft.Extensions.Caching.Memory;
+
 
 namespace VietCommerce.Api.Services;
 
@@ -15,17 +17,21 @@ public class AuthService : IAuthService
     private readonly IUnitOfWork _unitOfWork;
     private readonly JwtHelper _jwtHelper;
     private readonly ILogger<AuthService> _logger;
+    private readonly IMemoryCache _cache;
     private readonly JwtSettings _jwtSettings;
 
     public AuthService(
         IUnitOfWork unitOfWork,
         JwtHelper jwtHelper,
         ILogger<AuthService> logger,
+        IMemoryCache cache,
         IOptions<JwtSettings> jwtSettings)
     {
         _unitOfWork = unitOfWork;
         _jwtHelper = jwtHelper;
         _logger = logger;
+        _cache = cache;
+        
         _jwtSettings = jwtSettings.Value;
     }
 
@@ -78,63 +84,101 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<ApiResponse<AuthResponseDTO>> RegisterAsync(RegisterRequestDTO request)
-    {  
-        try
-        {
-            if (await _unitOfWork.Users.EmailExistsAsync(request.Email))
-                return ApiResponse<AuthResponseDTO>.FailureResponse("Email is already registered");
+    // public async Task<ApiResponse<AuthResponseDTO>> RegisterAsync(RegisterRequestDTO request)
+    // {  
+    //     try
+    //     {
+    //         if (await _unitOfWork.Users.EmailExistsAsync(request.Email))
+    //             return ApiResponse<AuthResponseDTO>.FailureResponse("Email is already registered");
 
-            var user = new User
-            {
-                Email = request.Email.ToLower(),
-                PasswordHash = PasswordHelper.HashPassword(request.Password),
-                Name = request.Name,
-                Phone = request.Phone,
-                StoreId = request.StoreId,
-                IsActive = true,
-                Status = UserStatus.ACTIVE
-            };
+    //         var user = new User
+    //         {
+    //             Email = request.Email.ToLower(),
+    //             PasswordHash = PasswordHelper.HashPassword(request.Password),
+    //             Name = request.Name,
+    //             Phone = request.Phone,
+    //             StoreId = request.StoreId,
+    //             IsActive = true,
+    //             Status = UserStatus.ACTIVE
+    //         };
 
-            await _unitOfWork.Users.AddAsync(user);
-            await _unitOfWork.SaveChangesAsync();
+    //         await _unitOfWork.Users.AddAsync(user);
+    //         await _unitOfWork.SaveChangesAsync();
 
-            var createdUser = await _unitOfWork.Users.GetByIdWithRolesAsync(user.Id);
-            if (createdUser == null)
-                return ApiResponse<AuthResponseDTO>.FailureResponse("Failed to create user");
+    //         var createdUser = await _unitOfWork.Users.GetByIdWithRolesAsync(user.Id);
+    //         if (createdUser == null)
+    //             return ApiResponse<AuthResponseDTO>.FailureResponse("Failed to create user");
 
-            var accessToken = _jwtHelper.GenerateToken(createdUser);
-            var refreshToken = GenerateRefreshToken();
+    //         var accessToken = _jwtHelper.GenerateToken(createdUser);
+    //         var refreshToken = GenerateRefreshToken();
 
-            var refreshTokenEntity = new RefreshToken
-            {
-                UserId = user.Id,
-                Token = refreshToken,
-                ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenLifetimeDays),
-               // IsActive = true
-            };
+    //         var refreshTokenEntity = new RefreshToken
+    //         {
+    //             UserId = user.Id,
+    //             Token = refreshToken,
+    //             ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenLifetimeDays),
+    //            // IsActive = true
+    //         };
 
-            await _unitOfWork.RefreshTokens.AddAsync(refreshTokenEntity);
-            await _unitOfWork.SaveChangesAsync();
+    //         await _unitOfWork.RefreshTokens.AddAsync(refreshTokenEntity);
+    //         await _unitOfWork.SaveChangesAsync();
 
-            var response = new AuthResponseDTO
-            {
-                Token = accessToken,
-                RefreshToken = refreshToken,
-                Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenLifetimeMinutes)
-            };
+    //         var response = new AuthResponseDTO
+    //         {
+    //             Token = accessToken,
+    //             RefreshToken = refreshToken,
+    //             Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenLifetimeMinutes)
+    //         };
 
-            _logger.LogInformation("User {Email} registered successfully", request.Email);
-            return ApiResponse<AuthResponseDTO>.SuccessResponse(response, "Registration successful");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during registration for email {Email}", request.Email);
-            //return ApiResponse<AuthResponseDTO>.FailureResponse("An error occurred during registration");
-            throw;
-        }
+    //         _logger.LogInformation("User {Email} registered successfully", request.Email);
+    //         return ApiResponse<AuthResponseDTO>.SuccessResponse(response, "Registration successful");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         _logger.LogError(ex, "Error during registration for email {Email}", request.Email);
+    //         //return ApiResponse<AuthResponseDTO>.FailureResponse("An error occurred during registration");
+    //         throw;
+    //     }
+    // }
+public async Task<ApiResponse<AuthResponseDTO>> RegisterAsync(RegisterRequestDTO request)
+{
+    try
+    {
+        if (await _unitOfWork.Users.EmailExistsAsync(request.Email))
+            return ApiResponse<AuthResponseDTO>.FailureResponse("Email is already registered");
+
+        // ✅ Tạo token xác minh
+        var verificationToken = Guid.NewGuid().ToString();
+
+        // ✅ Lưu tạm vào cache trong 1 giờ
+        _cache.Set(verificationToken, request, TimeSpan.FromHours(1));
+
+        // ✅ Gửi email xác minh (tuỳ bạn có EmailService hay chưa)
+        await SendVerificationEmailAsync(request.Email, verificationToken);
+
+        _logger.LogInformation("Verification email sent to {Email}", request.Email);
+
+        return ApiResponse<AuthResponseDTO>.SuccessResponse(
+             null!, 
+            "Please check your email to verify your account"
+        );
     }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error during registration for email {Email}", request.Email);
+        return ApiResponse<AuthResponseDTO>.FailureResponse("An error occurred during registration");
+    }
+}
+public Task SendVerificationEmailAsync(string email, string token)
+        {
+            var verificationLink = $"https://yourapp.com/api/auth/verify-email?token={token}";
+            _logger.LogInformation("Mock Email Sent to {Email}: {Link}", email, verificationLink);
 
+            // Có thể in ra console nếu bạn muốn xem trực tiếp:
+            Console.WriteLine($"📧 Verification email (mock) sent to {email}: {verificationLink}");
+
+            return Task.CompletedTask;
+        }
     public async Task<ApiResponse<AuthResponseDTO>> RefreshTokenAsync(RefreshTokenRequestDTO request)
     {
         try
@@ -280,6 +324,44 @@ public class AuthService : IAuthService
             return ApiResponse<bool>.FailureResponse("Token validation failed");
         }
     }
+    public async Task<ApiResponse<bool>> VerifyEmailAsync(string token)
+{
+    try
+    {
+        // 1️⃣ Lấy thông tin user tạm trong cache
+        if (!_cache.TryGetValue(token, out RegisterRequestDTO? pendingUser))
+            return ApiResponse<bool>.FailureResponse("Invalid or expired verification token");
+
+        // 2️⃣ Kiểm tra email có tồn tại trong DB không
+        if (await _unitOfWork.Users.EmailExistsAsync(pendingUser.Email))
+            return ApiResponse<bool>.FailureResponse("Email already verified");
+
+        // 3️⃣ Tạo user thật trong DB
+        var user = new User
+        {
+            Email = pendingUser.Email.ToLower(),
+            PasswordHash = PasswordHelper.HashPassword(pendingUser.Password),
+            Name = pendingUser.Name,
+            Phone = pendingUser.Phone,
+            StoreId = pendingUser.StoreId,
+            IsActive = true,
+            Status = UserStatus.ACTIVE
+        };
+
+        await _unitOfWork.Users.AddAsync(user);
+        await _unitOfWork.SaveChangesAsync();
+
+        // 4️⃣ Xóa token khỏi cache
+        _cache.Remove(token);
+
+        return ApiResponse<bool>.SuccessResponse(true, "Email verified successfully");
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error verifying email for token {Token}", token);
+        return ApiResponse<bool>.FailureResponse("Error verifying email");
+    }
+}
 
     private static string GenerateRefreshToken()
     {
