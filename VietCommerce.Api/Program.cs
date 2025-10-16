@@ -3,12 +3,16 @@
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+using VietCommerce.Api;
 using VietCommerce.Api.Services;
 using VietCommerce.Api.Services.Interfaces;
+using VietCommerce.Application.Mappings;
+using VietCommerce.Application.Mappings;
 using VietCommerce.Core.Helpers;
 using VietCommerce.Data.Context;
 using VietCommerce.Data.Repositories;
@@ -141,7 +145,13 @@ builder.Services.AddAuthentication(options =>
         }
     };
 });
-builder.Services.AddAutoMapper(typeof(AuthMappingProfile).Assembly);
+builder.Services.AddAutoMapper(
+    typeof(AuthMappingProfile).Assembly
+    //typeof(OrderMappingProfile).Assembly,
+    //typeof(PetMappingProfile).Assembly
+);
+builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("GoogleSettings"));
+
 builder.Services.AddAuthorization();
 //builder.Services.AddFluentValidationAutoValidation();
 //builder.Services.AddFluentValidationClientsideAdapters();

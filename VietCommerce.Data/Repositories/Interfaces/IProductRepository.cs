@@ -1,4 +1,6 @@
-using VietCommerce.Data.Entities.Products; 
+using VietCommerce.Core.Entities.Products;
+using VietCommerce.Core.Models;
+
 namespace VietCommerce.Data.Repositories.Interfaces;
     public interface IProductRepository
     {

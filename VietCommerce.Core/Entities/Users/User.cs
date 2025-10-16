@@ -18,7 +18,7 @@ namespace VietCommerce.Core.Entities.Users;
 
 public class User : AuditableEntity, ISoftDelete
 {
-    public Guid StoreId { get; set; }
+    public Guid? StoreId { get; set; }
 
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
@@ -39,6 +39,10 @@ public class User : AuditableEntity, ISoftDelete
 
     [InverseProperty(nameof(Manager))]
     public virtual ICollection<User> Subordinates { get; set; } = new List<User>();
+
+    public string? Provider { get; set; } = "local"; // e.g., "local", "google", "facebook"
+    public string? ProviderId { get; set; } // ID from the external provider
+    public string? AvatarUrl { get; set; }
 
 
     // --- HR 1-1 link ---

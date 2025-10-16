@@ -20,6 +20,7 @@ public class AuthController : ControllerBase
         _logger = logger;
     }
 
+    // 🔹 REGISTER
     [HttpPost("register")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -40,6 +41,20 @@ public class AuthController : ControllerBase
         return BadRequest(result);
     }
 
+    // 🔹 VERIFY EMAIL
+    [HttpGet("verify-email")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> VerifyEmail([FromQuery] string token)
+    {
+        var result = await _authService.VerifyEmailAsync(token);
+        if (!result.Success)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    // 🔹 LOGIN
     [HttpPost("login")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -53,6 +68,20 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    // 🔹 LOGIN WITH GOOGLE
+    [HttpPost("login/google")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GoogleLogin([FromBody] SocialLoginRequestDTO request)
+    {
+        var result = await _authService.FindOrCreateGoogleUserAsync(request);
+        if (!result.Success)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    // 🔹 REFRESH TOKEN
     [HttpPost("refresh-token")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -65,10 +94,11 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    // 🔹 LOGOUT
     [Authorize]
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-   
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Logout()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -80,13 +110,58 @@ public class AuthController : ControllerBase
 
         var result = await _authService.LogoutAsync(userId);
 
-        return Ok(new { Success = result.Data, Message = "Logged out successfully" });
-    }
-    [HttpGet("verify-email")]
-public async Task<IActionResult> VerifyEmail([FromQuery] string token)
-{
-    var result = await _authService.VerifyEmailAsync(token);
-    return Ok(result);
-}
+        if (!result.Success)
+            return BadRequest(result);
 
+        return Ok(result);
+    }
+
+    // 🔹 CHANGE PASSWORD
+    [Authorize]
+    [HttpPost("change-password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestDTO request)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized(new { Success = false, Message = "Invalid user ID in token" });
+        }
+
+        var result = await _authService.ChangePasswordAsync(userId, request);
+        if (!result.Success)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    // 🔹 FORGOT PASSWORD
+    [HttpPost("forgot-password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDTO request)
+    {
+        var result = await _authService.ForgotPasswordAsync(request);
+        if (!result.Success)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    // 🔹 RESET PASSWORD
+    [HttpPost("reset-password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDTO request)
+    {
+        var result = await _authService.ResetPasswordAsync(request);
+        if (!result.Success)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    
 }

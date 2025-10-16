@@ -5,36 +5,24 @@
 using System.ComponentModel.DataAnnotations;
 
 // ============================================
-// FILE: ProductCreateDto.cs
-// Mô tả: DTO để tạo sản phẩm mới
+// FILE: ProductUpdateDto.cs
+// Mô tả: DTO để cập nhật sản phẩm
 // ============================================
 namespace VietCommerce.Core.DTOs.Products
 {
-    public class ProductCreateDto
+    public class ProductUpdateDto
     {
-        [Required(ErrorMessage = "Store ID is required")]
-        public Guid StoreId { get; set; }
-        
-        [Required(ErrorMessage = "Product name is required")]
         [StringLength(200, MinimumLength = 3, ErrorMessage = "Name must be between 3 and 200 characters")]
-        public string Name { get; set; } = string.Empty;
+        public string? Name { get; set; }
         
         [StringLength(50, ErrorMessage = "SKU cannot exceed 50 characters")]
         public string? SKU { get; set; }
         
         public Guid? CategoryId { get; set; }
         
-        [Required(ErrorMessage = "Price is required")]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than 0")]
-        public decimal Price { get; set; }
-        
         [Range(0, int.MaxValue, ErrorMessage = "Stock cannot be negative")]
-        public int Stock { get; set; } = 0;
+        public int? Stock { get; set; }
         
-        public bool IsActive { get; set; } = true;
-        
-        public List<string>? ImageUrls { get; set; }
-        
-        public List<Guid>? SupplierIds { get; set; }
+        public bool? IsActive { get; set; }
     }
 }
