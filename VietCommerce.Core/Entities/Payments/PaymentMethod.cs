@@ -10,7 +10,7 @@ public class PaymentMethod : BaseEntity, ISoftDelete
 
     // Navigation propertiesa
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
-    public bool IsDeleted { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public DateTime? DeletedAt { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public int? DeletedBy { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public bool IsDeleted {get;set; }
+    public DateTime? DeletedAt {get;set; }
+    public Guid? DeletedBy {get;set; }
 }

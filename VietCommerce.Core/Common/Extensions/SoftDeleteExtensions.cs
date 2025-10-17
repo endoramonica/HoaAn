@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using VietCommerce.Core.Entities.Tasks;
 
 
 
@@ -15,7 +16,7 @@ namespace VietCommerce.Core.Common.Extensions
             // ========================
             // Sync: Xóa mềm / Phục hồi 1 entity
             // ========================
-            public static void SoftDelete(this ISoftDelete entity, int userId)
+            public static void SoftDelete(this ISoftDelete entity, Guid userId)
             {
                 if (entity == null) throw new ArgumentNullException(nameof(entity));
 
@@ -38,7 +39,7 @@ namespace VietCommerce.Core.Common.Extensions
             // ========================
             // Sync: Xóa mềm / Phục hồi nhiều entity
             // ========================
-            public static void SoftDeleteAll(this IEnumerable<ISoftDelete> entities, int userId)
+            public static void SoftDeleteAll(this IEnumerable<ISoftDelete> entities, Guid userId)
             {
                 if (entities == null) throw new ArgumentNullException(nameof(entities));
 
@@ -57,7 +58,7 @@ namespace VietCommerce.Core.Common.Extensions
             // ========================
             // Sync: LINQ-friendly theo điều kiện
             // ========================
-            public static void SoftDeleteWhere(this IEnumerable<ISoftDelete> entities, Func<ISoftDelete, bool> predicate, int userId)
+            public static void SoftDeleteWhere(this IEnumerable<ISoftDelete> entities, Func<ISoftDelete, bool> predicate, Guid userId)
             {
                 if (entities == null) throw new ArgumentNullException(nameof(entities));
                 if (predicate == null) throw new ArgumentNullException(nameof(predicate));
@@ -78,7 +79,7 @@ namespace VietCommerce.Core.Common.Extensions
             // ========================
             // Async: Xóa mềm / Phục hồi IQueryable (Entity Framework)
             // ========================
-            public static async Task SoftDeleteAllAsync<T>(this IQueryable<T> query, int userId)
+            public static async Task SoftDeleteAllAsync<T>(this IQueryable<T> query, Guid userId)
                 where T : class, ISoftDelete
             {
                 if (query == null) throw new ArgumentNullException(nameof(query));

@@ -22,6 +22,21 @@ namespace VietCommerce.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("ProductSuppliers", b =>
+                {
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ProductId", "SupplierId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("ProductSuppliers", (string)null);
+                });
+
             modelBuilder.Entity("VietCommerce.Core.Entities.Audit.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -47,7 +62,7 @@ namespace VietCommerce.Data.Migrations
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid?>("UserId")
@@ -58,6 +73,60 @@ namespace VietCommerce.Data.Migrations
                     b.HasIndex("UserId", "Timestamp");
 
                     b.ToTable("AuditLogs");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.CRM.CRMInteraction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasMaxLength(36)
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("FollowUpDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("Type");
+
+                    b.HasIndex("CustomerId", "CreatedAt");
+
+                    b.ToTable("CRMInteractions");
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Customers.Customer", b =>
@@ -72,8 +141,8 @@ namespace VietCommerce.Data.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DeletedBy")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(450)");
@@ -91,7 +160,7 @@ namespace VietCommerce.Data.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Phone")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<Guid>("StoreId")
                         .HasColumnType("uniqueidentifier");
@@ -102,7 +171,7 @@ namespace VietCommerce.Data.Migrations
                     b.Property<string>("Tier")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid?>("UserId")
@@ -114,11 +183,13 @@ namespace VietCommerce.Data.Migrations
                         .IsUnique()
                         .HasFilter("Email IS NOT NULL AND IsDeleted = 0");
 
-                    b.HasIndex("StoreId");
+                    b.HasIndex("Phone");
 
                     b.HasIndex("TenantId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("StoreId", "CreatedAt");
 
                     b.ToTable("Customers");
                 });
@@ -150,8 +221,8 @@ namespace VietCommerce.Data.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DeletedBy")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Email")
                         .HasMaxLength(200)
@@ -196,7 +267,7 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -206,6 +277,463 @@ namespace VietCommerce.Data.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("CustomerAddresses");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.HRM.Employee", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Avatar")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Department")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("HireDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ManagerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Position")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("Salary")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Skills")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("StoreId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Department");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("ManagerId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.HasIndex("StoreId", "Status");
+
+                    b.ToTable("Employees");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.HRM.LeaveRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasMaxLength(36)
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Comments")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Days")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasMaxLength(36)
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedBy");
+
+                    b.HasIndex("StartDate");
+
+                    b.HasIndex("EmployeeId", "Status");
+
+                    b.ToTable("LeaveRequests");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.HRM.PerformanceMetric", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("CustomerRating")
+                        .HasPrecision(3, 2)
+                        .HasColumnType("decimal(3,2)");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasMaxLength(36)
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("OrdersProcessed")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Period")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("Sales")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("TasksCompleted")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId", "Period");
+
+                    b.ToTable("PerformanceMetrics");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.HRM.Shift", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("ClosingCash")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("OpeningCash")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StoreId")
+                        .HasMaxLength(36)
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("TotalSales")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("TotalTransactions")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasMaxLength(36)
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("UserId", "StartTime");
+
+                    b.ToTable("Shifts");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.HRM.WorkSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasMaxLength(36)
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EndTime")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("StartTime")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("EmployeeId", "Date");
+
+                    b.ToTable("WorkSchedules");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Logistics.StockTransfer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasMaxLength(36)
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeliveryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FromWarehouse")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasMaxLength(36)
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("SupplierId")
+                        .HasMaxLength(36)
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ToWarehouse")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedBy");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("RequestedBy");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("StockTransfers");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Logistics.Supplier", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeliverySchedule")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PaymentTerms")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Suppliers");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Logistics.TransferItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasMaxLength(36)
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Received")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StockTransferId")
+                        .HasMaxLength(36)
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("StockTransferId");
+
+                    b.ToTable("TransferItems");
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.Campaign", b =>
@@ -251,10 +779,10 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("StoreId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UpdatedBy")
+                    b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -310,10 +838,10 @@ namespace VietCommerce.Data.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UpdatedBy")
+                    b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int?>("UsageLimit")
@@ -347,7 +875,7 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("PromotionId", "ProductId");
@@ -381,7 +909,7 @@ namespace VietCommerce.Data.Migrations
                     b.Property<int?>("Type")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("UserId")
@@ -412,8 +940,8 @@ namespace VietCommerce.Data.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DeletedBy")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -429,7 +957,7 @@ namespace VietCommerce.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -452,8 +980,8 @@ namespace VietCommerce.Data.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DeletedBy")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -461,7 +989,7 @@ namespace VietCommerce.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("UserId")
@@ -498,7 +1026,7 @@ namespace VietCommerce.Data.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -522,14 +1050,17 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("CustomerId")
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CustomerId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DeletedBy")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -554,15 +1085,15 @@ namespace VietCommerce.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UpdatedBy")
+                    b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedBy");
+                    b.HasIndex("CreatedById");
 
                     b.HasIndex("OrderNumber")
                         .IsUnique()
@@ -572,7 +1103,7 @@ namespace VietCommerce.Data.Migrations
 
                     b.HasIndex("CustomerId", "IsDeleted");
 
-                    b.HasIndex("StoreId", "CreatedAt", "IsDeleted");
+                    b.HasIndex("StoreId", "CreatedAt");
 
                     b.ToTable("Orders");
                 });
@@ -585,6 +1116,9 @@ namespace VietCommerce.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CreatedById")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uniqueidentifier");
@@ -603,7 +1137,7 @@ namespace VietCommerce.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -647,7 +1181,7 @@ namespace VietCommerce.Data.Migrations
                     b.Property<string>("ShippingMethod")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Ward")
@@ -685,17 +1219,17 @@ namespace VietCommerce.Data.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UpdatedBy")
+                    b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedByUserId");
 
-                    b.HasIndex("OrderId");
+                    b.HasIndex("OrderId", "CreatedAt");
 
                     b.ToTable("OrderStatusHistories");
                 });
@@ -715,8 +1249,8 @@ namespace VietCommerce.Data.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DeletedBy")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -726,7 +1260,7 @@ namespace VietCommerce.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Phone")
                         .HasColumnType("nvarchar(max)");
@@ -734,10 +1268,15 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("Name");
 
                     b.HasIndex("TenantId");
 
@@ -766,7 +1305,7 @@ namespace VietCommerce.Data.Migrations
                     b.Property<string>("Status")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -799,14 +1338,14 @@ namespace VietCommerce.Data.Migrations
                     b.Property<int?>("Status")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
                     b.HasIndex("MethodId");
 
-                    b.HasIndex("OrderId");
+                    b.HasIndex("OrderId", "Status");
 
                     b.ToTable("Payments");
                 });
@@ -827,8 +1366,8 @@ namespace VietCommerce.Data.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DeletedBy")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -840,7 +1379,7 @@ namespace VietCommerce.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -877,7 +1416,7 @@ namespace VietCommerce.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -899,8 +1438,8 @@ namespace VietCommerce.Data.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DeletedBy")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -921,7 +1460,7 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -947,8 +1486,8 @@ namespace VietCommerce.Data.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DeletedBy")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -974,7 +1513,7 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -1011,6 +1550,9 @@ namespace VietCommerce.Data.Migrations
                     b.Property<int>("MovementType")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("PerformedById")
                         .HasColumnType("uniqueidentifier");
 
@@ -1026,19 +1568,26 @@ namespace VietCommerce.Data.Migrations
                     b.Property<string>("Reason")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<Guid?>("TransferId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UpdatedBy")
+                    b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InventoryId");
+                    b.HasIndex("OrderId");
 
                     b.HasIndex("PerformedById");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("TransferId");
+
+                    b.HasIndex("InventoryId", "CreatedAt");
 
                     b.ToTable("InventoryMovements");
                 });
@@ -1052,14 +1601,19 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid?>("CategoryId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DeletedBy")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -1069,11 +1623,16 @@ namespace VietCommerce.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("SKU")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<int>("Stock")
                         .HasColumnType("int");
@@ -1084,18 +1643,26 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CategoryId");
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Name");
 
                     b.HasIndex("SKU")
                         .IsUnique()
                         .HasFilter("IsDeleted = 0");
 
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
                     b.HasIndex("TenantId");
+
+                    b.HasIndex("CategoryId", "IsDeleted");
 
                     b.HasIndex("StoreId", "IsDeleted");
 
@@ -1114,7 +1681,7 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Url")
@@ -1159,10 +1726,10 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UpdatedBy")
+                    b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -1172,6 +1739,61 @@ namespace VietCommerce.Data.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("ProductPrices");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Tasks.WorkTask", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssignedBy")
+                        .HasMaxLength(36)
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssignedTo")
+                        .HasMaxLength(36)
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedBy");
+
+                    b.HasIndex("DueDate");
+
+                    b.HasIndex("Priority");
+
+                    b.HasIndex("AssignedTo", "Status");
+
+                    b.ToTable("Tasks");
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Users.Permission", b =>
@@ -1190,7 +1812,7 @@ namespace VietCommerce.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -1214,7 +1836,7 @@ namespace VietCommerce.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("UserId")
@@ -1243,7 +1865,7 @@ namespace VietCommerce.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -1265,7 +1887,7 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("RoleId", "PermissionId");
@@ -1290,8 +1912,8 @@ namespace VietCommerce.Data.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DeletedBy")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -1305,6 +1927,9 @@ namespace VietCommerce.Data.Migrations
 
                     b.Property<DateTime?>("LastLogin")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ManagerId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
@@ -1325,10 +1950,10 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UpdatedBy")
+                    b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -1336,6 +1961,8 @@ namespace VietCommerce.Data.Migrations
                     b.HasIndex("Email")
                         .IsUnique()
                         .HasFilter("IsDeleted = 0");
+
+                    b.HasIndex("ManagerId");
 
                     b.HasIndex("StoreId");
 
@@ -1394,16 +2021,13 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("StoreId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UpdatedBy")
+                    b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("UserId1")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -1412,13 +2036,14 @@ namespace VietCommerce.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("UserId1");
-
                     b.ToTable("UserAddresses");
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Users.UserRole", b =>
                 {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1431,14 +2056,31 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("UserId", "RoleId");
+                    b.HasKey("TenantId", "UserId", "RoleId");
 
                     b.HasIndex("RoleId");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("UserRoles");
+                });
+
+            modelBuilder.Entity("ProductSuppliers", b =>
+                {
+                    b.HasOne("VietCommerce.Core.Entities.Products.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("VietCommerce.Core.Entities.Logistics.Supplier", null)
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Audit.AuditLog", b =>
@@ -1449,6 +2091,24 @@ namespace VietCommerce.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.CRM.CRMInteraction", b =>
+                {
+                    b.HasOne("VietCommerce.Core.Entities.Users.User", "CreatedByUser")
+                        .WithMany("CRMInteractions")
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VietCommerce.Core.Entities.Customers.Customer", "Customer")
+                        .WithMany("Interactions")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Customers.Customer", b =>
@@ -1494,6 +2154,133 @@ namespace VietCommerce.Data.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.HRM.Employee", b =>
+                {
+                    b.HasOne("VietCommerce.Core.Entities.HRM.Employee", "Manager")
+                        .WithMany("Subordinates")
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VietCommerce.Core.Entities.Organization.Store", "Store")
+                        .WithMany("Employees")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("VietCommerce.Core.Entities.Users.User", "User")
+                        .WithOne("EmployeeProfile")
+                        .HasForeignKey("VietCommerce.Core.Entities.HRM.Employee", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Manager");
+
+                    b.Navigation("Store");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.HRM.LeaveRequest", b =>
+                {
+                    b.HasOne("VietCommerce.Core.Entities.HRM.Employee", "ApprovedByEmployee")
+                        .WithMany()
+                        .HasForeignKey("ApprovedBy")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("VietCommerce.Core.Entities.HRM.Employee", "Employee")
+                        .WithMany("LeaveRequests")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByEmployee");
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.HRM.PerformanceMetric", b =>
+                {
+                    b.HasOne("VietCommerce.Core.Entities.HRM.Employee", "Employee")
+                        .WithMany("Performance")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.HRM.Shift", b =>
+                {
+                    b.HasOne("VietCommerce.Core.Entities.Organization.Store", "Store")
+                        .WithMany("Shifts")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VietCommerce.Core.Entities.Users.User", "Staff")
+                        .WithMany("Shifts")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Staff");
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.HRM.WorkSchedule", b =>
+                {
+                    b.HasOne("VietCommerce.Core.Entities.HRM.Employee", "Employee")
+                        .WithMany("WorkSchedules")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Logistics.StockTransfer", b =>
+                {
+                    b.HasOne("VietCommerce.Core.Entities.Users.User", "ApprovedByUser")
+                        .WithMany("ApprovedTransfers")
+                        .HasForeignKey("ApprovedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VietCommerce.Core.Entities.Users.User", "RequestedByUser")
+                        .WithMany("RequestedTransfers")
+                        .HasForeignKey("RequestedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VietCommerce.Core.Entities.Logistics.Supplier", "Supplier")
+                        .WithMany("StockTransfers")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("RequestedByUser");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Logistics.TransferItem", b =>
+                {
+                    b.HasOne("VietCommerce.Core.Entities.Products.Product", "Product")
+                        .WithMany("TransferItems")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VietCommerce.Core.Entities.Logistics.StockTransfer", "StockTransfer")
+                        .WithMany("TransferItems")
+                        .HasForeignKey("StockTransferId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("StockTransfer");
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.Campaign", b =>
@@ -1605,15 +2392,13 @@ namespace VietCommerce.Data.Migrations
                 {
                     b.HasOne("VietCommerce.Core.Entities.Users.User", "CreatedByUser")
                         .WithMany("CreatedOrders")
-                        .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("VietCommerce.Core.Entities.Customers.Customer", "Customer")
                         .WithMany("Orders")
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("VietCommerce.Core.Entities.Organization.Store", "Store")
                         .WithMany("Orders")
@@ -1780,6 +2565,11 @@ namespace VietCommerce.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("VietCommerce.Core.Entities.Orders.Order", "Order")
+                        .WithMany("InventoryMovements")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("VietCommerce.Core.Entities.Users.User", "PerformedBy")
                         .WithMany("InventoryMovements")
                         .HasForeignKey("PerformedById")
@@ -1789,9 +2579,18 @@ namespace VietCommerce.Data.Migrations
                         .WithMany("InventoryMovements")
                         .HasForeignKey("ProductId");
 
+                    b.HasOne("VietCommerce.Core.Entities.Logistics.StockTransfer", "Transfer")
+                        .WithMany("InventoryMovements")
+                        .HasForeignKey("TransferId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Inventory");
 
+                    b.Navigation("Order");
+
                     b.Navigation("PerformedBy");
+
+                    b.Navigation("Transfer");
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Products.Product", b =>
@@ -1846,6 +2645,25 @@ namespace VietCommerce.Data.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("VietCommerce.Core.Entities.Tasks.WorkTask", b =>
+                {
+                    b.HasOne("VietCommerce.Core.Entities.Users.User", "AssignedByUser")
+                        .WithMany("CreatedTasks")
+                        .HasForeignKey("AssignedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VietCommerce.Core.Entities.Users.User", "AssignedToUser")
+                        .WithMany("AssignedTasks")
+                        .HasForeignKey("AssignedTo")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AssignedByUser");
+
+                    b.Navigation("AssignedToUser");
+                });
+
             modelBuilder.Entity("VietCommerce.Core.Entities.Users.RefreshToken", b =>
                 {
                     b.HasOne("VietCommerce.Core.Entities.Users.User", "User")
@@ -1878,6 +2696,11 @@ namespace VietCommerce.Data.Migrations
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Users.User", b =>
                 {
+                    b.HasOne("VietCommerce.Core.Entities.Users.User", "Manager")
+                        .WithMany("Subordinates")
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("VietCommerce.Core.Entities.Organization.Store", "Store")
                         .WithMany("Users")
                         .HasForeignKey("StoreId")
@@ -1888,6 +2711,8 @@ namespace VietCommerce.Data.Migrations
                         .WithMany("Users")
                         .HasForeignKey("TenantId");
 
+                    b.Navigation("Manager");
+
                     b.Navigation("Store");
                 });
 
@@ -1896,18 +2721,14 @@ namespace VietCommerce.Data.Migrations
                     b.HasOne("VietCommerce.Core.Entities.Organization.Store", "Store")
                         .WithMany("Addresses")
                         .HasForeignKey("StoreId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("VietCommerce.Core.Entities.Users.User", "User")
-                        .WithMany("Addresses")
-                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("VietCommerce.Core.Entities.Users.User", null)
+                    b.HasOne("VietCommerce.Core.Entities.Users.User", "User")
                         .WithMany("UserAddresses")
-                        .HasForeignKey("UserId1");
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Store");
 
@@ -1939,7 +2760,32 @@ namespace VietCommerce.Data.Migrations
 
                     b.Navigation("Carts");
 
+                    b.Navigation("Interactions");
+
                     b.Navigation("Orders");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.HRM.Employee", b =>
+                {
+                    b.Navigation("LeaveRequests");
+
+                    b.Navigation("Performance");
+
+                    b.Navigation("Subordinates");
+
+                    b.Navigation("WorkSchedules");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Logistics.StockTransfer", b =>
+                {
+                    b.Navigation("InventoryMovements");
+
+                    b.Navigation("TransferItems");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Logistics.Supplier", b =>
+                {
+                    b.Navigation("StockTransfers");
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.Campaign", b =>
@@ -1964,6 +2810,8 @@ namespace VietCommerce.Data.Migrations
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Orders.Order", b =>
                 {
+                    b.Navigation("InventoryMovements");
+
                     b.Navigation("OrderItems");
 
                     b.Navigation("OrderShipping");
@@ -1983,11 +2831,15 @@ namespace VietCommerce.Data.Migrations
 
                     b.Navigation("Customers");
 
+                    b.Navigation("Employees");
+
                     b.Navigation("Inventories");
 
                     b.Navigation("Orders");
 
                     b.Navigation("Products");
+
+                    b.Navigation("Shifts");
 
                     b.Navigation("Users");
                 });
@@ -2046,6 +2898,8 @@ namespace VietCommerce.Data.Migrations
                     b.Navigation("Prices");
 
                     b.Navigation("PromotionProducts");
+
+                    b.Navigation("TransferItems");
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Users.Permission", b =>
@@ -2062,9 +2916,13 @@ namespace VietCommerce.Data.Migrations
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Users.User", b =>
                 {
-                    b.Navigation("Addresses");
+                    b.Navigation("ApprovedTransfers");
+
+                    b.Navigation("AssignedTasks");
 
                     b.Navigation("AuditLogs");
+
+                    b.Navigation("CRMInteractions");
 
                     b.Navigation("Carts");
 
@@ -2074,11 +2932,21 @@ namespace VietCommerce.Data.Migrations
 
                     b.Navigation("CreatedPrices");
 
+                    b.Navigation("CreatedTasks");
+
+                    b.Navigation("EmployeeProfile");
+
                     b.Navigation("InventoryMovements");
 
                     b.Navigation("Notifications");
 
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("RequestedTransfers");
+
+                    b.Navigation("Shifts");
+
+                    b.Navigation("Subordinates");
 
                     b.Navigation("UserAddresses");
 

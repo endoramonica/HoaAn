@@ -56,7 +56,7 @@
             // ⭐ SOFT DELETE FIELDS (từ ISoftDelete)
             public bool IsDeleted { get; set; } = false;
             public DateTime? DeletedAt { get; set; }
-            public int? DeletedBy { get; set; }  // ID người xóa (Staff/User)
+            public Guid? DeletedBy { get; set; }  // ID người xóa (Staff/User)
 
             // ⭐ MULTI-TENANT SUPPORT
             public Guid TenantId { get; set; }

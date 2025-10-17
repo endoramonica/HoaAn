@@ -4,7 +4,8 @@ using VietCommerce.Core.Entities.Marketing;
 using VietCommerce.Core.Entities.Orders;
 using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Entities.Users;
-
+using System.ComponentModel.DataAnnotations.Schema;
+using VietCommerce.Core.Entities.HRM;
 
 
 namespace VietCommerce.Core.Entities.Organization;
@@ -27,7 +28,13 @@ public class Store : BaseEntity, ISoftDelete
     public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
     public virtual ICollection<UserAddress> Addresses { get; set; } = new List<UserAddress>();
-    public bool IsDeleted { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public DateTime? DeletedAt { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public int? DeletedBy { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    // Thêm vào Store.cs
+[InverseProperty(nameof(Shift.Store))]
+public ICollection<Shift> Shifts { get; set; } = new List<Shift>();
+
+[InverseProperty(nameof(Employee.Store))]
+public ICollection<Employee> Employees { get; set; } = new List<Employee>();
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt {get;set; }
+    public Guid? DeletedBy {get;set; }
 }

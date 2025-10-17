@@ -16,7 +16,7 @@ public class Category : BaseEntity, ISoftDelete
     public virtual Category? ParentCategory { get; set; }
     public virtual ICollection<Category> SubCategories { get; set; } = new List<Category>();
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
-    public bool IsDeleted { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public DateTime? DeletedAt { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public int? DeletedBy { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public bool IsDeleted {get;set; }
+    public DateTime? DeletedAt {get;set; }
+    public Guid? DeletedBy {get;set; }
 }
