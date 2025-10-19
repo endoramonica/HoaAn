@@ -1,7 +1,6 @@
 // Core/Validators/Auth/RegisterRequestValidator.cs
 using FluentValidation;
 using VietCommerce.Core.DTOs.Auth;
-using VietCommerce.Data.Repositories.Interfaces;
 
 namespace VietCommerce.Core.Validators.Auth;
 

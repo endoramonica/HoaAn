@@ -36,6 +36,7 @@ namespace VietCommerce.Core.Entities.Marketing
         public DateTime StartDate { get; set; }
         [Required]
         public DateTime EndDate { get; set; }
+        public bool IsActive { get; set; } 
 
         [Required]
         public PromotionStatus Status { get; set; } = PromotionStatus.ACTIVE;

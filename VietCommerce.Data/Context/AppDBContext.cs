@@ -45,6 +45,9 @@ public class AppDbContext : DbContext
     public DbSet<ProductPrice> ProductPrices { get; set; } = null!;
     public DbSet<Inventory> Inventories { get; set; } = null!;
     public DbSet<InventoryMovement> InventoryMovements { get; set; } = null!;
+    public DbSet<ProductFavorite> ProductFavorites { get; set; } = null!;
+    public DbSet<ProductView> ProductViews { get; set; } = null!;
+    public DbSet<ProductReview> ProductReviews { get; set; } = null!;
 
     // Orders
     public DbSet<Order> Orders { get; set; } = null!;

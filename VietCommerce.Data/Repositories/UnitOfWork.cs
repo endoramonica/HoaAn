@@ -12,6 +12,7 @@ public class UnitOfWork : IUnitOfWork
     private IPermissionRepository? _permissions;
     private IUserRoleRepository? _userRoles;
     private IRolePermissionRepository? _rolePermissions;
+    private IProductRepository? _products;
 
     public UnitOfWork(AppDbContext context)
     {
@@ -24,6 +25,7 @@ public class UnitOfWork : IUnitOfWork
     public IPermissionRepository Permissions => _permissions ??= new PermissionRepository(_context);
     public IUserRoleRepository UserRoles => _userRoles ??= new UserRoleRepository(_context);
     public IRolePermissionRepository RolePermissions => _rolePermissions ??= new RolePermissionRepository(_context);
+    public IProductRepository Products => _products ??= new ProductRepository(_context);
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

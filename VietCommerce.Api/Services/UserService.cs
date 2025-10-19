@@ -6,7 +6,6 @@ using VietCommerce.Core.DTOs.Users;
 using VietCommerce.Core.Entities.Users;
 using VietCommerce.Core.Enums.Users;
 using VietCommerce.Core.Models;
-using VietCommerce.Data.Repositories.Interfaces;
 namespace VietCommerce.Api.Services;
 public class UserService : IUserService
 {
