@@ -130,7 +130,19 @@ public class AppDbContext : DbContext
         ConfigureAuditEntities(modelBuilder);
 
         // Composite Keys
-        modelBuilder.Entity<UserRole>().HasKey(ur => new { ur.TenantId ,ur.UserId, ur.RoleId });
+        modelBuilder.Entity<UserRole>(entity =>
+        {
+            entity.HasKey(ur => new { ur.UserId, ur.RoleId });
+
+            entity.HasOne(ur => ur.User)
+                .WithMany(u => u.UserRoles)
+                .HasForeignKey(ur => ur.UserId);
+
+            entity.HasOne(ur => ur.Role)
+                .WithMany(r => r.UserRoles)
+                .HasForeignKey(ur => ur.RoleId);
+        });
+
         modelBuilder.Entity<RolePermission>().HasKey(rp => new { rp.RoleId, rp.PermissionId });
         modelBuilder.Entity<PromotionProduct>().HasKey(pp => new { pp.PromotionId, pp.ProductId });
 
@@ -152,60 +164,85 @@ public class AppDbContext : DbContext
 
     private void ConfigureTenantEntities(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Tenant>()
-            .HasMany(t => t.Stores)
-            .WithOne(s => s.Tenant)
-            .HasForeignKey(s => s.TenantId)
-            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Tenant>(entity =>
+        {
+            // ========== STORES ==========
+            entity.HasMany(t => t.Stores)
+                .WithOne(s => s.Tenant)
+                .HasForeignKey(s => s.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ========== CUSTOMERS ==========
+            entity.HasMany(t => t.Customers)
+                .WithOne(c => c.Tenant)
+                .HasForeignKey(c => c.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 
     private void ConfigureStoreEntities(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Store>(entity =>
         {
+            // ========== INDEXES ==========
             entity.HasIndex(s => s.Id).IsUnique();
             entity.HasIndex(s => s.Name);
 
+            // ========== TENANT ==========
+            entity.HasOne(s => s.Tenant)
+                .WithMany(t => t.Stores)
+                .HasForeignKey(s => s.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ========== USERS ==========
             entity.HasMany(s => s.Users)
                 .WithOne(u => u.Store)
                 .HasForeignKey(u => u.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ========== CUSTOMERS ==========
             entity.HasMany(s => s.Customers)
                 .WithOne(c => c.Store)
                 .HasForeignKey(c => c.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ========== CATEGORIES ==========
             entity.HasMany(s => s.Categories)
                 .WithOne(c => c.Store)
                 .HasForeignKey(c => c.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ========== PRODUCTS ==========
             entity.HasMany(s => s.Products)
                 .WithOne(p => p.Store)
                 .HasForeignKey(p => p.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ========== INVENTORIES ==========
             entity.HasMany(s => s.Inventories)
                 .WithOne(i => i.Store)
                 .HasForeignKey(i => i.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ========== ORDERS ==========
             entity.HasMany(s => s.Orders)
                 .WithOne(o => o.Store)
                 .HasForeignKey(o => o.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ========== CAMPAIGNS ==========
             entity.HasMany(s => s.Campaigns)
                 .WithOne(c => c.Store)
                 .HasForeignKey(c => c.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ========== EMPLOYEES ==========
             entity.HasMany(s => s.Employees)
                 .WithOne(e => e.Store)
                 .HasForeignKey(e => e.StoreId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // ========== SHIFTS ==========
             entity.HasMany(s => s.Shifts)
                 .WithOne(sh => sh.Store)
                 .HasForeignKey(sh => sh.StoreId)
@@ -310,43 +347,60 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<Customer>(entity =>
         {
+            // ========== INDEXES ==========
             entity.HasIndex(c => c.Email)
                 .IsUnique()
-                .HasFilter("Email IS NOT NULL AND IsDeleted = 0");
+                .HasFilter("[Email] IS NOT NULL AND [IsDeleted] = 0");
 
             entity.HasIndex(c => c.Phone);
 
+            entity.HasIndex(c => new { c.StoreId, c.CreatedAt }); 
+            // ========== TENANT RELATIONSHIP (REQUIRED) ==========
+            entity.HasOne(c => c.Tenant)
+                .WithMany(t => t.Customers)
+                .HasForeignKey(c => c.TenantId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+            // ========== STORE RELATIONSHIP (REQUIRED) ==========
+            entity.HasOne(c => c.Store)
+                .WithMany(s => s.Customers)
+                .HasForeignKey(c => c.StoreId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+            // ========== USER RELATIONSHIP (OPTIONAL) ==========
             entity.HasOne(c => c.User)
-                .WithMany()
+                .WithMany() // User không có navigation collection về Customer
                 .HasForeignKey(c => c.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+            // ========== CHILD COLLECTIONS ==========
             entity.HasMany(c => c.Addresses)
                 .WithOne(a => a.Customer)
                 .HasForeignKey(a => a.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
-
             entity.HasMany(c => c.Orders)
                 .WithOne(o => o.Customer)
                 .HasForeignKey(o => o.CustomerId)
                 .OnDelete(DeleteBehavior.SetNull);
-
             entity.HasMany(c => c.Carts)
-                .WithOne(c => c.Customer)
-                .HasForeignKey(c => c.CustomerId)
+                .WithOne(cart => cart.Customer)
+                .HasForeignKey(cart => cart.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
-
             entity.HasMany(c => c.Interactions)
                 .WithOne(i => i.Customer)
                 .HasForeignKey(i => i.CustomerId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
         });
 
-        modelBuilder.Entity<CustomerAddress>()
-            .HasOne(ca => ca.Tenant)
-            .WithMany()
-            .HasForeignKey(ca => ca.TenantId)
-            .OnDelete(DeleteBehavior.Restrict);
+        // ========== CUSTOMER ADDRESS ==========
+        modelBuilder.Entity<CustomerAddress>(entity =>
+        {
+            entity.HasOne(ca => ca.Customer)
+                .WithMany(c => c.Addresses)
+                .HasForeignKey(ca => ca.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 
     private void ConfigureCategoryEntities(ModelBuilder modelBuilder)
@@ -411,6 +465,10 @@ public class AppDbContext : DbContext
                 .HasForeignKey(ti => ti.ProductId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(p => p.CreatedBy)
+                .OnDelete(DeleteBehavior.NoAction);
         });
     }
 
@@ -446,17 +504,36 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<Order>(entity =>
         {
+            // ========== INDEXES ==========
             entity.HasIndex(o => o.OrderNumber)
                 .IsUnique()
-                .HasFilter("IsDeleted = 0");
-            entity.HasIndex(o => new { o.StoreId, o.CreatedAt });
+                .HasFilter("[IsDeleted] = 0");
 
+            entity.HasIndex(o => new { o.StoreId, o.CreatedAt });
+            entity.HasIndex(o => new { o.CustomerId, o.IsDeleted });
+
+            // ========== STORE RELATIONSHIP (REQUIRED) ==========
+            entity.HasOne(o => o.Store)
+                .WithMany(s => s.Orders)
+                .HasForeignKey(o => o.StoreId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            // ========== CUSTOMER RELATIONSHIP (OPTIONAL) ==========
+            entity.HasOne(o => o.Customer)
+                .WithMany(c => c.Orders)
+                .HasForeignKey(o => o.CustomerId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
+            // ========== CREATED BY USER (OPTIONAL) ==========
             entity.HasOne(o => o.CreatedByUser)
                 .WithMany(u => u.CreatedOrders)
                 .HasForeignKey(o => o.CreatedById)
-                .IsRequired(false) // nếu User bị xóa mềm , EF vânx cho phép Order tồn tại mà ko lỗi 
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
 
+            // ========== CHILD COLLECTIONS ==========
             entity.HasMany(o => o.OrderItems)
                 .WithOne(oi => oi.Order)
                 .HasForeignKey(oi => oi.OrderId)
@@ -472,15 +549,16 @@ public class AppDbContext : DbContext
                 .HasForeignKey(osh => osh.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasMany(o => o.InventoryMovements)
+                .WithOne(im => im.Order)
+                .HasForeignKey(im => im.OrderId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // ========== ONE-TO-ONE: ORDER SHIPPING ==========
             entity.HasOne(o => o.OrderShipping)
                 .WithOne(os => os.Order)
                 .HasForeignKey<OrderShipping>(os => os.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(o => o.Customer)
-                .WithMany(c => c.Orders)
-                .HasForeignKey(o => o.CustomerId)
-                .OnDelete(DeleteBehavior.Cascade);
-
         });
 
         modelBuilder.Entity<OrderItem>(entity =>
@@ -489,6 +567,11 @@ public class AppDbContext : DbContext
                 .WithMany(o => o.OrderItems)
                 .HasForeignKey(oi => oi.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(oi => oi.Product)
+                .WithMany(p => p.OrderItems)
+                .HasForeignKey(oi => oi.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 

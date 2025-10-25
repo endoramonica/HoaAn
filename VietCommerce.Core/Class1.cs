@@ -1,7 +1,6 @@
-﻿namespace VietCommerce.Core
+namespace VietCommerce.Core
 {
     public class Class1
     {
-
     }
 }

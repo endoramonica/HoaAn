@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Linq;
 using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Entities.Marketing;
 using VietCommerce.Core.Enums.Products;
 using VietCommerce.Core.Enums.Marketing;
-
 namespace VietCommerce.Core.Helpers
 {
     public static class PriceCalculationHelper
@@ -19,10 +18,8 @@ namespace VietCommerce.Core.Helpers
                            (p.EffectiveTo == null || p.EffectiveTo > currentTime))
                 .OrderByDescending(p => p.EffectiveFrom)
                 .FirstOrDefault();
-                
             return currentPrice?.Price ?? 0;
         }
-        
         public static decimal CalculateDiscountAmount(decimal originalPrice, Promotion promotion)
         {
             return promotion.PromotionType switch
@@ -32,7 +29,6 @@ namespace VietCommerce.Core.Helpers
                 _ => 0
             };
         }
-        
         public static decimal ApplyMaxDiscount(decimal discountAmount, Promotion promotion)
         {
             if (promotion.MaxDiscount.HasValue)

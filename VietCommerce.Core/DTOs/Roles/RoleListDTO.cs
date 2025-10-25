@@ -1,5 +1,4 @@
-﻿namespace VietCommerce.Core.DTOs.Roles;
-
+namespace VietCommerce.Core.DTOs.Roles;
 public class RoleListDTO
 {
     public Guid Id { get; set; }

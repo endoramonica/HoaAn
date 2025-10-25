@@ -1,4 +1,4 @@
-﻿namespace VietCommerce.Core.Enums.Products
+namespace VietCommerce.Core.Enums.Products
 {
     public enum ProductStatus
     {

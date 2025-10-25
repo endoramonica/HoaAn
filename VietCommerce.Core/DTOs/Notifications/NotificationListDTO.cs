@@ -1,8 +1,6 @@
 using VietCommerce.Core.Enums;
 using VietCommerce.Core.Enums.Notifications;
-
 namespace VietCommerce.Core.DTOs.Notifications;
-
 public class NotificationListDTO
 {
     public Guid Id { get; set; }

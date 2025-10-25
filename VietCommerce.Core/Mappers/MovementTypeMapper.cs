@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using VietCommerce.Core.Enums.Products;
 using static VietCommerce.Core.Common.Constants.InventoryConstants;
-
 namespace VietCommerce.Core.Mappers
 {
     public static class MovementTypeMapper
@@ -21,7 +20,6 @@ namespace VietCommerce.Core.Mappers
                 _ => throw new ArgumentOutOfRangeException(nameof(movementType), movementType, null)
             };
         }
-
         /// <summary>
         /// String -> Enum
         /// </summary>

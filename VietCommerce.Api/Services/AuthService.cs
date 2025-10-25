@@ -11,7 +11,6 @@ using VietCommerce.Core.Enums.Users;
 using VietCommerce.Core.Helpers;
 using VietCommerce.Core.Models;
 using VietCommerce.Data.Repositories.Interfaces;
-
 namespace VietCommerce.Api.Services
 {
     public class AuthService : IAuthService
@@ -23,7 +22,7 @@ namespace VietCommerce.Api.Services
         private readonly JwtSettings _jwtSettings;
         private readonly GoogleSettings _googleSettings;
         private readonly IMapper _mapper;
-
+        private readonly ICacheService _cacheService;
         public AuthService(
             IUnitOfWork unitOfWork,
             JwtHelper jwtHelper,
@@ -31,6 +30,7 @@ namespace VietCommerce.Api.Services
             IOptions<GoogleSettings> googleOptions,
             IMemoryCache cache,
             IMapper mapper,
+            ICacheService cacheService,
             IOptions<JwtSettings> jwtSettings)
         {
             _unitOfWork = unitOfWork;
@@ -40,8 +40,8 @@ namespace VietCommerce.Api.Services
             _googleSettings = googleOptions.Value;
             _mapper = mapper;
             _jwtSettings = jwtSettings.Value;
+            _cacheService = cacheService;
         }
-
         // 🔹 LOGIN
         public async Task<ApiResponse<AuthResponseDTO>> LoginAsync(LoginDTO request)
         {
@@ -50,37 +50,60 @@ namespace VietCommerce.Api.Services
                 var user = await _unitOfWork.Users.GetByEmailWithRolesAsync(request.Email);
                 if (user == null || !PasswordHelper.VerifyPassword(request.Password, user.PasswordHash))
                     return ApiResponse<AuthResponseDTO>.FailureResponse("Invalid email or password");
-
                 if (!user.IsActive || user.Status != UserStatus.ACTIVE)
                     return ApiResponse<AuthResponseDTO>.FailureResponse("Account is deactivated");
-
                 // ✅ Update last login
                 user.LastLogin = DateTime.UtcNow;
                 _unitOfWork.Users.Update(user);
-
                 // ✅ Generate tokens
                 var accessToken = _jwtHelper.GenerateToken(user);
                 var refreshToken = GenerateRefreshToken();
-
-                // ✅ Save refresh token
+                // ✅ Extract jti from token
+                var jti = _jwtHelper.GetJtiFromToken(accessToken);
+                if (string.IsNullOrEmpty(jti))
+                {
+                    _logger.LogError("Failed to extract jti from token for user {UserId}", user.Id);
+                    return ApiResponse<AuthResponseDTO>.FailureResponse("Token generation failed");
+                }
+                // ✅ Save refresh token to DB
                 var refreshTokenEntity = new RefreshToken
                 {
                     UserId = user.Id,
                     Token = refreshToken,
                     ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenLifetimeDays)
                 };
-
                 await _unitOfWork.RefreshTokens.AddAsync(refreshTokenEntity);
                 await _unitOfWork.SaveChangesAsync();
+                // ✅ Save session to Redis (NEW)
+                await SaveSessionAsync(
+                    user.Id,
+                    jti,
+                    TimeSpan.FromMinutes(_jwtSettings.AccessTokenLifetimeMinutes)
+                );
+                // 🔹 Lấy roles (nếu bạn cần hiển thị hoặc log)
+                var roles = user.UserRoles?.Select(ur => ur.Role.Name).ToList() ?? new List<string>();
 
+                // 🔹 Map user sang UserInfoDTO
+                var userInfo = new UserInfoDTO
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    Name = user.Name ?? string.Empty,
+                    AvatarUrl = user.AvatarUrl ?? string.Empty,
+                    Provider = user.Provider ?? "Local",
+                    Roles = roles
+                };
+
+                // 🔹 Gán user info vào response
                 var response = new AuthResponseDTO
                 {
                     Token = accessToken,
                     RefreshToken = refreshToken,
-                    Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenLifetimeMinutes)
+                    Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenLifetimeMinutes),
+                    User = userInfo
                 };
 
-                _logger.LogInformation("User {Email} logged in successfully", request.Email);
+                _logger.LogInformation("User {Email} logged in successfully with session {Jti}", request.Email, jti);
                 return ApiResponse<AuthResponseDTO>.SuccessResponse(response, "Login successful");
             }
             catch (Exception ex)
@@ -89,7 +112,6 @@ namespace VietCommerce.Api.Services
                 return ApiResponse<AuthResponseDTO>.FailureResponse("An error occurred during login");
             }
         }
-
         // 🔹 REGISTER
         public async Task<ApiResponse<AuthResponseDTO>> RegisterAsync(RegisterRequestDTO request)
         {
@@ -97,16 +119,12 @@ namespace VietCommerce.Api.Services
             {
                 if (await _unitOfWork.Users.EmailExistsAsync(request.Email))
                     return ApiResponse<AuthResponseDTO>.FailureResponse("Email is already registered");
-
                 // ✅ Generate verification token
                 var verificationToken = Guid.NewGuid().ToString();
-
                 // ✅ Cache registration info (valid 1 hour)
                 _cache.Set(verificationToken, request, TimeSpan.FromHours(1));
-
                 // ✅ Send verification email
                 await SendVerificationEmailAsync(request.Email, verificationToken);
-
                 _logger.LogInformation("Verification email sent to {Email}", request.Email);
                 return ApiResponse<AuthResponseDTO>.SuccessResponse(null!, "Please check your email to verify your account");
             }
@@ -116,7 +134,6 @@ namespace VietCommerce.Api.Services
                 return ApiResponse<AuthResponseDTO>.FailureResponse("An error occurred during registration");
             }
         }
-
         // 🔹 MOCK EMAIL (placeholder)
         public Task SendVerificationEmailAsync(string email, string token)
         {
@@ -125,7 +142,6 @@ namespace VietCommerce.Api.Services
             Console.WriteLine($"📧 Verification email (mock) sent to {email}: {verificationLink}");
             return Task.CompletedTask;
         }
-
         // 🔹 REFRESH TOKEN
         public async Task<ApiResponse<AuthResponseDTO>> RefreshTokenAsync(RefreshTokenRequestDTO request)
         {
@@ -134,25 +150,19 @@ namespace VietCommerce.Api.Services
                 var refreshToken = await _unitOfWork.RefreshTokens.GetValidTokenAsync(request.RefreshToken);
                 if (refreshToken == null)
                     return ApiResponse<AuthResponseDTO>.FailureResponse("Invalid or expired refresh token");
-
                 if (!refreshToken.User.IsActive || refreshToken.User.Status != UserStatus.ACTIVE)
                     return ApiResponse<AuthResponseDTO>.FailureResponse("Account is deactivated");
-
                 var accessToken = _jwtHelper.GenerateToken(refreshToken.User);
                 var newRefreshToken = GenerateRefreshToken();
-
                 refreshToken.Token = newRefreshToken;
                 refreshToken.ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenLifetimeDays);
-
                 await _unitOfWork.SaveChangesAsync();
-
                 var response = new AuthResponseDTO
                 {
                     Token = accessToken,
                     RefreshToken = newRefreshToken,
                     Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenLifetimeMinutes)
                 };
-
                 return ApiResponse<AuthResponseDTO>.SuccessResponse(response, "Token refreshed successfully");
             }
             catch (Exception ex)
@@ -161,12 +171,14 @@ namespace VietCommerce.Api.Services
                 return ApiResponse<AuthResponseDTO>.FailureResponse("An error occurred during token refresh");
             }
         }
-
         // 🔹 LOGOUT
         public async Task<ApiResponse<bool>> LogoutAsync(Guid userId)
         {
             try
             {
+                // Revoke session in Redis
+                await RevokeSessionAsync(userId);
+                // Invalidate refresh tokens in DB (optional - implement if needed)
                 // await _unitOfWork.RefreshTokens.InvalidateTokensAsync(userId);
                 await _unitOfWork.SaveChangesAsync();
                 _logger.LogInformation("User {UserId} logged out successfully", userId);
@@ -178,7 +190,6 @@ namespace VietCommerce.Api.Services
                 return ApiResponse<bool>.FailureResponse("An error occurred during logout");
             }
         }
-
         // 🔹 CHANGE PASSWORD
         public async Task<ApiResponse<bool>> ChangePasswordAsync(Guid userId, ChangePasswordRequestDTO request)
         {
@@ -187,14 +198,11 @@ namespace VietCommerce.Api.Services
                 var user = await _unitOfWork.Users.GetByIdAsync(userId);
                 if (user == null)
                     return ApiResponse<bool>.FailureResponse("User not found");
-
                 if (!PasswordHelper.VerifyPassword(request.CurrentPassword, user.PasswordHash))
                     return ApiResponse<bool>.FailureResponse("Current password is incorrect");
-
                 user.PasswordHash = PasswordHelper.HashPassword(request.NewPassword);
                 _unitOfWork.Users.Update(user);
                 await _unitOfWork.SaveChangesAsync();
-
                 _logger.LogInformation("Password changed successfully for user {UserId}", userId);
                 return ApiResponse<bool>.SuccessResponse(true, "Password changed successfully");
             }
@@ -204,7 +212,6 @@ namespace VietCommerce.Api.Services
                 return ApiResponse<bool>.FailureResponse("An error occurred while changing password");
             }
         }
-
         // 🔹 FORGOT PASSWORD
         public async Task<ApiResponse<bool>> ForgotPasswordAsync(ForgotPasswordRequestDTO request)
         {
@@ -213,7 +220,6 @@ namespace VietCommerce.Api.Services
                 var user = await _unitOfWork.Users.GetByEmailAsync(request.Email);
                 if (user == null)
                     return ApiResponse<bool>.SuccessResponse(true, "If the email exists, a password reset link has been sent");
-
                 var resetToken = PasswordHelper.GenerateResetToken();
                 _logger.LogInformation("Password reset requested for {Email}. Token: {Token}", request.Email, resetToken);
                 return ApiResponse<bool>.SuccessResponse(true, "If the email exists, a password reset link has been sent");
@@ -224,7 +230,6 @@ namespace VietCommerce.Api.Services
                 return ApiResponse<bool>.FailureResponse("An error occurred while processing password reset request");
             }
         }
-
         // 🔹 RESET PASSWORD
         public async Task<ApiResponse<bool>> ResetPasswordAsync(ResetPasswordRequestDTO request)
         {
@@ -233,11 +238,9 @@ namespace VietCommerce.Api.Services
                 var user = await _unitOfWork.Users.GetByEmailAsync(request.Email);
                 if (user == null)
                     return ApiResponse<bool>.FailureResponse("Invalid reset request");
-
                 user.PasswordHash = PasswordHelper.HashPassword(request.NewPassword);
                 _unitOfWork.Users.Update(user);
                 await _unitOfWork.SaveChangesAsync();
-
                 _logger.LogInformation("Password reset successfully for user {Email}", request.Email);
                 return ApiResponse<bool>.SuccessResponse(true, "Password reset successfully");
             }
@@ -247,7 +250,6 @@ namespace VietCommerce.Api.Services
                 return ApiResponse<bool>.FailureResponse("An error occurred during password reset");
             }
         }
-
         // 🔹 VALIDATE TOKEN
         public async Task<ApiResponse<bool>> ValidateTokenAsync(string token)
         {
@@ -256,11 +258,9 @@ namespace VietCommerce.Api.Services
                 var userId = _jwtHelper.ValidateToken(token);
                 if (userId == null)
                     return ApiResponse<bool>.FailureResponse("Invalid token");
-
                 var user = await _unitOfWork.Users.GetByIdAsync(userId.Value);
                 if (user == null || !user.IsActive || user.Status != UserStatus.ACTIVE)
                     return ApiResponse<bool>.FailureResponse("User not found or inactive");
-
                 return ApiResponse<bool>.SuccessResponse(true, "Token is valid");
             }
             catch (Exception ex)
@@ -269,7 +269,6 @@ namespace VietCommerce.Api.Services
                 return ApiResponse<bool>.FailureResponse("Token validation failed");
             }
         }
-
         // 🔹 VERIFY EMAIL
         public async Task<ApiResponse<bool>> VerifyEmailAsync(string token)
         {
@@ -277,17 +276,17 @@ namespace VietCommerce.Api.Services
             {
                 if (!_cache.TryGetValue(token, out RegisterRequestDTO? pendingUser))
                     return ApiResponse<bool>.FailureResponse("Invalid or expired verification token");
-
                 if (await _unitOfWork.Users.EmailExistsAsync(pendingUser.Email))
                     return ApiResponse<bool>.FailureResponse("Email already verified");
-
                 var user = _mapper.Map<User>(pendingUser);
                 user.PasswordHash = PasswordHelper.HashPassword(pendingUser.Password);
-
+                user.CreatedBy = Guid.Empty;  
+                user.UpdatedBy = Guid.Empty;
+                user.CreatedAt = DateTime.UtcNow;
+                user.UpdatedAt = DateTime.UtcNow;
                 await _unitOfWork.Users.AddAsync(user);
                 await _unitOfWork.SaveChangesAsync();
                 _cache.Remove(token);
-
                 return ApiResponse<bool>.SuccessResponse(true, "Email verified successfully");
             }
             catch (Exception ex)
@@ -296,7 +295,6 @@ namespace VietCommerce.Api.Services
                 return ApiResponse<bool>.FailureResponse("Error verifying email");
             }
         }
-
         // 🔹 Helper
         private static string GenerateRefreshToken()
         {
@@ -309,7 +307,6 @@ namespace VietCommerce.Api.Services
             {
                 if (string.IsNullOrEmpty(request.IdToken))
                     return ApiResponse<AuthResponseDTO>.FailureResponse("Google ID token is required");
-
                 // 🔹 Validate idToken với Google
                 GoogleJsonWebSignature.Payload payload;
                 try
@@ -325,17 +322,14 @@ namespace VietCommerce.Api.Services
                 {
                     return ApiResponse<AuthResponseDTO>.FailureResponse("Invalid Google token");
                 }
-
                 // ✅ Lấy thông tin user từ payload
                 var email = payload.Email;
                 var name = payload.Name;
                 var picture = payload.Picture;
-
                 // ⚡ Ghi đè dữ liệu từ payload
                 request.Email = email;
                 request.Name = name;
                 request.AvatarUrl = picture;
-
                 var user = await _unitOfWork.Users.GetByEmailWithRolesAsync(email);
                 if (user == null)
                 {
@@ -345,13 +339,9 @@ namespace VietCommerce.Api.Services
                     user.Provider = "Google";
                     user.CreatedAt = DateTime.UtcNow;
                     user.UpdatedAt = DateTime.UtcNow;
-
                     user.CreatedBy = Guid.Empty;
                     user.UpdatedBy = Guid.Empty;
                     user.StoreId = Guid.Parse("47AA5519-C503-4CFA-8101-2EDB36FD9D8C");
-
-
-
                     // Gán role mặc định "User"
                     var defaultRole = await _unitOfWork.Roles.GetByNameAsync("User");
                     if (defaultRole != null)
@@ -367,14 +357,11 @@ namespace VietCommerce.Api.Services
                     //{
                     //    user.StoreId = defaultStore.Id;
                     //}
-
                     await _unitOfWork.Users.AddAsync(user);
                     await _unitOfWork.SaveChangesAsync();
                 }
-
                 var accessToken = _jwtHelper.GenerateToken(user);
                 var refreshToken = GenerateRefreshToken();
-
                 await _unitOfWork.RefreshTokens.AddAsync(new RefreshToken
                 {
                     UserId = user.Id,
@@ -382,7 +369,6 @@ namespace VietCommerce.Api.Services
                     ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenLifetimeDays)
                 });
                 await _unitOfWork.SaveChangesAsync();
-
                 return ApiResponse<AuthResponseDTO>.SuccessResponse(new AuthResponseDTO
                 {
                     Token = accessToken,
@@ -396,9 +382,70 @@ namespace VietCommerce.Api.Services
                 return ApiResponse<AuthResponseDTO>.FailureResponse("An error occurred during Google login");
             }
         }
-
+        // ============ SESSION MANAGEMENT METHODS ============
+        public async Task SaveSessionAsync(Guid userId, string jti, TimeSpan ttl)
+        {
+            try
+            {
+                var sessionData = new SessionData
+                {
+                    Jti = jti,
+                    UserId = userId,
+                    IssuedAt = DateTime.UtcNow,
+                    ExpiresAt = DateTime.UtcNow.Add(ttl)
+                };
+                var cacheKey = $"session:{userId}";
+                await _cacheService.SetAsync(cacheKey, sessionData, ttl);
+                _logger.LogDebug("Session saved for user {UserId}, jti: {Jti}", userId, jti);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving session for user {UserId}", userId);
+                // Don't throw - session storage failure shouldn't block login
+            }
+        }
+        public async Task<bool> ValidateSessionAsync(Guid userId, string jti)
+        {
+            try
+            {
+                var cacheKey = $"session:{userId}";
+                var session = await _cacheService.GetAsync<SessionData>(cacheKey);
+                if (session == null)
+                {
+                    _logger.LogWarning("Session not found for user {UserId}", userId);
+                    return false;
+                }
+                if (session.Jti != jti)
+                {
+                    _logger.LogWarning("Session jti mismatch for user {UserId}. Expected: {Expected}, Got: {Got}",
+                        userId, session.Jti, jti);
+                    return false;
+                }
+                if (session.ExpiresAt < DateTime.UtcNow)
+                {
+                    _logger.LogWarning("Session expired for user {UserId}", userId);
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validating session for user {UserId}", userId);
+                return false;
+            }
+        }
+        public async Task RevokeSessionAsync(Guid userId)
+        {
+            try
+            {
+                var cacheKey = $"session:{userId}";
+                await _cacheService.RemoveAsync(cacheKey);
+                _logger.LogInformation("Session revoked for user {UserId}", userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error revoking session for user {UserId}", userId);
+            }
+        }
     }
 }
-
-
-

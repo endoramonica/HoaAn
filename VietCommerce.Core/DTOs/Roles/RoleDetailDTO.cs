@@ -1,7 +1,5 @@
-﻿using VietCommerce.Core.DTOs.Permissions;
-
+using VietCommerce.Core.DTOs.Permissions;
 namespace VietCommerce.Core.DTOs.Roles;
-
 public class RoleDetailDTO
 {
     public Guid Id { get; set; }

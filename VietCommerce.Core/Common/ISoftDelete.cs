@@ -1,10 +1,9 @@
-﻿namespace VietCommerce.Core.Common;
-
+namespace VietCommerce.Core.Common;
 public interface ISoftDelete
 {
     bool IsActive { get; set; }
     bool IsDeleted { get; set; }
     DateTime? DeletedAt { get; set; }
-    // ⭐ THÊM VÀO:
-    Guid? DeletedBy { get; set; }  // Người xóa
+    // ? TH�M V�O:
+    Guid? DeletedBy { get; set; }  // Ngu?i x�a
 }

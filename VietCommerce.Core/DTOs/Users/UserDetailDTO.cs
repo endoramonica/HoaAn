@@ -1,8 +1,6 @@
 // Core/DTOs/Users/UserDetailDTO.cs
 using VietCommerce.Core.Enums.Users;
-
 namespace VietCommerce.Core.DTOs.Users;
-
 public class UserDetailDTO
 {
     public Guid Id { get; set; }

@@ -1,8 +1,6 @@
-﻿using VietCommerce.Core.DTOs.Permissions;
+using VietCommerce.Core.DTOs.Permissions;
 using VietCommerce.Core.DTOs.Roles;
-
 namespace VietCommerce.Core.DTOs.Authorization;
-
 public class UserAuthorizationInfoDTO
 {
     public Guid UserId { get; set; }

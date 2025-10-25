@@ -1,4 +1,4 @@
-﻿namespace VietCommerce.Core.Enums.Orders
+namespace VietCommerce.Core.Enums.Orders
 {
         public enum OrderStatus
         {

@@ -1,4 +1,4 @@
-﻿namespace VietCommerce.Core.Enums.Common
+namespace VietCommerce.Core.Enums.Common
 {
     public enum Status
     {

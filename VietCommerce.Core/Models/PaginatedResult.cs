@@ -1,5 +1,4 @@
 namespace VietCommerce.Core.Models;
-
 public class PaginatedResult<T>
 {
     public IEnumerable<T> Items { get; set; }
@@ -7,12 +6,10 @@ public class PaginatedResult<T>
     public int PageSize { get; set; }
     public int TotalItems { get; set; }
     public int TotalPages { get; set; }
-
     public PaginatedResult()
     {
         Items = Enumerable.Empty<T>();
     }
-
     public PaginatedResult(IEnumerable<T> items, int pageNumber, int pageSize, int totalItems, int totalPages = 0)
     {
         Items = items;

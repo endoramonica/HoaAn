@@ -1,5 +1,4 @@
-﻿namespace VietCommerce.Core.DTOs.Users;
-
+namespace VietCommerce.Core.DTOs.Users;
 public class UserRoleAssignmentHistoryDTO
 {
     public Guid Id { get; set; }

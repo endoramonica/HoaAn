@@ -1,13 +1,12 @@
-﻿using System;
+using System;
 using VietCommerce.Core.Enums.Products;
 using static VietCommerce.Core.Common.Constants.PricingConstants;
-
 namespace VietCommerce.Core.Mappers
 {
     public static class PriceTypeMapper
     {
         /// <summary>
-        /// Chuyển từ enum PriceType sang string (dùng cho DB / API / UI)
+        /// Chuy?n t? enum PriceType sang string (d�ng cho DB / API / UI)
         /// </summary>
         public static string ToStringValue(this PriceType priceType)
         {
@@ -21,9 +20,8 @@ namespace VietCommerce.Core.Mappers
                 _ => throw new ArgumentOutOfRangeException(nameof(priceType), priceType, null)
             };
         }
-
         /// <summary>
-        /// Chuyển từ string (DB / API) sang enum PriceType
+        /// Chuy?n t? string (DB / API) sang enum PriceType
         /// </summary>
         public static PriceType ToEnum(string priceType)
         {

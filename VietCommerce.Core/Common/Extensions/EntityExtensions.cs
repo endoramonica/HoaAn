@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using VietCommerce.Core.Common;
-
 namespace VietCommerce.Core.Common.Extensions
 {
     public static class EntityExtensions
@@ -9,12 +8,10 @@ namespace VietCommerce.Core.Common.Extensions
         {
             return entity.IsDeleted;
         }
-        
         public static void MarkAsDeleted(this ISoftDelete entity)
         {
             entity.IsDeleted = true;
         }
-        
         public static void SetAuditFields(this AuditableEntity entity, Guid userId, bool isNew = false)
         {
             if (isNew)
@@ -22,11 +19,8 @@ namespace VietCommerce.Core.Common.Extensions
                 entity.CreatedAt = DateTime.UtcNow;
                 entity.CreatedBy = userId;
             }
-
             entity.UpdatedAt = DateTime.UtcNow;
             entity.UpdatedBy = userId;
-
-
         }
     }
 }

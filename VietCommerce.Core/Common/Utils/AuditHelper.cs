@@ -1,15 +1,12 @@
-﻿using System;
+using System;
 using System.Text.Json;
 using VietCommerce.Core.Entities.Audit;
 using VietCommerce.Core.Entities.Users;
-
 namespace VietCommerce.Core.Common.Utils
 {
     public static class AuditHelper
     {
-        
-
-        // Phương thức tạo AuditLog phù hợp với các thuộc tính hiện tại
+        // Phuong th?c t?o AuditLog ph� h?p v?i c�c thu?c t�nh hi?n t?i
         public static AuditLog CreateAuditLog(
             string action,
             string? targetType,
@@ -28,8 +25,6 @@ namespace VietCommerce.Core.Common.Utils
                 CreatedAt = DateTime.UtcNow
             };
         }
-    
-
     public static class Actions
         {
             public const string CREATE = "CREATE";

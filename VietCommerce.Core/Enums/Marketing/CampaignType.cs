@@ -1,4 +1,4 @@
-﻿namespace VietCommerce.Core.Enums.Marketing
+namespace VietCommerce.Core.Enums.Marketing
 {
     public enum CampaignType
     {

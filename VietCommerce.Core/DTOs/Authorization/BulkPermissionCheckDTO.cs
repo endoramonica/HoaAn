@@ -1,5 +1,4 @@
-﻿namespace VietCommerce.Core.DTOs.Authorization;
-
+namespace VietCommerce.Core.DTOs.Authorization;
 public class BulkPermissionCheckDTO
 {
     public Guid UserId { get; set; }

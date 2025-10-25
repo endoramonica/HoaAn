@@ -1,4 +1,4 @@
-﻿namespace VietCommerce.Core.Enums.Payments
+namespace VietCommerce.Core.Enums.Payments
 {
     public enum TransactionType
     {

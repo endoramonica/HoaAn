@@ -1,4 +1,5 @@
-﻿using VietCommerce.Data.Context;
+﻿using VietCommerce.Core.Entities.Orders;
+using VietCommerce.Data.Context;
 using VietCommerce.Data.Repositories.Interfaces;
 
 namespace VietCommerce.Data.Repositories;
@@ -13,6 +14,7 @@ public class UnitOfWork : IUnitOfWork
     private IUserRoleRepository? _userRoles;
     private IRolePermissionRepository? _rolePermissions;
     private IProductRepository? _products;
+    private ICartRepository? _cartRepository;
 
     public UnitOfWork(AppDbContext context)
     {
@@ -26,6 +28,12 @@ public class UnitOfWork : IUnitOfWork
     public IUserRoleRepository UserRoles => _userRoles ??= new UserRoleRepository(_context);
     public IRolePermissionRepository RolePermissions => _rolePermissions ??= new RolePermissionRepository(_context);
     public IProductRepository Products => _products ??= new ProductRepository(_context);
+    public ICartRepository Carts
+    {
+        get => _cartRepository ??= new CartRepository(_context);
+    }
+
+    public IGenericRepository<CartItem> CartItems => throw new NotImplementedException();
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

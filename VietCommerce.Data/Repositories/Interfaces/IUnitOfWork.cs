@@ -1,4 +1,6 @@
-﻿namespace VietCommerce.Data.Repositories.Interfaces;
+﻿using VietCommerce.Core.Entities.Orders;
+
+namespace VietCommerce.Data.Repositories.Interfaces;
 
 public interface IUnitOfWork : IDisposable
 {
@@ -13,10 +15,11 @@ public interface IUnitOfWork : IDisposable
     // PRODUCT REPOSITORIES
     IProductRepository Products { get; }
 
+    // CART REPOSITORIES 
+    ICartRepository Carts { get; }
+    IGenericRepository<CartItem> CartItems { get; }
 
 
-
-    
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync();
     Task CommitTransactionAsync();

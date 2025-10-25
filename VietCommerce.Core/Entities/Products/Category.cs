@@ -1,15 +1,13 @@
 using VietCommerce.Core.Common;
 using VietCommerce.Core.Entities.Organization;
-
 namespace VietCommerce.Core.Entities.Products;
-
 public class Category : BaseEntity, ISoftDelete
 {
     public Guid StoreId { get; set; }
     public string Name { get; set; } = string.Empty;
     public Guid? ParentId { get; set; }
     public bool IsActive { get; set; } = true;
-
+    public Guid? TenantId { get; set; }
     // Navigation properties
     public virtual Store Store { get; set; } = null!;
     public virtual Tenant Tenant { get; set; } = null!;

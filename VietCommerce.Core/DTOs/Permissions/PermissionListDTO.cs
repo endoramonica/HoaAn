@@ -1,5 +1,4 @@
-﻿namespace VietCommerce.Core.DTOs.Permissions;
-
+namespace VietCommerce.Core.DTOs.Permissions;
 public class PermissionListDTO
 {
     public Guid Id { get; set; }

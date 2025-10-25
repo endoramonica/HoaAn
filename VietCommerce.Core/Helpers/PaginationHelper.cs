@@ -1,7 +1,5 @@
 using VietCommerce.Core.Models;
-
 namespace VietCommerce.Core.Helpers;
-
 public static class PaginationHelper
 {
     public static PaginatedResult<T> CreatePaginatedResult<T>(IEnumerable<T> items, int pageNumber, int pageSize, int totalItems)

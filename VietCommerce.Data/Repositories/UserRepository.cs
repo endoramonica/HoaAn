@@ -34,7 +34,8 @@ public class UserRepository : GenericRepository<User>, IUserRepository
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
             .Include(u => u.Store)
-            .FirstOrDefaultAsync(u => u.Email == email.ToLower());
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+
     }
 
     public async Task<bool> EmailExistsAsync(string email)

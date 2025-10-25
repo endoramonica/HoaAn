@@ -1,18 +1,14 @@
-﻿namespace VietCommerce.Core.Models;
-
+namespace VietCommerce.Core.Models;
 public class ApiResponse<T>
 {
     public bool Success { get; set; }
     public T? Data { get; set; }
     public string? Message { get; set; }
     public string[]? Errors { get; set; }
-
     private ApiResponse() { }
-
     // -----------------------
-    // ✅ Factory methods
+    // ? Factory methods
     // -----------------------
-
     public static ApiResponse<T> SuccessResponse(
         T data,
         string message = "Success")
@@ -24,7 +20,6 @@ public class ApiResponse<T>
             Message = message
         };
     }
-
     public static ApiResponse<T> FailureResponse(
         string message = "Failed",
         string[]? errors = null)

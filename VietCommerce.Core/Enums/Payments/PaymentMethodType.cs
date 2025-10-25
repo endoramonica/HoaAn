@@ -1,4 +1,4 @@
-﻿namespace VietCommerce.Core.Enums.Payments
+namespace VietCommerce.Core.Enums.Payments
 {
     public enum PaymentMethodType
     {
@@ -11,6 +11,5 @@
         PENDING = 7,
         CONFIRMED = 8,
         FAILED = 9
-
     }
 }

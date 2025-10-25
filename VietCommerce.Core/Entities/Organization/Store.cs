@@ -6,10 +6,7 @@ using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Entities.Users;
 using System.ComponentModel.DataAnnotations.Schema;
 using VietCommerce.Core.Entities.HRM;
-
-
 namespace VietCommerce.Core.Entities.Organization;
-
 public class Store : BaseEntity, ISoftDelete
 {
     public Guid TenantId { get; set; }
@@ -17,7 +14,6 @@ public class Store : BaseEntity, ISoftDelete
     public string? Address { get; set; }
     public string? Phone { get; set; }
     public bool IsActive { get; set; } = true;
-
     // Navigation properties
     public virtual Tenant Tenant { get; set; } = null!;
     public virtual ICollection<Campaign> Campaigns { get; set; } = new List<Campaign>();
@@ -31,7 +27,6 @@ public class Store : BaseEntity, ISoftDelete
     // Thêm vào Store.cs
 [InverseProperty(nameof(Shift.Store))]
 public ICollection<Shift> Shifts { get; set; } = new List<Shift>();
-
 [InverseProperty(nameof(Employee.Store))]
 public ICollection<Employee> Employees { get; set; } = new List<Employee>();
     public bool IsDeleted { get; set; }

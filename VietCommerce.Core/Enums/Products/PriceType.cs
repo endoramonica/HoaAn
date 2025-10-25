@@ -1,4 +1,4 @@
-﻿namespace VietCommerce.Core.Enums.Products
+namespace VietCommerce.Core.Enums.Products
 {
     public enum PriceType
     {
@@ -6,6 +6,7 @@
         SALE = 2,
         WHOLESALE = 3,
         MEMBER = 4,
-        FLASH_SALE = 5
+        FLASH_SALE = 5,
+        COST = 6
     }
 }

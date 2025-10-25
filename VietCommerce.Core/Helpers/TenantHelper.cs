@@ -1,45 +1,39 @@
-﻿using System;
+using System;
 using System.Threading;
-
 namespace VietCommerce.Core.Helpers
 {
     public static class TenantHelper
     {
-        // ThreadLocal lưu Guid? thay vì int?
+        // ThreadLocal luu Guid? thay v� int?
         private static readonly ThreadLocal<Guid?> _currentTenantId = new();
-
         public static Guid? CurrentTenantId
         {
             get => _currentTenantId.Value;
             set => _currentTenantId.Value = value;
         }
-
         /// <summary>
-        /// Set tenant hiện tại
+        /// Set tenant hi?n t?i
         /// </summary>
         public static void SetTenant(Guid tenantId)
         {
             CurrentTenantId = tenantId;
         }
-
         /// <summary>
-        /// Xóa tenant hiện tại
+        /// X�a tenant hi?n t?i
         /// </summary>
         public static void ClearTenant()
         {
             CurrentTenantId = null;
         }
-
         /// <summary>
-        /// Kiểm tra tenant có tồn tại hay không
+        /// Ki?m tra tenant c� t?n t?i hay kh�ng
         /// </summary>
         public static bool HasTenant()
         {
             return CurrentTenantId.HasValue;
         }
-
         /// <summary>
-        /// Lấy tenant hiện tại hoặc ném lỗi nếu không tồn tại
+        /// L?y tenant hi?n t?i ho?c n�m l?i n?u kh�ng t?n t?i
         /// </summary>
         public static Guid GetTenantIdOrThrow()
         {
@@ -49,13 +43,12 @@ namespace VietCommerce.Core.Helpers
             }
             return CurrentTenantId.Value;
         }
-
         /// <summary>
-        /// Lấy connection string cho tenant (nếu cần customize theo tenant)
+        /// L?y connection string cho tenant (n?u c?n customize theo tenant)
         /// </summary>
         public static string GetTenantConnectionString(string baseConnectionString, Guid tenantId)
         {
-            // Ví dụ: có thể append tenantId vào DB name hoặc schema
+            // V� d?: c� th? append tenantId v�o DB name ho?c schema
             return baseConnectionString;
         }
     }

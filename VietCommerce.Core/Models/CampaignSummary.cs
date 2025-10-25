@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using VietCommerce.Core.Enums.Marketing;
-
 namespace VietCommerce.Core.Models
 {
     public class CampaignSummary
@@ -13,7 +12,6 @@ namespace VietCommerce.Core.Models
         public decimal Budget { get; set; }
         public decimal ActualCost { get; set; }
         public decimal CostPercentage => Budget > 0 ? (ActualCost / Budget) * 100 : 0;
-        
         public int TotalPromotions { get; set; }
         public int ActivePromotions { get; set; }
         public int TotalOrders { get; set; }

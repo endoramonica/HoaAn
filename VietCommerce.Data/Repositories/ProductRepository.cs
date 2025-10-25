@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Models;
 using VietCommerce.Data.Context;
@@ -257,11 +257,22 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
         if (inventory == null) return false;
 
-        inventory.QuantityAvailable = quantity;
+        var newQty = inventory.QuantityAvailable + quantity;
+        if (newQty < 0) return false;
+
+        inventory.QuantityAvailable = newQty;
         inventory.UpdatedAt = DateTime.UtcNow;
+
+        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == productId);
+        if (product != null)
+            product.Stock = newQty;
+
         await _context.SaveChangesAsync();
         return true;
+        Console.WriteLine($"Check Inventory for ProductId: {productId}");
+
     }
+
 
     public async Task<decimal?> GetCurrentPriceAsync(Guid productId)
     {

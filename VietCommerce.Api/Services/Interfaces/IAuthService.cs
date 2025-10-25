@@ -15,6 +15,7 @@ public interface IAuthService
     Task<ApiResponse<bool>> VerifyEmailAsync(string token);
     Task SendVerificationEmailAsync(string email, string token);
     Task<ApiResponse<AuthResponseDTO>> FindOrCreateGoogleUserAsync(SocialLoginRequestDTO request);
-  
-
+    Task SaveSessionAsync(Guid userId, string jti, TimeSpan ttl);
+    Task<bool> ValidateSessionAsync(Guid userId, string jti);
+    Task RevokeSessionAsync(Guid userId);
 }

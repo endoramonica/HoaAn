@@ -12,4 +12,5 @@ public interface IPermissionService
     Task<ApiResponse<bool>> ValidateUserAccessAsync(Guid userId, string[] requiredPermissions);
     Task RefreshUserPermissionsCache(Guid userId);
     void ClearUserPermissionsCache(Guid userId);
+    Task PublishInvalidationAsync(Guid userId, string invalidationType = "user");
 }

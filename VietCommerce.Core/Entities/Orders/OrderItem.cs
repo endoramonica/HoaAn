@@ -4,9 +4,7 @@ using VietCommerce.Core.Entities.Orders;
 using VietCommerce.Core.Entities.Organization;
 using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Entities.Users;
-
 namespace VietCommerce.Core.Entities.Orders;
-
 public class OrderItem : BaseEntity
 {
     public Guid OrderId { get; set; }

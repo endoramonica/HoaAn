@@ -1,5 +1,4 @@
-﻿using System;
-
+using System;
 namespace VietCommerce.Core.Models
 {
     public class InventoryAlert
@@ -14,7 +13,6 @@ namespace VietCommerce.Core.Models
         public InventoryAlertType AlertType { get; set; }
         public DateTime AlertDate { get; set; }
     }
-    
     public enum InventoryAlertType
     {
         LOW_STOCK = 1,

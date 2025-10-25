@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Enums.Products;
-
 namespace VietCommerce.Core.Helpers
 {
     public static class InventoryHelper
@@ -10,17 +9,14 @@ namespace VietCommerce.Core.Helpers
         {
             return inventory.QuantityAvailable - inventory.QuantityReserved;
         }
-
         public static bool IsLowStock(Inventory inventory)
         {
             return GetAvailableQuantity(inventory) <= inventory.ReorderLevel;
         }
-
         public static bool CanFulfillOrder(Inventory inventory, int requestedQuantity)
         {
             return GetAvailableQuantity(inventory) >= requestedQuantity;
         }
-
         public static void RecordMovement(
             Inventory inventory,
             int quantity,
@@ -36,36 +32,29 @@ namespace VietCommerce.Core.Helpers
                 case InventoryMovementType.RETURN:
                     inventory.QuantityAvailable += quantity;
                     break;
-
                 case InventoryMovementType.SALE:
                     inventory.QuantityAvailable -= quantity;
                     break;
-
                 case InventoryMovementType.ADJUSTMENT:
                     inventory.QuantityAvailable = quantity;
                     break;
-
                 case InventoryMovementType.TRANSFER:
                     inventory.QuantityAvailable -= quantity;
                     break;
             }
-
             var movement = new InventoryMovement
             {
                 InventoryId = inventory.Id,
                 MovementType = movementType,
                 ChangeAmount = quantity,
-                QuantityBefore = inventory.QuantityAvailable, // trước khi thay đổi
+                QuantityBefore = inventory.QuantityAvailable, // tru?c khi thay d?i
                 QuantityAfter = inventory.QuantityAvailable,  // sau khi switch-case update xong
-                Reason = notes,                               // dùng notes làm lý do
-                PerformedById = createdBy,                    // thay vì CreatedBy int, giờ link tới User
-                                     // vẫn giữ log audit từ AuditableEntity
+                Reason = notes,                               // d�ng notes l�m l� do
+                PerformedById = createdBy,                    // thay v� CreatedBy int, gi? link t?i User
+                                     // v?n gi? log audit t? AuditableEntity
                 CreatedAt = DateTime.UtcNow
             };
-
             inventory.InventoryMovements.Add(movement);
-
-
             inventory.InventoryMovements.Add(movement);
         }
     }

@@ -1,8 +1,6 @@
 using VietCommerce.Core.Enums;
 using VietCommerce.Core.Enums.Payments;
-
 namespace VietCommerce.Core.DTOs.Payments;
-
 public class PaymentListDTO
 {
     public Guid Id { get; set; }

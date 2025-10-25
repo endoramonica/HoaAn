@@ -1,5 +1,4 @@
-﻿using VietCommerce.Core.Entities.Organization;
-
+using VietCommerce.Core.Entities.Organization;
 namespace VietCommerce.Core.Common
 {
     public interface ITenantEntity

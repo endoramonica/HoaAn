@@ -6,82 +6,95 @@ using System.Security.Claims;
 using System.Text;
 using VietCommerce.Core.Entities.Users;
 
-namespace VietCommerce.Core.Helpers;
-
-public class JwtHelper
+namespace VietCommerce.Core.Helpers
 {
-    private readonly JwtSettings _jwtSettings;
-
-    public JwtHelper(IOptions<JwtSettings> options)
+    public class JwtHelper
     {
-        _jwtSettings = options.Value;
-    }
+        private readonly JwtSettings _jwtSettings;
 
-    public string GenerateToken(User user)
-    {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(_jwtSettings.Key);
-
-        // 🔹 Lấy danh sách role từ UserRoles (cần Include Role khi query User từ DB)
-        var roles = user.UserRoles.Select(ur => ur.Role.Name).ToList();
-
-        // 🔹 Claims cơ bản
-        var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-        new Claim(ClaimTypes.Email, user.Email)
-    };
-
-        // 🔹 Thêm từng role vào claims (nếu có nhiều role)
-        foreach (var role in roles)
+        public JwtHelper(IOptions<JwtSettings> options)
         {
-            claims.Add(new Claim(ClaimTypes.Role, role));
+            _jwtSettings = options.Value;
         }
 
-        // 🔹 Tạo token descriptor
-        var tokenDescriptor = new SecurityTokenDescriptor
+        public string GenerateToken(User user)
         {
-            Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenLifetimeMinutes),
-            Issuer = _jwtSettings.Issuer,
-            Audience = _jwtSettings.Audience,
-            SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(key),
-                SecurityAlgorithms.HmacSha256Signature
-            )
-        };
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_jwtSettings.Key); // ✅ dùng UTF8
 
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
-    }
+            var roles = user.UserRoles.Select(ur => ur.Role.Name).ToList();
 
-    
-
-    public Guid? ValidateToken(string token)
-    {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(_jwtSettings.Key);
-
-        try
-        {
-            tokenHandler.ValidateToken(token, new TokenValidationParameters
+            var claims = new List<Claim>
             {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidIssuer = _jwtSettings.Issuer,
-                ValidAudience = _jwtSettings.Audience,
-                ClockSkew = TimeSpan.Zero
-            }, out SecurityToken validatedToken);
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+            };
 
-            var jwtToken = (JwtSecurityToken)validatedToken;
-            var userIdClaim = jwtToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
-            return userIdClaim != null ? Guid.Parse(userIdClaim) : null;
+            foreach (var role in roles)
+                claims.Add(new Claim(ClaimTypes.Role, role));
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenLifetimeMinutes),
+                Issuer = _jwtSettings.Issuer,
+                Audience = _jwtSettings.Audience,
+                SigningCredentials = new SigningCredentials(
+                    new SymmetricSecurityKey(key),
+                    SecurityAlgorithms.HmacSha256 // ✅ KHÔNG dùng “Signature”
+                )
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
         }
-        catch
+
+        public string? GetJtiFromToken(string token)
         {
-            return null;
+            try
+            {
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+                return jwtToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)?.Value;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public Guid? ValidateToken(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_jwtSettings.Key); // ✅ UTF8
+
+            try
+            {
+                tokenHandler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidIssuer = _jwtSettings.Issuer,
+                    ValidAudience = _jwtSettings.Audience,
+                    ClockSkew = TimeSpan.Zero
+                }, out SecurityToken validatedToken);
+
+                // ✅ Kiểm tra alg chính xác
+                if (validatedToken is not JwtSecurityToken jwtToken ||
+                    !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+                    return null;
+
+                var userIdClaim = jwtToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+                return userIdClaim != null ? Guid.Parse(userIdClaim) : null;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

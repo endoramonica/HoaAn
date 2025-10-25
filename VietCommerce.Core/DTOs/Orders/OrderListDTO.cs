@@ -1,8 +1,6 @@
 using VietCommerce.Core.Enums;
 using VietCommerce.Core.Enums.Orders;
-
 namespace VietCommerce.Core.DTOs.Orders;
-
 public class OrderListDTO
 {
     public Guid Id { get; set; }

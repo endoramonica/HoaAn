@@ -1,4 +1,4 @@
-﻿namespace VietCommerce.Core.Enums.Notifications
+namespace VietCommerce.Core.Enums.Notifications
 {
     public enum NotificationType
     {
@@ -7,6 +7,6 @@
         ERROR = 3,
         SUCCESS = 4,
         ALERT = 5,
-        OrderUpdate = 6   // bổ sung
+        OrderUpdate = 6   // b? sung
     }
 }

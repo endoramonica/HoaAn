@@ -1,5 +1,4 @@
 namespace VietCommerce.Core.DTOs.Users;
-
 public class UserListDTO
 {
     public Guid Id { get; set; }

@@ -1,9 +1,7 @@
-﻿using VietCommerce.Core.DTOs.Permissions;
+using VietCommerce.Core.DTOs.Permissions;
 using VietCommerce.Core.DTOs.Roles;
 using VietCommerce.Core.DTOs.Users;
-
 namespace VietCommerce.Core.DTOs.UserRoles;
-
 public class UserRoleDetailDTO
 {
     public UserListDTO User { get; set; } = null!;

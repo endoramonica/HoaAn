@@ -1,7 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-
 namespace VietCommerce.Core.DTOs.Auth;
-
 public class ForgotPasswordRequestDTO
 {
     [Required(ErrorMessage = "Email is required")]

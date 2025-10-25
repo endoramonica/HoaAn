@@ -1,7 +1,5 @@
-﻿using VietCommerce.Core.Common;
-
+using VietCommerce.Core.Common;
 namespace VietCommerce.Core.Entities.Notifications;
-
 public class NotificationTemplate : BaseEntity, ISoftDelete
 {
     public string Name { get; set; } = string.Empty;

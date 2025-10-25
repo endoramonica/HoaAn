@@ -1,19 +1,16 @@
-﻿
 using VietCommerce.Core.Common;
 using VietCommerce.Core.Entities.Organization;
-
 namespace VietCommerce.Core.Entities.Products;
-
 public class Inventory : BaseEntity , ISoftDelete
 {
     public Guid StoreId { get; set; }
     public Guid ProductId { get; set; }
-    // 👉 Tổng số lượng trong kho
+    public Guid? TenantId { get; set; }
+    // ?? T?ng s? lu?ng trong kho
     public int QuantityAvailable { get; set; } = 0;
-    // 👉 Số lượng đã được giữ (đơn hàng chờ xử lý, chưa xuất kho)
+    // ?? S? lu?ng d� du?c gi? (don h�ng ch? x? l�, chua xu?t kho)
     public int QuantityReserved { get; set; } = 0;
-
-    // 👉 Ngưỡng cảnh báo tồn kho thấp
+    // ?? Ngu?ng c?nh b�o t?n kho th?p
     public int ReorderLevel { get; set; } = 0;
     // Navigation properties
     public virtual Store Store { get; set; } = null!;
