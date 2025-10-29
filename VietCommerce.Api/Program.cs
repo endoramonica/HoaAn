@@ -6,7 +6,10 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using VietCommerce.Api;
+using VietCommerce.Api.Extensions;
 using VietCommerce.Api.Services;
 using VietCommerce.Api.Services.Interfaces;
 using VietCommerce.Application.Mappings;
@@ -157,7 +160,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddJwtBearer(options =>
+.AddJwtBearer("Bearer",options =>
 {
     options.SaveToken = true;
     options.RequireHttpsMetadata = false;
@@ -194,7 +197,9 @@ builder.Services.AddAuthorization();
 // ============================================
 builder.Services.AddAutoMapper(
     typeof(AuthMappingProfile).Assembly,
-    typeof(ProductMappingProfile).Assembly
+    typeof(ProductMappingProfile).Assembly,
+    typeof(OrderMappingProfile).Assembly
+    
 );
 // ============================================
 // EXTERNAL SETTINGS CONFIGURATION
@@ -220,17 +225,39 @@ builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
 builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
 builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
+//Product+Order
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<ICartRepository, CartRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+
+
+
+
+
+
+
 // ============================================
 // SERVICES REGISTRATION
 // ============================================
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<ICartService, CartService>();
-builder.Services.AddScoped(typeof(IGenericServices<>), typeof(GenericServices<>));
-// RBAC Services
-builder.Services.AddScoped<IPermissionService, PermissionService>();
-//builder.Services.AddScoped<IRoleService, RoleService>();
+// ✅ ADD THIS - Configure JSON serialization to handle enums by value
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Allow enums to be serialized/deserialized by numeric value
+
+        // Allow numeric enum values (1, 2, 3) to deserialize to enum
+        options.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: true)
+        );
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.WriteIndented = false;
+    });
+
+builder.Services.AddAllServices();
+
 // ============================================
 // SEEDERS REGISTRATION
 // ============================================

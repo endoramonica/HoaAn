@@ -7,6 +7,7 @@
 using Microsoft.EntityFrameworkCore;
 using VietCommerce.Core.Entities.Users;
 using VietCommerce.Data.Context;
+using VietCommerce.Data.Seeds;
 
 namespace VietCommerce.Data.Seeders
 {
@@ -37,6 +38,10 @@ namespace VietCommerce.Data.Seeders
                 new Permission { Id = Guid.NewGuid(), Name = "inventory.view", Description = "Xem kho hàng" },
                 new Permission { Id = Guid.NewGuid(), Name = "report.view", Description = "Xem báo cáo" }
             };
+            // Add Cart and Order related permissions
+            var cartOrderPerms = CartOrderPermissionSeed.GetCartOrderPermissions();
+            permissions.AddRange(cartOrderPerms);
+
 
             await context.Permissions.AddRangeAsync(permissions);
             await context.SaveChangesAsync();

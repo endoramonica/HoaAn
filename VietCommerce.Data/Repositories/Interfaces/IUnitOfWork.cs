@@ -1,4 +1,5 @@
-﻿using VietCommerce.Core.Entities.Orders;
+﻿using Microsoft.EntityFrameworkCore.Storage;
+using VietCommerce.Core.Entities.Orders;
 
 namespace VietCommerce.Data.Repositories.Interfaces;
 
@@ -18,10 +19,17 @@ public interface IUnitOfWork : IDisposable
     // CART REPOSITORIES 
     ICartRepository Carts { get; }
     IGenericRepository<CartItem> CartItems { get; }
+    // ORDER REPOSITORIES
+    IOrderRepository Orders { get; }
+    IOrderItemRepository OrderItems { get; }
+    IOrderStatusHistoryRepository OrderStatusHistories { get; }
+    IOrderShippingRepository OrderShipping { get; }
+    // CUSTOMER REPOSITORIES
+    ICustomerRepository Customers { get; }
 
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-    Task BeginTransactionAsync();
+    Task<IDbContextTransaction> BeginTransactionAsync();
     Task CommitTransactionAsync();
     Task RollbackTransactionAsync();
 }

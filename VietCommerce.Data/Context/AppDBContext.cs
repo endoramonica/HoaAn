@@ -136,7 +136,8 @@ public class AppDbContext : DbContext
 
             entity.HasOne(ur => ur.User)
                 .WithMany(u => u.UserRoles)
-                .HasForeignKey(ur => ur.UserId);
+                .HasForeignKey(ur => ur.UserId)
+                 .IsRequired(false); // 
 
             entity.HasOne(ur => ur.Role)
                 .WithMany(r => r.UserRoles)
@@ -156,6 +157,7 @@ public class AppDbContext : DbContext
         ConfigurePerformanceIndexes(modelBuilder);
 
         base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<Order>().Ignore(o => o.CreatedBy);
     }
 
     #endregion
@@ -598,19 +600,61 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<Cart>(entity =>
         {
-            entity.HasIndex(c => c.UserId)
-                .IsUnique()
-                .HasFilter("UserId IS NOT NULL AND IsDeleted = 0");
+            entity.HasKey(e => e.Id);
 
-            entity.HasIndex(c => c.CustomerId)
-                .IsUnique()
-                .HasFilter("CustomerId IS NOT NULL AND IsDeleted = 0");
+            entity.ToTable("Carts");
 
-            entity.HasMany(c => c.CartItems)
+            // User relationship (Authenticated users)
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            // Customer relationship (Optional)
+            entity.HasOne(e => e.Customer)
+                .WithMany()
+                .HasForeignKey(e => e.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            // CartItems relationship
+            entity.HasMany(e => e.CartItems)
                 .WithOne(ci => ci.Cart)
                 .HasForeignKey(ci => ci.CartId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Properties
+            entity.Property(e => e.SessionId)
+                .HasMaxLength(450)
+                .IsRequired(false);
+
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true);
+
+            entity.Property(e => e.IsDeleted)
+                .HasDefaultValue(false);
+
         });
+        modelBuilder.Entity<CartItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.ToTable("CartItems");
+
+            entity.HasOne(e => e.Product)
+                .WithMany()
+                .HasForeignKey(e => e.ProductId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            entity.Property(e => e.Quantity)
+                .IsRequired();
+
+           
+        });
+
+
     }
 
     private void ConfigureMarketingEntities(ModelBuilder modelBuilder)

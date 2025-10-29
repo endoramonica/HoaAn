@@ -1,4 +1,6 @@
-﻿using VietCommerce.Core.Entities.Orders;
+﻿using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
+using VietCommerce.Core.Entities.Orders;
 using VietCommerce.Data.Context;
 using VietCommerce.Data.Repositories.Interfaces;
 
@@ -15,10 +17,18 @@ public class UnitOfWork : IUnitOfWork
     private IRolePermissionRepository? _rolePermissions;
     private IProductRepository? _products;
     private ICartRepository? _cartRepository;
+    private IOrderRepository? _orders;
+    private IOrderItemRepository? _orderItems;
+    private readonly ILogger<OrderRepository> _logger;
+    private IOrderShippingRepository? _orderShippings;
+    private IOrderStatusHistoryRepository? _orderStatusHistories;
+    private ICustomerRepository? _customer;
 
-    public UnitOfWork(AppDbContext context)
+    private IDbContextTransaction? _transaction;
+    public UnitOfWork(AppDbContext context , ILogger<OrderRepository> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public IUserRepository Users => _users ??= new UserRepository(_context);
@@ -34,29 +44,69 @@ public class UnitOfWork : IUnitOfWork
     }
 
     public IGenericRepository<CartItem> CartItems => throw new NotImplementedException();
+    public IOrderRepository Orders => _orders ??= new OrderRepository(_context , _logger);
+    public IOrderItemRepository OrderItems => _orderItems ??= new OrderItemRepository(_context);
+    private IOrderShippingRepository _orderShipping;
+    public IOrderShippingRepository OrderShipping => _orderShippings ??= new OrderShippingRepository(_context, null!);
+    public IOrderStatusHistoryRepository OrderStatusHistories => _orderStatusHistories ??= new OrderStatusHistoryRepository(_context, null!);
 
-    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public ICustomerRepository Customers => _customer ??= new CustomerRepository(_context);
+
+    
+
+    public async Task<int> SaveChangesAsync()
+    {
+        return await _context.SaveChangesAsync();
+    }
+
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken)
     {
         return await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task BeginTransactionAsync()
+    public async Task<IDbContextTransaction> BeginTransactionAsync()
     {
-        await _context.Database.BeginTransactionAsync();
+        _transaction = await _context.Database.BeginTransactionAsync();
+        return _transaction;
     }
+
 
     public async Task CommitTransactionAsync()
     {
-        await _context.Database.CommitTransactionAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+            await _transaction?.CommitAsync()!;
+        }
+        catch
+        {
+            await RollbackTransactionAsync();
+            throw;
+        }
+        finally
+        {
+            _transaction?.Dispose();
+            _transaction = null;
+        }
     }
 
     public async Task RollbackTransactionAsync()
     {
-        await _context.Database.RollbackTransactionAsync();
+        try
+        {
+            await _transaction?.RollbackAsync()!;
+        }
+        finally
+        {
+            _transaction?.Dispose();
+            _transaction = null;
+        }
     }
 
     public void Dispose()
     {
-        _context.Dispose();
+        _transaction?.Dispose();
+        _context?.Dispose();
     }
 }
+

@@ -1,19 +1,13 @@
-﻿// VietCommerce.Data/Seeds/CartOrderPermissionSeed.cs
-using VietCommerce.Core.Entities.Users;
+﻿using VietCommerce.Core.Entities.Users;
 
 namespace VietCommerce.Data.Seeds
 {
     public static class CartOrderPermissionSeed
     {
-        /// <summary>
-        /// Danh sách permissions cho Cart & Order Management
-        /// Gọi trong PermissionSeed.cs hoặc RBACSeeder.cs
-        /// </summary>
         public static List<Permission> GetCartOrderPermissions()
         {
             return new List<Permission>
             {
-                // ============ CART PERMISSIONS ============
                 new Permission
                 {
                     Id = Guid.NewGuid(),
@@ -54,8 +48,39 @@ namespace VietCommerce.Data.Seeds
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 },
+                new Permission
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "cart.validate_checkout",
+                    Description = "Validate giỏ hàng trước khi checkout",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
+                new Permission
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "cart.merge_guest",
+                    Description = "Merge giỏ hàng guest sang user khi đăng nhập",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
+                new Permission
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "cart.apply_coupon",
+                    Description = "Áp dụng mã giảm giá vào giỏ hàng",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
+                new Permission
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "cart.update_shipping",
+                    Description = "Cập nhật thông tin giao hàng",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
 
-                // ============ ORDER PERMISSIONS ============
                 new Permission
                 {
                     Id = Guid.NewGuid(),
@@ -76,7 +101,7 @@ namespace VietCommerce.Data.Seeds
                 {
                     Id = Guid.NewGuid(),
                     Name = "order.view_all",
-                    Description = "Xem tất cả đơn hàng (Admin)",
+                    Description = "Xem tất cả đơn hàng (Admin/Seller)",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 },
@@ -84,7 +109,7 @@ namespace VietCommerce.Data.Seeds
                 {
                     Id = Guid.NewGuid(),
                     Name = "order.update_status",
-                    Description = "Cập nhật trạng thái đơn hàng (Admin)",
+                    Description = "Cập nhật trạng thái đơn hàng",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 },
@@ -95,13 +120,18 @@ namespace VietCommerce.Data.Seeds
                     Description = "Hủy đơn hàng",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
+                },
+                new Permission
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "order.update_shipping_status",
+                    Description = "Cập nhật trạng thái vận chuyển",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 }
             };
         }
 
-        /// <summary>
-        /// Gán permissions tới role (dùng trong RBACSeeder)
-        /// </summary>
         public static void AssignCartOrderPermissionsToRoles(
             List<Role> roles,
             List<Permission> permissions)
@@ -112,11 +142,11 @@ namespace VietCommerce.Data.Seeds
 
             if (customerRole != null)
             {
-                // Customer: có thể quản lý giỏ hàng riêng và xem đơn hàng của mình
                 var customerPerms = new[]
                 {
                     "cart.view", "cart.add_item", "cart.remove_item",
-                    "cart.update_item", "cart.clear",
+                    "cart.update_item", "cart.clear", "cart.validate_checkout",
+                    "cart.merge_guest", "cart.apply_coupon", "cart.update_shipping",
                     "order.create", "order.view_own", "order.cancel"
                 };
 
@@ -139,10 +169,9 @@ namespace VietCommerce.Data.Seeds
 
             if (sellerRole != null)
             {
-                // Seller: có thể xem tất cả đơn hàng, cập nhật trạng thái
                 var sellerPerms = new[]
                 {
-                    "order.view_all", "order.update_status"
+                    "order.view_all", "order.update_status", "order.update_shipping_status"
                 };
 
                 foreach (var permName in sellerPerms)
@@ -164,13 +193,13 @@ namespace VietCommerce.Data.Seeds
 
             if (adminRole != null)
             {
-                // Admin: có toàn quyền
                 var allPermNames = new[]
                 {
                     "cart.view", "cart.add_item", "cart.remove_item",
-                    "cart.update_item", "cart.clear",
+                    "cart.update_item", "cart.clear", "cart.validate_checkout",
+                    "cart.merge_guest", "cart.apply_coupon", "cart.update_shipping",
                     "order.create", "order.view_own", "order.view_all",
-                    "order.update_status", "order.cancel"
+                    "order.update_status", "order.cancel", "order.update_shipping_status"
                 };
 
                 foreach (var permName in allPermNames)

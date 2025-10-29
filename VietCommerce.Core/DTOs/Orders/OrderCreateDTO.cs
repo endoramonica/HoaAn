@@ -1,16 +1,19 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using VietCommerce.Core.DTOs.Orders;
+
 namespace VietCommerce.Core.DTOs.Orders;
+
 public class OrderCreateDTO
 {
     [Required(ErrorMessage = "Customer ID is required")]
     public Guid CustomerId { get; set; }
+
     [Required(ErrorMessage = "Store ID is required")]
     public Guid StoreId { get; set; }
-    public decimal Subtotal { get; set; }
-    public decimal TaxAmount { get; set; }
-    public decimal ShippingAmount { get; set; }
-    public decimal TotalAmount { get; set; }
+
+    [Required(ErrorMessage = "At least one item is required")]
+    [MinLength(1, ErrorMessage = "Order must have at least one item")]
     public List<OrderItemCreateDTO> Items { get; set; } = new();
-    public OrderShippingCreateDTO? Shipping { get; set; }
+
+    public OrderShippingDto? Shipping { get; set; }
 }

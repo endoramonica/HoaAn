@@ -1,19 +1,29 @@
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using VietCommerce.Core.Common;
-using VietCommerce.Core.Entities.Customers;
-using VietCommerce.Core.Entities.Orders;
-using VietCommerce.Core.Entities.Organization;
 using VietCommerce.Core.Entities.Products;
-using VietCommerce.Core.Entities.Users;
+using VietCommerce.Core.Entities.Orders;
+
 namespace VietCommerce.Core.Entities.Orders;
-public class OrderItem : BaseEntity
+
+public class OrderItem : AuditableEntity, ISoftDelete
 {
     public Guid OrderId { get; set; }
     public Guid ProductId { get; set; }
+    [Required]
+    public string ProductName { get; set; } = string.Empty; // Snapshot of product name
+    [Required]
+    public string ProductCode { get; set; } = string.Empty; // Snapshot of product code
+    public decimal UnitPrice { get; set; } // Snapshot of price at order time
     public int Quantity { get; set; }
-    public decimal UnitPrice { get; set; }
-    public decimal TotalPrice { get; set; }
+    public decimal TotalPrice { get; set; } // UnitPrice * Quantity
+    public bool IsActive { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedBy { get; set; }
+
     // Navigation properties
     public virtual Order Order { get; set; } = null!;
     public virtual Product Product { get; set; } = null!;
-    public ICollection<ProductReview> Reviews { get; set; } = new List<ProductReview>();
+    public virtual ICollection<ProductReview> Reviews { get; set; } = new List<ProductReview>();
 }

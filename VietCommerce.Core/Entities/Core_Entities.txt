@@ -1,4 +1,9 @@
-﻿D:\PROJECT\hoaAn\BE\VietCommerce.Core\Entities\Audit\AuditLog.cs
+﻿#Get-ChildItem -Path 'D:\PROJECT\hoaAn\BE\VietCommerce.Core\DTOs\' -Recurse -File | Select-Object -ExpandProperty FullName | Out-File -FilePath 'D:\PROJECT\hoaAn\BE\VietCommerce.Core\DTOs\Dtos.md' -Encoding utf8
+
+
+
+
+D:\PROJECT\hoaAn\BE\VietCommerce.Core\Entities\Audit\AuditLog.cs
 D:\PROJECT\hoaAn\BE\VietCommerce.Core\Entities\CRM\CRMInteraction.cs
 D:\PROJECT\hoaAn\BE\VietCommerce.Core\Entities\Customers\Customer.cs
 D:\PROJECT\hoaAn\BE\VietCommerce.Core\Entities\Customers\CustomerAddress.cs

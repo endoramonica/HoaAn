@@ -13,7 +13,12 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
     // ========================================
     // LOOKUP BY RELATION
     // ========================================
-
+    public override async Task<Product?> GetByIdAsync(Guid id)
+    {
+        return await _context.Products
+            .Include(p => p.Prices)
+            .FirstOrDefaultAsync(p => p.Id == id);
+    }
     public async Task<Product?> GetBySlugAsync(string slug)
     {
         return await _dbSet

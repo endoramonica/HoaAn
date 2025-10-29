@@ -5,6 +5,7 @@ namespace VietCommerce.Data.Repositories.Interfaces;
 public interface IProductRepository : IGenericRepository<Product>
 {
     // Lookup
+    Task<Product?> GetByIdAsync(Guid id);
     Task<Product?> GetBySlugAsync(string slug);
     Task<Product?> GetByCodeAsync(string code);
     Task<IEnumerable<Product>> GetByStoreIdAsync(Guid storeId);

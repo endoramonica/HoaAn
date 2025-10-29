@@ -1,11 +1,14 @@
 using AutoMapper;
 using Google.Apis.Auth;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using VietCommerce.Api.Helpers;
 using VietCommerce.Api.Services.Interfaces;
 using VietCommerce.Core.DTOs.Auth;
+using VietCommerce.Core.Entities.Customers;
 using VietCommerce.Core.Entities.Users;
 using VietCommerce.Core.Enums.Users;
 using VietCommerce.Core.Helpers;
@@ -23,6 +26,9 @@ namespace VietCommerce.Api.Services
         private readonly GoogleSettings _googleSettings;
         private readonly IMapper _mapper;
         private readonly ICacheService _cacheService;
+        private readonly ICartService _cartService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
         public AuthService(
             IUnitOfWork unitOfWork,
             JwtHelper jwtHelper,
@@ -31,6 +37,8 @@ namespace VietCommerce.Api.Services
             IMemoryCache cache,
             IMapper mapper,
             ICacheService cacheService,
+            ICartService cartService,
+            IHttpContextAccessor httpContextAccessor,
             IOptions<JwtSettings> jwtSettings)
         {
             _unitOfWork = unitOfWork;
@@ -41,49 +49,152 @@ namespace VietCommerce.Api.Services
             _mapper = mapper;
             _jwtSettings = jwtSettings.Value;
             _cacheService = cacheService;
+            _cartService = cartService;
+            _httpContextAccessor = httpContextAccessor;
         }
-        // 🔹 LOGIN
+        // 🔹 OPTIMIZED LOGIN WITH SESSION ID HELPER & GUEST FLOW
         public async Task<ApiResponse<AuthResponseDTO>> LoginAsync(LoginDTO request)
         {
             try
             {
+                _logger.LogInformation("Login attempt for email: {Email}", request.Email);
+
+                // ✅ [1] Verify user credentials
                 var user = await _unitOfWork.Users.GetByEmailWithRolesAsync(request.Email);
                 if (user == null || !PasswordHelper.VerifyPassword(request.Password, user.PasswordHash))
-                    return ApiResponse<AuthResponseDTO>.FailureResponse("Invalid email or password");
+                {
+                    _logger.LogWarning("Invalid credentials for email: {Email}", request.Email);
+                    return ApiResponse<AuthResponseDTO>.FailureResponse(
+                        "Invalid email or password INVALID_CREDENTIALS");
+                }
+
+                // ✅ [2] Check account status
                 if (!user.IsActive || user.Status != UserStatus.ACTIVE)
-                    return ApiResponse<AuthResponseDTO>.FailureResponse("Account is deactivated");
-                // ✅ Update last login
+                {
+                    _logger.LogWarning("Account inactive for user {UserId} ({Email})", user.Id, request.Email);
+                    return ApiResponse<AuthResponseDTO>.FailureResponse(
+                        "Account is deactivatedACCOUNT_DEACTIVATED");
+                }
+
+                // ✅ [3] Extract guest session ID BEFORE authentication (Typical Guest Flow Step 5)
+                // Priority: Cookie → Header → Query param
+                var guestSessionId = SessionIdHelper.ExtractSessionId(
+                     _httpContextAccessor.HttpContext,
+                    _logger
+                );
+
+                if (!string.IsNullOrWhiteSpace(guestSessionId))
+                {
+                    _logger.LogInformation(
+                        "Guest session detected for login: {SessionId}",
+                        SessionIdHelper.FormatSessionIdForLogging(guestSessionId));
+                }
+                else
+                {
+                    _logger.LogDebug("No guest session found during login for user {Email}", request.Email);
+                }
+
+                // ✅ [4] Update last login timestamp
                 user.LastLogin = DateTime.UtcNow;
                 _unitOfWork.Users.Update(user);
-                // ✅ Generate tokens
+
+                // ✅ [5] Generate JWT tokens
                 var accessToken = _jwtHelper.GenerateToken(user);
                 var refreshToken = GenerateRefreshToken();
-                // ✅ Extract jti from token
+
+                // ✅ [6] Extract JTI (JWT ID) from access token
                 var jti = _jwtHelper.GetJtiFromToken(accessToken);
                 if (string.IsNullOrEmpty(jti))
                 {
                     _logger.LogError("Failed to extract jti from token for user {UserId}", user.Id);
-                    return ApiResponse<AuthResponseDTO>.FailureResponse("Token generation failed");
+                    return ApiResponse<AuthResponseDTO>.FailureResponse(
+                        "Token generation failed TOKEN_GENERATION_ERROR");
                 }
-                // ✅ Save refresh token to DB
+
+                // ✅ [7] Save refresh token to database
                 var refreshTokenEntity = new RefreshToken
                 {
+                    Id = Guid.NewGuid(),
                     UserId = user.Id,
                     Token = refreshToken,
-                    ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenLifetimeDays)
+                    ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenLifetimeDays),
+                    CreatedAt = DateTime.UtcNow
                 };
                 await _unitOfWork.RefreshTokens.AddAsync(refreshTokenEntity);
-                await _unitOfWork.SaveChangesAsync();
-                // ✅ Save session to Redis (NEW)
+
+                // ✅ [8] Save user session to Redis (Typical Guest Flow Step 6)
                 await SaveSessionAsync(
                     user.Id,
                     jti,
                     TimeSpan.FromMinutes(_jwtSettings.AccessTokenLifetimeMinutes)
                 );
-                // 🔹 Lấy roles (nếu bạn cần hiển thị hoặc log)
+
+                // ✅ [9] MERGE GUEST CART TO USER CART (Typical Guest Flow Step 5)
+                if (!string.IsNullOrWhiteSpace(guestSessionId))
+                {
+                    try
+                    {
+                        _logger.LogInformation(
+                            "Starting guest cart merge for user {UserId} | SessionId: {SessionId}",
+                            user.Id,
+                            SessionIdHelper.FormatSessionIdForLogging(guestSessionId));
+
+                        var mergeResult = await _cartService.MergeGuestCartToUserAsync(
+                            guestSessionId,
+                            user.Id
+                        );
+
+                        if (mergeResult.Success)
+                        {
+                            _logger.LogInformation(
+                                "✅ Guest cart merged successfully | User: {UserId} | Items merged: {ItemCount}",
+                                user.Id,
+                                mergeResult.Data?.Items?.Count ?? 0);
+                        }
+                        else
+                        {
+                            // Log warning but don't fail login
+                            _logger.LogWarning(
+                                "⚠️ Guest cart merge failed (non-critical) | User: {UserId} | Reason: {Reason}",
+                                user.Id,
+                                mergeResult.Message);
+                        }
+                    }
+                    catch (Exception mergeEx)
+                    {
+                        // Cart merge failure should NOT block login
+                        _logger.LogError(mergeEx,
+                            "❌ Exception during guest cart merge (non-critical) | User: {UserId} | SessionId: {SessionId}",
+                            user.Id,
+                            SessionIdHelper.FormatSessionIdForLogging(guestSessionId));
+                    }
+                    finally
+                    {
+                        // ✅ [10] ALWAYS clear guest session after login attempt (success or fail)
+                        try
+                        {
+                            SessionIdHelper.ClearSessionId(
+                                _httpContextAccessor.HttpContext.Response,
+                                _logger
+                            );
+
+                            _logger.LogInformation(
+                                "Guest session cookie cleared after login | User: {UserId}",
+                                user.Id);
+                        }
+                        catch (Exception clearEx)
+                        {
+                            _logger.LogError(clearEx,
+                                "Failed to clear guest session cookie for user {UserId}",
+                                user.Id);
+                        }
+                    }
+                }
+
+                // ✅ [11] Get user roles
                 var roles = user.UserRoles?.Select(ur => ur.Role.Name).ToList() ?? new List<string>();
 
-                // 🔹 Map user sang UserInfoDTO
+                // ✅ [12] Create response DTO
                 var userInfo = new UserInfoDTO
                 {
                     Id = user.Id,
@@ -94,7 +205,6 @@ namespace VietCommerce.Api.Services
                     Roles = roles
                 };
 
-                // 🔹 Gán user info vào response
                 var response = new AuthResponseDTO
                 {
                     Token = accessToken,
@@ -103,13 +213,25 @@ namespace VietCommerce.Api.Services
                     User = userInfo
                 };
 
-                _logger.LogInformation("User {Email} logged in successfully with session {Jti}", request.Email, jti);
-                return ApiResponse<AuthResponseDTO>.SuccessResponse(response, "Login successful");
+                // ✅ [13] Save all changes to database
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "✅ User logged in successfully | Email: {Email} | UserId: {UserId} | Session: {Jti} | GuestCart: {HasGuestCart}",
+                    request.Email,
+                    user.Id,
+                    jti,
+                    !string.IsNullOrWhiteSpace(guestSessionId) ? "Merged" : "None");
+
+                return ApiResponse<AuthResponseDTO>.SuccessResponse(
+                    response,
+                    "Login successful");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during login for email {Email}", request.Email);
-                return ApiResponse<AuthResponseDTO>.FailureResponse("An error occurred during login");
+                _logger.LogError(ex, "❌ Error during login for email {Email}", request.Email);
+                return ApiResponse<AuthResponseDTO>.FailureResponse(
+                    "An error occurred during login LOGIN_ERROR");
             }
         }
         // 🔹 REGISTER
@@ -276,17 +398,48 @@ namespace VietCommerce.Api.Services
             {
                 if (!_cache.TryGetValue(token, out RegisterRequestDTO? pendingUser))
                     return ApiResponse<bool>.FailureResponse("Invalid or expired verification token");
+
                 if (await _unitOfWork.Users.EmailExistsAsync(pendingUser.Email))
                     return ApiResponse<bool>.FailureResponse("Email already verified");
+
+                // 🔹 1. Tạo User mới
                 var user = _mapper.Map<User>(pendingUser);
                 user.PasswordHash = PasswordHelper.HashPassword(pendingUser.Password);
-                user.CreatedBy = Guid.Empty;  
+                user.CreatedBy = Guid.Empty;
                 user.UpdatedBy = Guid.Empty;
                 user.CreatedAt = DateTime.UtcNow;
                 user.UpdatedAt = DateTime.UtcNow;
+                user.IsActive = true;
+
                 await _unitOfWork.Users.AddAsync(user);
                 await _unitOfWork.SaveChangesAsync();
+
+                // 🔹 2. Gán Role “Customer”
+                var customerRoleId = Guid.Parse("9F21385E-AC62-448F-91DD-04296F09C354"); // 👈 từ RoleSeed.cs
+                var userRole = new UserRole
+                {
+                    UserId = user.Id,
+                    RoleId = customerRoleId
+                };
+                await _unitOfWork.UserRoles.AddAsync(userRole);
+                await _unitOfWork.SaveChangesAsync();
+
+                // 🔹 3. (Tuỳ chọn) Tạo Customer profile gắn User
+                var customer = new Customer
+                {
+                    UserId = user.Id,
+                    Email = user.Email,
+                    Name = user.Name,
+                    Phone = user.Phone,
+                    IsActive = true,
+                    StoreId = Guid.Parse("47AA5519-C503-4CFA-8101-2EDB36FD9D8C"),
+                    TenantId = Guid.Parse("F40EC7E0-FC21-4E67-831C-07D14D0B304A"), // hoặc lấy từ context hiện tại
+                };
+                await _unitOfWork.Customers.AddAsync(customer);
+                await _unitOfWork.SaveChangesAsync();
+
                 _cache.Remove(token);
+
                 return ApiResponse<bool>.SuccessResponse(true, "Email verified successfully");
             }
             catch (Exception ex)
@@ -295,6 +448,8 @@ namespace VietCommerce.Api.Services
                 return ApiResponse<bool>.FailureResponse("Error verifying email");
             }
         }
+
+
         // 🔹 Helper
         private static string GenerateRefreshToken()
         {

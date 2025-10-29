@@ -12,13 +12,14 @@
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageReference Include="Google.Apis.Auth" Version="1.72.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.9">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="StackExchange.Redis" Version="2.9.32" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.4" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,5 +27,8 @@
     <ProjectReference Include="..\VietCommerce.Core\VietCommerce.Core.csproj" />
     <ProjectReference Include="..\VietCommerce.Data\VietCommerce.Data.csproj" />
   </ItemGroup>
+	<Target Name="GenerateSwaggerOnBuild" AfterTargets="Build">
+		<Exec Command="&quot;$(USERPROFILE)\.dotnet\tools\swagger.exe&quot; tofile --output $(ProjectDir)swagger.json $(TargetDir)$(AssemblyName).dll v1" />
+	</Target>
 
 </Project>
