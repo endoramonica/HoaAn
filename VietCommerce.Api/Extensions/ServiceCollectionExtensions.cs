@@ -57,6 +57,9 @@ namespace VietCommerce.Api.Extensions
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<ICartService, CartService>();
+            services.AddScoped<ICategoryService, CategoryService>();
+            services.AddScoped<ILoginAttemptService, RedisLoginAttemptService>();
+
 
             // Repositories
             services.AddScoped<IOrderItemRepository, OrderItemRepository>();

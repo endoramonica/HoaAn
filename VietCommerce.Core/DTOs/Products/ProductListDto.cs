@@ -1,9 +1,6 @@
 ﻿namespace VietCommerce.Core.DTOs.Products
 {
-
-
     /// Lightweight product info (for list/grid view)
-
     public class ProductListDto
     {
         public Guid Id { get; set; }
@@ -15,6 +12,9 @@
         // Pricing
         public decimal Price { get; set; }
         public decimal? CompareAtPrice { get; set; }
+
+        // Hiển thị giá đã áp khuyến mãi
+        public DisplayPriceResult? DisplayPrice { get; set; }
 
         // Discount percentage
         public decimal? DiscountPercentage => CompareAtPrice.HasValue && CompareAtPrice > Price

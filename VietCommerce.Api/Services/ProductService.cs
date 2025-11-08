@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using Microsoft.IdentityModel.Logging;
 using VietCommerce.Api.Services.Interfaces;
 using VietCommerce.Core.DTOs.Products;
 using VietCommerce.Core.Entities.Products;
@@ -9,47 +8,66 @@ using VietCommerce.Data.Repositories.Interfaces;
 
 namespace VietCommerce.Api.Services;
 
-public class ProductService : IProductService
+/// <summary>
+/// Service quản lý sản phẩm - kế thừa BaseService
+/// Tích hợp: Redis Cache, Permission, Logging, Exception Handling
+/// VERSION: 2.0
+/// LAST UPDATED: 2025-10-31
+/// </summary>
+public class ProductService : BaseService, IProductService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPermissionService _permissionService;
-    private readonly ILogger<ProductService> _logger;
     private readonly IMapper _mapper;
+
+    // Cache keys prefix
+    private const string CACHE_KEY_PRODUCT = "product";
+    private const string CACHE_KEY_PRODUCT_LIST = "product:list";
+    private const string CACHE_KEY_PRODUCT_STORE = "product:store";
+    private const string CACHE_KEY_PRODUCT_CATEGORY = "product:category";
+    private const string CACHE_KEY_FAVORITES = "product:favorites";
+
+    // Cache duration
+    private static readonly TimeSpan CACHE_DURATION_DETAIL = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan CACHE_DURATION_LIST = TimeSpan.FromMinutes(15);
 
     public ProductService(
         IUnitOfWork unitOfWork,
         IPermissionService permissionService,
         ILogger<ProductService> logger,
-        IMapper mapper)
+        IMapper mapper,
+        ICacheService cacheService)
+        : base(logger, cacheService)
     {
         _unitOfWork = unitOfWork;
         _permissionService = permissionService;
-        _logger = logger;
         _mapper = mapper;
     }
 
     // ============================================
     // CREATE
     // ============================================
-
     public async Task<ApiResponse<ProductDetailDto>> CreateProductAsync(Guid actorUserId, ProductCreateDto dto)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
-            // ✅ PERMISSION CHECK (defense-in-depth)
+            // ✅ PERMISSION CHECK
+            ValidateId(actorUserId, nameof(actorUserId));
+            ValidateNotNull(dto, nameof(dto));
+
             if (!await _permissionService.CheckUserPermissionAsync(actorUserId, "product.create"))
             {
-                _logger.LogWarning("User {UserId} attempted to create product without permission", actorUserId);
-                return ApiResponse<ProductDetailDto>.FailureResponse("Access denied: product.create permission required");
+                LogWarning("User {UserId} attempted to create product without permission", actorUserId);
+                throw new UnauthorizedAccessException("Access denied: product.create permission required");
             }
 
             // ✅ VALIDATE: Code uniqueness
             if (await _unitOfWork.Products.ExistsByCodeAsync(dto.Code))
             {
-                return ApiResponse<ProductDetailDto>.FailureResponse($"Product code '{dto.Code}' already exists");
+                throw new InvalidOperationException($"Product code '{dto.Code}' already exists");
             }
 
-            // ✅ MAP DTO → Entity
+            // ✅ MAP & CREATE
             var product = _mapper.Map<Product>(dto);
             product.Id = Guid.NewGuid();
             product.Slug = SlugHelper.GenerateSlug(dto.Name);
@@ -57,62 +75,65 @@ public class ProductService : IProductService
             product.UpdatedBy = actorUserId;
             product.CreatedAt = DateTime.UtcNow;
             product.UpdatedAt = DateTime.UtcNow;
-            // ✅ SET CỨNG STORE ID (test/demo)
             product.StoreId = Guid.Parse("47AA5519-C503-4CFA-8101-2EDB36FD9D8C");
+
             // ✅ SAVE
             await _unitOfWork.Products.AddAsync(product);
             await _unitOfWork.SaveChangesAsync();
 
-            // ✅ FETCH FULL ENTITY (with relations)
+            // ✅ INVALIDATE CACHE
+            await InvalidateProductCachesAsync(product.StoreId, product.CategoryId);
+
+            // ✅ FETCH & RETURN
             var createdProduct = await _unitOfWork.Products.GetByIdAsync(product.Id);
             var result = _mapper.Map<ProductDetailDto>(createdProduct);
 
-            _logger.LogInformation("Product created: {ProductId} by user {UserId}", product.Id, actorUserId);
-            return ApiResponse<ProductDetailDto>.SuccessResponse(result, "Product created successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating product by user {UserId}", actorUserId);
-            return ApiResponse<ProductDetailDto>.FailureResponse("Failed to create product");
-        }
+            LogInfo("✅ Product created: {ProductId} by user {UserId}", product.Id, actorUserId);
+            return result;
+        },
+        "CreateProduct",
+        "Product created successfully");
     }
 
     // ============================================
     // UPDATE
     // ============================================
-
     public async Task<ApiResponse<ProductDetailDto>> UpdateProductAsync(
         Guid actorUserId,
         Guid productId,
         ProductUpdateDto dto)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
+            // ✅ VALIDATE
+            ValidateId(actorUserId, nameof(actorUserId));
+            ValidateId(productId, nameof(productId));
+            ValidateNotNull(dto, nameof(dto));
+
             // ✅ PERMISSION CHECK
             if (!await _permissionService.CheckUserPermissionAsync(actorUserId, "product.update"))
             {
-                _logger.LogWarning("User {UserId} attempted to update product {ProductId} without permission",
+                LogWarning("User {UserId} attempted to update product {ProductId} without permission",
                     actorUserId, productId);
-                return ApiResponse<ProductDetailDto>.FailureResponse("Access denied: product.update permission required");
+                throw new UnauthorizedAccessException("Access denied: product.update permission required");
             }
 
             // ✅ FETCH EXISTING
             var product = await _unitOfWork.Products.GetByIdAsync(productId);
             if (product == null)
             {
-                return ApiResponse<ProductDetailDto>.FailureResponse("Product not found");
+                throw new KeyNotFoundException("Product not found");
             }
 
-            // ✅ UPDATE ONLY PROVIDED FIELDS
+            // ✅ UPDATE FIELDS
             if (dto.Name != null)
             {
                 product.Name = dto.Name;
-                product.Slug = SlugHelper.GenerateSlug(dto.Name); // Cập nhật slug khi đổi tên
+                product.Slug = SlugHelper.GenerateSlug(dto.Name);
             }
-
             if (dto.CategoryId.HasValue) product.CategoryId = dto.CategoryId;
-            if (dto.Sku != null) product.SKU = dto.Sku; // ✅ Map đúng: Sku → SKU
-            if (dto.StockQuantity.HasValue) product.Stock = dto.StockQuantity.Value; // ✅ Map đúng: StockQuantity → Stock
+            if (dto.Sku != null) product.SKU = dto.Sku;
+            if (dto.StockQuantity.HasValue) product.Stock = dto.StockQuantity.Value;
             if (dto.IsActive.HasValue) product.IsActive = dto.IsActive.Value;
 
             product.UpdatedBy = actorUserId;
@@ -122,140 +143,148 @@ public class ProductService : IProductService
             _unitOfWork.Products.Update(product);
             await _unitOfWork.SaveChangesAsync();
 
+            // ✅ INVALIDATE CACHE
+            await InvalidateProductCachesAsync(product.StoreId, product.CategoryId, productId);
+
             // ✅ RETURN UPDATED
             var updated = await _unitOfWork.Products.GetByIdAsync(productId);
             var result = _mapper.Map<ProductDetailDto>(updated);
 
-            _logger.LogInformation("Product {ProductId} updated by user {UserId}", productId, actorUserId);
-            return ApiResponse<ProductDetailDto>.SuccessResponse(result, "Product updated successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating product {ProductId} by user {UserId}", productId, actorUserId);
-            return ApiResponse<ProductDetailDto>.FailureResponse("Failed to update product");
-        }
+            LogInfo("✅ Product {ProductId} updated by user {UserId}", productId, actorUserId);
+            return result;
+        },
+        "UpdateProduct",
+        "Product updated successfully");
     }
 
     // ============================================
     // DELETE (SOFT DELETE)
     // ============================================
-
     public async Task<ApiResponse<bool>> DeleteProductAsync(Guid actorUserId, Guid productId)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
+            // ✅ VALIDATE
+            ValidateId(actorUserId, nameof(actorUserId));
+            ValidateId(productId, nameof(productId));
+
             // ✅ PERMISSION CHECK
             if (!await _permissionService.CheckUserPermissionAsync(actorUserId, "product.delete"))
             {
-                _logger.LogWarning("User {UserId} attempted to delete product {ProductId} without permission",
+                LogWarning("User {UserId} attempted to delete product {ProductId} without permission",
                     actorUserId, productId);
-                return ApiResponse<bool>.FailureResponse("Access denied: product.delete permission required");
+                throw new UnauthorizedAccessException("Access denied: product.delete permission required");
             }
 
             // ✅ SOFT DELETE
             var success = await _unitOfWork.Products.SoftDeleteAsync(productId, actorUserId);
             if (!success)
             {
-                return ApiResponse<bool>.FailureResponse("Product not found or already deleted");
+                throw new InvalidOperationException("Product not found or already deleted");
             }
 
             await _unitOfWork.SaveChangesAsync();
 
-            _logger.LogInformation("Product {ProductId} deleted by user {UserId}", productId, actorUserId);
-            return ApiResponse<bool>.SuccessResponse(true, "Product deleted successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting product {ProductId} by user {UserId}", productId, actorUserId);
-            return ApiResponse<bool>.FailureResponse("Failed to delete product");
-        }
+            // ✅ INVALIDATE CACHE
+            await InvalidateProductCachesAsync(null, null, productId);
+
+            LogInfo("✅ Product {ProductId} deleted by user {UserId}", productId, actorUserId);
+            return true;
+        },
+        "DeleteProduct",
+        "Product deleted successfully");
     }
 
     // ============================================
-    // GET BY ID
+    // GET BY ID (WITH CACHE)
     // ============================================
-
     public async Task<ApiResponse<ProductDetailDto>> GetProductByIdAsync(Guid productId, Guid? actorUserId = null)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
-            var product = await _unitOfWork.Products.GetByIdAsync(productId);
+            ValidateId(productId, nameof(productId));
+
+            var cacheKey = CreateCacheKey(CACHE_KEY_PRODUCT, productId);
+
+            var product = await GetFromCacheOrExecuteAsync(
+                cacheKey,
+                async () => await _unitOfWork.Products.GetByIdAsync(productId),
+                CACHE_DURATION_DETAIL
+            );
+
             if (product == null)
             {
-                return ApiResponse<ProductDetailDto>.FailureResponse("Product not found");
+                throw new KeyNotFoundException("Product not found");
             }
 
-            // ✅ PERMISSION CHECK: Inactive products require product.view permission
-            if (!product.IsActive && actorUserId.HasValue)
+            // ✅ PERMISSION CHECK: Inactive products require permission
+            if (!product.IsActive)
             {
-                if (!await _permissionService.CheckUserPermissionAsync(actorUserId.Value, "product.view"))
+                if (!actorUserId.HasValue ||
+                    !await _permissionService.CheckUserPermissionAsync(actorUserId.Value, "product.view"))
                 {
-                    return ApiResponse<ProductDetailDto>.FailureResponse("Product not available");
+                    throw new UnauthorizedAccessException("Product not available");
                 }
-            }
-            else if (!product.IsActive)
-            {
-                return ApiResponse<ProductDetailDto>.FailureResponse("Product not available");
             }
 
             var result = _mapper.Map<ProductDetailDto>(product);
-            return ApiResponse<ProductDetailDto>.SuccessResponse(result, "Product retrieved successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting product {ProductId}", productId);
-            return ApiResponse<ProductDetailDto>.FailureResponse("Failed to retrieve product");
-        }
+            return result;
+        },
+        "GetProductById",
+        "Product retrieved successfully");
     }
 
     // ============================================
-    // GET BY SLUG (PUBLIC)
+    // GET BY SLUG (WITH CACHE)
     // ============================================
-
     public async Task<ApiResponse<ProductDetailDto>> GetProductBySlugAsync(string slug, Guid? actorUserId = null)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
-            var product = await _unitOfWork.Products.GetBySlugAsync(slug);
+            ValidateNotEmpty(slug, nameof(slug));
+
+            var cacheKey = CreateCacheKey(CACHE_KEY_PRODUCT, "slug", slug);
+
+            var product = await GetFromCacheOrExecuteAsync(
+                cacheKey,
+                async () => await _unitOfWork.Products.GetBySlugAsync(slug),
+                CACHE_DURATION_DETAIL
+            );
+
             if (product == null)
             {
-                return ApiResponse<ProductDetailDto>.FailureResponse("Product not found");
+                throw new KeyNotFoundException("Product not found");
             }
 
-            // Check active status (same as GetById)
-            if (!product.IsActive && actorUserId.HasValue)
+            // Check active status
+            if (!product.IsActive)
             {
-                if (!await _permissionService.CheckUserPermissionAsync(actorUserId.Value, "product.view"))
+                if (!actorUserId.HasValue ||
+                    !await _permissionService.CheckUserPermissionAsync(actorUserId.Value, "product.view"))
                 {
-                    return ApiResponse<ProductDetailDto>.FailureResponse("Product not available");
+                    throw new UnauthorizedAccessException("Product not available");
                 }
-            }
-            else if (!product.IsActive)
-            {
-                return ApiResponse<ProductDetailDto>.FailureResponse("Product not available");
             }
 
             var result = _mapper.Map<ProductDetailDto>(product);
-            return ApiResponse<ProductDetailDto>.SuccessResponse(result, "Product retrieved successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting product by slug {Slug}", slug);
-            return ApiResponse<ProductDetailDto>.FailureResponse("Failed to retrieve product");
-        }
+            return result;
+        },
+        "GetProductBySlug",
+        "Product retrieved successfully");
     }
 
     // ============================================
-    // LIST (PAGINATED)
+    // LIST (PAGINATED) - WITH CACHE
     // ============================================
-
     public async Task<ApiResponse<PaginatedResult<ProductListDto>>> GetProductsAsync(
         ProductFilterDto filter,
         Guid? actorUserId = null)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
-            // ✅ CHECK PERMISSION: If user has product.list, show all (including inactive)
+            ValidateNotNull(filter, nameof(filter));
+
+            // ✅ CHECK PERMISSION
             bool showAll = false;
             if (actorUserId.HasValue)
             {
@@ -265,112 +294,118 @@ public class ProductService : IProductService
             // Override IsActive filter if not admin
             if (!showAll)
             {
-                filter.IsActive = true; // Force show only active products for public
+                filter.IsActive = true;
             }
 
-            // ✅ FETCH FROM REPOSITORY
-            var paginatedResult = await _unitOfWork.Products.GetPaginatedAsync(
+            // ✅ CREATE CACHE KEY
+            var cacheKey = CreateCacheKey(
+                CACHE_KEY_PRODUCT_LIST,
                 filter.Page,
                 filter.PageSize,
-                filter.SearchTerm,
-                filter.CategoryId,
-                filter.StoreId,
-                filter.IsActive,
-                filter.MinPrice,
-                filter.MaxPrice,
-                filter.SortBy,
+                filter.SearchTerm ?? "all",
+                filter.CategoryId?.ToString() ?? "all",
+                filter.StoreId?.ToString() ?? "all",
+                filter.IsActive?.ToString() ?? "all",
+                filter.MinPrice?.ToString() ?? "0",
+                filter.MaxPrice?.ToString() ?? "max",
+                filter.SortBy ?? "default",
                 filter.IsDescending
             );
 
-            // ✅ MAP TO DTOs
-            // ✅ MAP TO DTOs
-            var dtos = _mapper.Map<List<ProductListDto>>(paginatedResult.Items);
+            // ✅ GET FROM CACHE OR EXECUTE
+            var paginatedResult = await GetFromCacheOrExecuteAsync(
+                cacheKey,
+                async () => await _unitOfWork.Products.GetPaginatedDtoAsync(
+                    filter.Page,
+                    filter.PageSize,
+                    filter.SearchTerm,
+                    filter.CategoryId,
+                    filter.StoreId,
+                    filter.IsActive,
+                    filter.MinPrice,
+                    filter.MaxPrice,
+                    filter.SortBy,
+                    filter.IsDescending
+                ),
+                CACHE_DURATION_LIST
+            );
+            // ✅ Trả trực tiếp DTO
+            var result = paginatedResult;
 
-            var result = new PaginatedResult<ProductListDto>
-            {
-                Items = dtos,
-                PageNumber = paginatedResult.PageNumber,
-                PageSize = paginatedResult.PageSize,
-                TotalItems = paginatedResult.TotalItems,
-                TotalPages = paginatedResult.TotalPages
-            };
+            return result;
 
-            return ApiResponse<PaginatedResult<ProductListDto>>.SuccessResponse(
-                result,
-                $"Retrieved {dtos.Count} products");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting product list");
-            return ApiResponse<PaginatedResult<ProductListDto>>.FailureResponse("Failed to retrieve products");
-        }
+        },
+        "GetProducts",
+        $"Products retrieved successfully");
     }
 
     // ============================================
     // STOCK MANAGEMENT
     // ============================================
-
     public async Task<ApiResponse<bool>> UpdateStockAsync(Guid actorUserId, Guid productId, int quantity)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
-            // ✅ PERMISSION CHECK
+            ValidateId(actorUserId, nameof(actorUserId));
+            ValidateId(productId, nameof(productId));
+
             if (!await _permissionService.CheckUserPermissionAsync(actorUserId, "product.update_stock"))
             {
-                return ApiResponse<bool>.FailureResponse("Access denied: product.update_stock permission required");
+                throw new UnauthorizedAccessException("Access denied: product.update_stock permission required");
             }
 
             var success = await _unitOfWork.Products.UpdateStockAsync(productId, quantity);
             if (!success)
             {
-                return ApiResponse<bool>.FailureResponse("Product not found");
+                throw new KeyNotFoundException("Product not found");
             }
 
             await _unitOfWork.SaveChangesAsync();
 
-            _logger.LogInformation("Stock updated for product {ProductId}: {Quantity} by user {UserId}",
+            // ✅ INVALIDATE CACHE
+            await InvalidateCacheAsync(CreateCacheKey(CACHE_KEY_PRODUCT, productId));
+
+            LogInfo("✅ Stock updated for product {ProductId}: {Quantity} by user {UserId}",
                 productId, quantity, actorUserId);
 
-            return ApiResponse<bool>.SuccessResponse(true, "Stock updated successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating stock for product {ProductId}", productId);
-            return ApiResponse<bool>.FailureResponse("Failed to update stock");
-        }
+            return true;
+        },
+        "UpdateStock",
+        "Stock updated successfully");
     }
 
     public async Task<ApiResponse<int>> GetStockQuantityAsync(Guid productId)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
+            ValidateId(productId, nameof(productId));
+
             var stock = await _unitOfWork.Products.GetStockQuantityAsync(productId);
-            return ApiResponse<int>.SuccessResponse(stock, "Stock retrieved successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting stock for product {ProductId}", productId);
-            return ApiResponse<int>.FailureResponse("Failed to retrieve stock");
-        }
+            return stock;
+        },
+        "GetStockQuantity",
+        "Stock retrieved successfully");
     }
 
     // ============================================
     // STATUS MANAGEMENT
     // ============================================
-
     public async Task<ApiResponse<bool>> SetActiveStatusAsync(Guid actorUserId, Guid productId, bool isActive)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
+            ValidateId(actorUserId, nameof(actorUserId));
+            ValidateId(productId, nameof(productId));
+
             if (!await _permissionService.CheckUserPermissionAsync(actorUserId, "product.update"))
             {
-                return ApiResponse<bool>.FailureResponse("Access denied: product.update permission required");
+                throw new UnauthorizedAccessException("Access denied: product.update permission required");
             }
 
             var product = await _unitOfWork.Products.GetByIdAsync(productId);
             if (product == null)
             {
-                return ApiResponse<bool>.FailureResponse("Product not found");
+                throw new KeyNotFoundException("Product not found");
             }
 
             product.IsActive = isActive;
@@ -380,125 +415,140 @@ public class ProductService : IProductService
             _unitOfWork.Products.Update(product);
             await _unitOfWork.SaveChangesAsync();
 
-            _logger.LogInformation("Product {ProductId} active status set to {IsActive} by user {UserId}",
+            // ✅ INVALIDATE CACHE
+            await InvalidateProductCachesAsync(product.StoreId, product.CategoryId, productId);
+
+            LogInfo("✅ Product {ProductId} active status set to {IsActive} by user {UserId}",
                 productId, isActive, actorUserId);
 
-            return ApiResponse<bool>.SuccessResponse(true, $"Product {(isActive ? "activated" : "deactivated")} successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error setting active status for product {ProductId}", productId);
-            return ApiResponse<bool>.FailureResponse("Failed to update product status");
-        }
+            return true;
+        },
+        "SetActiveStatus",
+        $"Product {(isActive ? "activated" : "deactivated")} successfully");
     }
 
     public async Task<ApiResponse<bool>> SetFeaturedStatusAsync(Guid actorUserId, Guid productId, bool isFeatured)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
+            ValidateId(actorUserId, nameof(actorUserId));
+            ValidateId(productId, nameof(productId));
+
             if (!await _permissionService.CheckUserPermissionAsync(actorUserId, "product.update"))
             {
-                return ApiResponse<bool>.FailureResponse("Access denied: product.update permission required");
+                throw new UnauthorizedAccessException("Access denied: product.update permission required");
             }
 
             var product = await _unitOfWork.Products.GetByIdAsync(productId);
             if (product == null)
             {
-                return ApiResponse<bool>.FailureResponse("Product not found");
+                throw new KeyNotFoundException("Product not found");
             }
 
-            //product.IsFeatured = isFeatured;
+            // Note: IsFeatured property commented out in original code
             product.UpdatedBy = actorUserId;
             product.UpdatedAt = DateTime.UtcNow;
 
             _unitOfWork.Products.Update(product);
             await _unitOfWork.SaveChangesAsync();
 
-            _logger.LogInformation("Product {ProductId} featured status set to {IsFeatured} by user {UserId}",
+            // ✅ INVALIDATE CACHE
+            await InvalidateCacheAsync(CreateCacheKey(CACHE_KEY_PRODUCT, productId));
+
+            LogInfo("✅ Product {ProductId} featured status set to {IsFeatured} by user {UserId}",
                 productId, isFeatured, actorUserId);
 
-            return ApiResponse<bool>.SuccessResponse(true, $"Product {(isFeatured ? "featured" : "unfeatured")} successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error setting featured status for product {ProductId}", productId);
-            return ApiResponse<bool>.FailureResponse("Failed to update featured status");
-        }
+            return true;
+        },
+        "SetFeaturedStatus",
+        $"Product {(isFeatured ? "featured" : "unfeatured")} successfully");
     }
 
     // ============================================
-    // USER INTERACTIONS (PUBLIC)
+    // USER INTERACTIONS
     // ============================================
-
     public async Task<ApiResponse<bool>> IncrementViewCountAsync(Guid productId)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
+            ValidateId(productId, nameof(productId));
+
             await _unitOfWork.Products.IncrementViewCountAsync(productId);
             await _unitOfWork.SaveChangesAsync();
 
-            return ApiResponse<bool>.SuccessResponse(true, "View count incremented");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error incrementing view count for product {ProductId}", productId);
-            return ApiResponse<bool>.FailureResponse("Failed to increment view count");
-        }
+            // ✅ INVALIDATE CACHE (view count changed)
+            await InvalidateCacheAsync(CreateCacheKey(CACHE_KEY_PRODUCT, productId));
+
+            return true;
+        },
+        "IncrementViewCount",
+        "View count incremented");
     }
 
     public async Task<ApiResponse<bool>> ToggleFavoriteAsync(Guid userId, Guid productId)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
-            // Check if product exists
+            ValidateId(userId, nameof(userId));
+            ValidateId(productId, nameof(productId));
+
             var product = await _unitOfWork.Products.GetByIdAsync(productId);
             if (product == null)
             {
-                return ApiResponse<bool>.FailureResponse("Product not found");
+                throw new KeyNotFoundException("Product not found");
             }
 
-            // Toggle favorite (repository handles the logic)
             var isFavorite = await _unitOfWork.Products.UpdateFavoriteStatusAsync(userId, productId, true);
             await _unitOfWork.SaveChangesAsync();
 
-            _logger.LogInformation("User {UserId} toggled favorite for product {ProductId}", userId, productId);
+            // ✅ INVALIDATE FAVORITES CACHE
+            await InvalidateCacheAsync(CreateCacheKey(CACHE_KEY_FAVORITES, userId));
 
-            return ApiResponse<bool>.SuccessResponse(isFavorite,
-                isFavorite ? "Product added to favorites" : "Product removed from favorites");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error toggling favorite for product {ProductId} by user {UserId}", productId, userId);
-            return ApiResponse<bool>.FailureResponse("Failed to update favorite status");
-        }
+            LogInfo("✅ User {UserId} toggled favorite for product {ProductId}", userId, productId);
+
+            return isFavorite;
+        },
+        "ToggleFavorite",
+        "Favorite status updated");
     }
 
     public async Task<ApiResponse<List<ProductListDto>>> GetFavoriteProductsAsync(Guid userId)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
-            var products = await _unitOfWork.Products.GetFavoriteProductsAsync(userId);
-            var dtos = _mapper.Map<List<ProductListDto>>(products);
+            ValidateId(userId, nameof(userId));
 
-            return ApiResponse<List<ProductListDto>>.SuccessResponse(dtos,
-                $"Retrieved {dtos.Count} favorite products");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting favorite products for user {UserId}", userId);
-            return ApiResponse<List<ProductListDto>>.FailureResponse("Failed to retrieve favorite products");
-        }
+            var cacheKey = CreateCacheKey(CACHE_KEY_FAVORITES, userId);
+
+            var products = await GetFromCacheOrExecuteAsync(
+                cacheKey,
+                async () => await _unitOfWork.Products.GetFavoriteProductsAsync(userId),
+                CACHE_DURATION_LIST
+            );
+
+            var dtos = _mapper.Map<List<ProductListDto>>(products);
+            return dtos;
+        },
+        "GetFavoriteProducts",
+        "Favorite products retrieved successfully");
     }
 
     // ============================================
-    // GET BY STORE/CATEGORY
+    // GET BY STORE/CATEGORY (WITH CACHE)
     // ============================================
-
     public async Task<ApiResponse<List<ProductListDto>>> GetProductsByStoreAsync(Guid storeId, Guid? actorUserId = null)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
-            var products = await _unitOfWork.Products.GetByStoreIdAsync(storeId);
+            ValidateId(storeId, nameof(storeId));
+
+            var cacheKey = CreateCacheKey(CACHE_KEY_PRODUCT_STORE, storeId);
+
+            var products = await GetFromCacheOrExecuteAsync(
+                cacheKey,
+                async () => await _unitOfWork.Products.GetByStoreIdAsync(storeId),
+                CACHE_DURATION_LIST
+            );
 
             // Filter inactive if not admin
             if (!actorUserId.HasValue ||
@@ -508,22 +558,25 @@ public class ProductService : IProductService
             }
 
             var dtos = _mapper.Map<List<ProductListDto>>(products);
-
-            return ApiResponse<List<ProductListDto>>.SuccessResponse(dtos,
-                $"Retrieved {dtos.Count} products for store");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting products for store {StoreId}", storeId);
-            return ApiResponse<List<ProductListDto>>.FailureResponse("Failed to retrieve store products");
-        }
+            return dtos;
+        },
+        "GetProductsByStore",
+        "Store products retrieved successfully");
     }
 
     public async Task<ApiResponse<List<ProductListDto>>> GetProductsByCategoryAsync(Guid categoryId, Guid? actorUserId = null)
     {
-        try
+        return await ExecuteAsApiResponseAsync(async () =>
         {
-            var products = await _unitOfWork.Products.GetByCategoryIdAsync(categoryId);
+            ValidateId(categoryId, nameof(categoryId));
+
+            var cacheKey = CreateCacheKey(CACHE_KEY_PRODUCT_CATEGORY, categoryId);
+
+            var products = await GetFromCacheOrExecuteAsync(
+                cacheKey,
+                async () => await _unitOfWork.Products.GetByCategoryIdAsync(categoryId),
+                CACHE_DURATION_LIST
+            );
 
             // Filter inactive if not admin
             if (!actorUserId.HasValue ||
@@ -533,14 +586,38 @@ public class ProductService : IProductService
             }
 
             var dtos = _mapper.Map<List<ProductListDto>>(products);
+            return dtos;
+        },
+        "GetProductsByCategory",
+        "Category products retrieved successfully");
+    }
 
-            return ApiResponse<List<ProductListDto>>.SuccessResponse(dtos,
-                $"Retrieved {dtos.Count} products for category");
-        }
-        catch (Exception ex)
+    // ============================================
+    // PRIVATE HELPER METHODS
+    // ============================================
+    private async Task InvalidateProductCachesAsync(Guid? storeId, Guid? categoryId, Guid? productId = null)
+    {
+        var tasks = new List<Task>
         {
-            _logger.LogError(ex, "Error getting products for category {CategoryId}", categoryId);
-            return ApiResponse<List<ProductListDto>>.FailureResponse("Failed to retrieve category products");
+            // Invalidate list caches
+            InvalidateCacheByPrefixAsync($"{CACHE_KEY_PRODUCT_LIST}:*")
+        };
+
+        if (productId.HasValue)
+        {
+            tasks.Add(InvalidateCacheAsync(CreateCacheKey(CACHE_KEY_PRODUCT, productId.Value)));
         }
+
+        if (storeId.HasValue)
+        {
+            tasks.Add(InvalidateCacheAsync(CreateCacheKey(CACHE_KEY_PRODUCT_STORE, storeId.Value)));
+        }
+
+        if (categoryId.HasValue)
+        {
+            tasks.Add(InvalidateCacheAsync(CreateCacheKey(CACHE_KEY_PRODUCT_CATEGORY, categoryId.Value)));
+        }
+
+        await Task.WhenAll(tasks);
     }
 }

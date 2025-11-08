@@ -1,3 +1,4 @@
+using VietCommerce.Core.DTOs.Products;
 using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Models;
 namespace VietCommerce.Data.Repositories.Interfaces;
@@ -24,6 +25,17 @@ public interface IProductRepository : IGenericRepository<Product>
         string? sortBy = null,
         bool isDescending = false
     );
+     Task<PaginatedResult<ProductListDto>> GetPaginatedDtoAsync(
+    int pageNumber,
+    int pageSize,
+    string? searchTerm = null,
+    Guid? categoryId = null,
+    Guid? storeId = null,
+    bool? isActive = null,
+    decimal? minPrice = null,
+    decimal? maxPrice = null,
+    string? sortBy = null,
+    bool isDescending = false);
 
     // Business use cases
     Task<IEnumerable<Product>> GetPromotedProductsAsync(int count = 10);

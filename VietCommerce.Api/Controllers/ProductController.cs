@@ -192,17 +192,17 @@ public class ProductController : ControllerBase
         return Ok(result);
     }
 
-   
-    // LIST (Public/Protected)
-   
 
-    
+    // LIST (Public/Protected)
+
+
+
     /// Get paginated product list
-    
-    
+
+
     /// Public: Only active products
     /// Admin (product.list): All products
-   
+
     [HttpGet]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<PaginatedResult<ProductListDto>>), 200)]
@@ -211,16 +211,22 @@ public class ProductController : ControllerBase
         var userId = GetCurrentUserId();
         var result = await _productService.GetProductsAsync(filter, userId);
 
-        return Ok(result);
+        // ✅ Return đúng cấu trúc - không wrap ApiResponse
+        return Ok(new
+        {
+            success = true,
+            data = result,
+            message = "Products retrieved successfully"
+        });
     }
 
-   
-    // GET BY STORE
-   
 
-    
+    // GET BY STORE
+
+
+
     /// Get products by store ID
-    
+
     [HttpGet("store/{storeId}")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<List<ProductListDto>>), 200)]

@@ -2,10 +2,7 @@
 
 namespace VietCommerce.Core.DTOs.Products
 {
-
-
     /// Detailed product information (for single product view)
-
     public class ProductDetailDto
     {
         public Guid Id { get; set; }
@@ -19,6 +16,9 @@ namespace VietCommerce.Core.DTOs.Products
         public decimal Price { get; set; }
         public decimal? CompareAtPrice { get; set; }
         public decimal? Cost { get; set; }
+
+        // Hiển thị giá đã áp khuyến mãi
+        public DisplayPriceResult? DisplayPrice { get; set; }
 
         // Discount percentage (calculated)
         public decimal? DiscountPercentage => CompareAtPrice.HasValue && CompareAtPrice > Price
@@ -50,7 +50,7 @@ namespace VietCommerce.Core.DTOs.Products
         public bool IsActive { get; set; }
         public bool IsFeatured { get; set; }
 
-        // Statistics (from ProductStats if available)
+        // Statistics
         public int ViewCount { get; set; }
         public int FavoriteCount { get; set; }
         public decimal AverageRating { get; set; }
@@ -66,4 +66,5 @@ namespace VietCommerce.Core.DTOs.Products
         public Guid CreatedBy { get; set; }
         public string? CreatedByName { get; set; }
     }
+
 }

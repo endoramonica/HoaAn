@@ -16,6 +16,7 @@ public class UnitOfWork : IUnitOfWork
     private IUserRoleRepository? _userRoles;
     private IRolePermissionRepository? _rolePermissions;
     private IProductRepository? _products;
+    private ICategoryRepository? _categories;
     private ICartRepository? _cartRepository;
     private IOrderRepository? _orders;
     private IOrderItemRepository? _orderItems;
@@ -38,6 +39,7 @@ public class UnitOfWork : IUnitOfWork
     public IUserRoleRepository UserRoles => _userRoles ??= new UserRoleRepository(_context);
     public IRolePermissionRepository RolePermissions => _rolePermissions ??= new RolePermissionRepository(_context);
     public IProductRepository Products => _products ??= new ProductRepository(_context);
+    public ICategoryRepository Categories => _categories ??= new CategoryRepository(_context);
     public ICartRepository Carts
     {
         get => _cartRepository ??= new CartRepository(_context);

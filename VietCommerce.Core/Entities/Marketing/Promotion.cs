@@ -1,14 +1,15 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using VietCommerce.Core.Common;
 using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Enums.Marketing;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace VietCommerce.Core.Entities.Marketing
 {
     [Table("Promotions")]
-    public class Promotion : AuditableEntity
+    public class Promotion : AuditableEntity , ISoftDelete
     {
         [Required]
         public string PromotionName { get; set; } = string.Empty;
@@ -28,12 +29,17 @@ namespace VietCommerce.Core.Entities.Marketing
         public DateTime StartDate { get; set; }
         [Required]
         public DateTime EndDate { get; set; }
-        public bool IsActive { get; set; } 
+        // thừa vì ta có thể tính bằng Status + soft-delete (IsDeleted) là đủ để quản lý vòng đời của Promotion.
+        public bool IsActive { get; set; }
         [Required]
         public PromotionStatus Status { get; set; } = PromotionStatus.ACTIVE;
         // Navigation
         public Guid CampaignId { get; set; }
         public virtual Campaign Campaign { get; set; } = null!;
         public virtual ICollection<PromotionProduct> PromotionProducts { get; set; } = new List<PromotionProduct>();
+        // 🔹 Thêm các property từ ISoftDelete
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
+        public Guid? DeletedBy { get; set; }
     }
 }

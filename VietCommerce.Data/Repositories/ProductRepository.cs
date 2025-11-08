@@ -1,5 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using VietCommerce.Core.DTOs.Products;
 using VietCommerce.Core.Entities.Products;
+using VietCommerce.Core.Enums.Marketing;
+using VietCommerce.Core.Enums.Products;
 using VietCommerce.Core.Models;
 using VietCommerce.Data.Context;
 using VietCommerce.Data.Repositories.Interfaces;
@@ -136,6 +139,160 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
         return new PaginatedResult<Product>(items, pageNumber, pageSize, totalItems);
     }
+
+
+    public async Task<PaginatedResult<ProductListDto>> GetPaginatedDtoAsync(
+    int pageNumber,
+    int pageSize,
+    string? searchTerm = null,
+    Guid? categoryId = null,
+    Guid? storeId = null,
+    bool? isActive = null,
+    decimal? minPrice = null,
+    decimal? maxPrice = null,
+    string? sortBy = null,
+    bool isDescending = false)
+    {
+        var now = DateTime.UtcNow;
+
+        // ===============================
+        // Step 1: Base product query
+        // ===============================
+        var query = _dbSet
+            .Include(p => p.Category)
+            .Include(p => p.Store)
+            .Include(p => p.Images)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var search = searchTerm.ToLower();
+            query = query.Where(p =>
+                p.Name.ToLower().Contains(search) ||
+                p.Code.ToLower().Contains(search) ||
+                p.SKU.ToLower().Contains(search));
+        }
+
+        if (categoryId.HasValue)
+            query = query.Where(p => p.CategoryId == categoryId.Value);
+
+        if (storeId.HasValue)
+            query = query.Where(p => p.StoreId == storeId.Value);
+
+        if (isActive.HasValue)
+            query = query.Where(p => p.IsActive == isActive.Value);
+
+        // ===============================
+        // Step 2: Pagination (only product ids)
+        // ===============================
+        var totalItems = await query.CountAsync();
+
+        var productsPage = await query
+            .OrderByDescending(p => p.CreatedAt) // default sort
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var productIds = productsPage.Select(p => p.Id).ToList();
+        if (!productIds.Any())
+            return new PaginatedResult<ProductListDto>(new List<ProductListDto>(), pageNumber, pageSize, totalItems);
+
+        // ===============================
+        // Step 3: Load Prices & Promotions optimized
+        // ===============================
+        var prices = await _context.ProductPrices
+            .Where(pr => productIds.Contains(pr.ProductId)
+                         && pr.IsActive
+                         && pr.PriceType == PriceType.REGULAR)
+            .GroupBy(pr => pr.ProductId)
+            .Select(g => g
+                .OrderByDescending(pr => pr.EffectiveFrom) // Lấy giá mới nhất
+                .FirstOrDefault())
+            .ToListAsync();
+
+        // Tạo dictionary để tra nhanh
+        var priceDict = prices
+            .Where(p => p != null)
+            .ToDictionary(p => p.ProductId, p => p.Price);
+
+        var promotions = await _context.PromotionProducts
+            .Include(pp => pp.Promotion)
+            .Where(pp => productIds.Contains(pp.ProductId)
+                         && pp.Promotion.IsActive
+                         && pp.Promotion.StartDate <= now
+                         && pp.Promotion.EndDate >= now)
+            .ToListAsync();
+
+        // Dictionary promotion theo ProductId
+        var promotionDict = promotions
+            .GroupBy(pp => pp.ProductId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(pp => pp.Promotion.DiscountValue)
+                      .Select(pp => pp.Promotion)
+                      .FirstOrDefault()
+            );
+
+        // ===============================
+        // Step 4: Map to DTO (CurrentPrice + Promotion)
+        // ===============================
+        var dtos = productsPage.Select(p =>
+        {
+            decimal currentPrice = priceDict.ContainsKey(p.Id) ? priceDict[p.Id] : 0;
+
+            var activePromotion = promotionDict.ContainsKey(p.Id) ? promotionDict[p.Id] : null;
+
+            decimal discountAmount = 0;
+            if (activePromotion != null)
+            {
+                discountAmount = activePromotion.PromotionType == PromotionType.PERCENTAGE
+                    ? currentPrice * (activePromotion.DiscountValue / 100)
+                    : Math.Min(currentPrice, activePromotion.DiscountValue);
+            }
+
+            var discountedPrice = currentPrice - discountAmount;
+
+            return new ProductListDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Code = p.Code,
+                StockQuantity = p.Stock,
+                CategoryName = p.Category?.Name,
+                PrimaryImage = p.Images.FirstOrDefault()?.Url,
+                ViewCount = (int)p.ViewCount,
+                FavoriteCount = p.FavoriteCount,
+                AverageRating = p.AvgRating,
+                Price = discountedPrice,
+                CompareAtPrice = currentPrice,
+                DisplayPrice = new DisplayPriceResult
+                {
+                    OriginalPrice = currentPrice,
+                    DiscountedPrice = discountedPrice,
+                    DiscountAmount = discountAmount,
+                    PromotionName = activePromotion?.PromotionName
+                }
+            };
+        }).ToList();
+
+        // ===============================
+        // Step 5: Sorting (on DTOs)
+        // ===============================
+        dtos = sortBy?.ToLower() switch
+        {
+            "price" => isDescending ? dtos.OrderByDescending(x => x.Price).ToList() : dtos.OrderBy(x => x.Price).ToList(),
+            "name" => isDescending ? dtos.OrderByDescending(x => x.Name).ToList() : dtos.OrderBy(x => x.Name).ToList(),
+            "viewcount" => isDescending ? dtos.OrderByDescending(x => x.ViewCount).ToList() : dtos.OrderBy(x => x.ViewCount).ToList(),
+            "purchasecount" => isDescending ? dtos.OrderByDescending(x => x.FavoriteCount).ToList() : dtos.OrderBy(x => x.FavoriteCount).ToList(),
+            "rating" => isDescending ? dtos.OrderByDescending(x => x.AverageRating).ToList() : dtos.OrderBy(x => x.AverageRating).ToList(),
+            "trending" => isDescending ? dtos.OrderByDescending(x => x.StockQuantity).ToList() : dtos.OrderBy(x => x.StockQuantity).ToList(),
+            _ => isDescending ? dtos.OrderByDescending(x => x.Id).ToList() : dtos.OrderBy(x => x.Id).ToList()
+        };
+
+        return new PaginatedResult<ProductListDto>(dtos, pageNumber, pageSize, totalItems);
+    }
+
+
 
     // ========================================
     // BUSINESS USE CASES

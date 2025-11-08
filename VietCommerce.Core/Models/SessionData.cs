@@ -15,4 +15,5 @@ public class SessionData
     public string? UserAgent { get; set; }
     /// IP address (optional, for audit)
     public string? IpAddress { get; set; }
+    public DateTime LastActivityAt { get; set; }
 }

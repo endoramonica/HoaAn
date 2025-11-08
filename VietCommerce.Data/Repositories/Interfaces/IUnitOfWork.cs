@@ -15,6 +15,7 @@ public interface IUnitOfWork : IDisposable
     
     // PRODUCT REPOSITORIES
     IProductRepository Products { get; }
+    ICategoryRepository Categories { get; }
 
     // CART REPOSITORIES 
     ICartRepository Carts { get; }

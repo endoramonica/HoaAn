@@ -1,25 +1,36 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Entities.Marketing;
 using VietCommerce.Core.Enums.Products;
 using VietCommerce.Core.Enums.Marketing;
+using VietCommerce.Core.DTOs.Products;
+
 namespace VietCommerce.Core.Helpers
 {
     public static class PriceCalculationHelper
     {
+        /// <summary>
+        /// Lấy giá hiện tại theo loại giá
+        /// </summary>
         public static decimal GetCurrentPrice(Product product, PriceType priceType = PriceType.REGULAR)
         {
             var currentTime = DateTime.UtcNow;
             var currentPrice = product.Prices?
-                .Where(p => p.PriceType == priceType && 
-                           p.IsActive &&
-                           p.EffectiveFrom <= currentTime &&
-                           (p.EffectiveTo == null || p.EffectiveTo > currentTime))
+                .Where(p => p.PriceType == priceType &&
+                            p.IsActive &&
+                            p.EffectiveFrom <= currentTime &&
+                            (p.EffectiveTo == null || p.EffectiveTo > currentTime))
                 .OrderByDescending(p => p.EffectiveFrom)
                 .FirstOrDefault();
+
             return currentPrice?.Price ?? 0;
         }
+
+        /// <summary>
+        /// Tính số tiền giảm dựa trên Promotion
+        /// </summary>
         public static decimal CalculateDiscountAmount(decimal originalPrice, Promotion promotion)
         {
             return promotion.PromotionType switch
@@ -29,6 +40,10 @@ namespace VietCommerce.Core.Helpers
                 _ => 0
             };
         }
+
+        /// <summary>
+        /// Áp dụng MaxDiscount nếu có
+        /// </summary>
         public static decimal ApplyMaxDiscount(decimal discountAmount, Promotion promotion)
         {
             if (promotion.MaxDiscount.HasValue)
@@ -37,5 +52,49 @@ namespace VietCommerce.Core.Helpers
             }
             return discountAmount;
         }
+
+        /// <summary>
+        /// Lấy giá hiển thị (DisplayPrice) đã áp dụng khuyến mãi
+        /// </summary>
+        public static DisplayPriceResult GetDisplayPrice(Product product)
+        {
+            var originalPrice = GetCurrentPrice(product, PriceType.REGULAR);
+            var discountedPrice = originalPrice;
+            decimal discountAmount = 0;
+            string? promotionName = null;
+
+            var now = DateTime.UtcNow;
+
+            if (product.PromotionProducts != null && product.PromotionProducts.Any())
+            {
+                var activePromotions = product.PromotionProducts
+                    .Where(pp => pp.Promotion.IsActive &&
+                                 pp.Promotion.StartDate <= now &&
+                                 pp.Promotion.EndDate > now)
+                    .Select(pp => pp.Promotion)
+                    .ToList();
+
+                if (activePromotions.Any())
+                {
+                    // Giả sử chỉ áp dụng 1 promotion ưu tiên (promotion có DiscountValue cao nhất)
+                    var promotion = activePromotions.OrderByDescending(p => p.DiscountValue).First();
+
+                    discountAmount = CalculateDiscountAmount(originalPrice, promotion);
+                    discountAmount = ApplyMaxDiscount(discountAmount, promotion);
+                    discountedPrice = originalPrice - discountAmount;
+                    promotionName = promotion.PromotionName;
+                }
+            }
+
+            return new DisplayPriceResult
+            {
+                OriginalPrice = originalPrice,
+                DiscountedPrice = discountedPrice,
+                DiscountAmount = discountAmount,
+                PromotionName = promotionName
+            };
+        }
     }
+
+    
 }
