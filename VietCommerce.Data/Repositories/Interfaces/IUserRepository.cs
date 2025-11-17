@@ -14,6 +14,7 @@ public interface IUserRepository : IGenericRepository<User>
         int pageSize,
         string? searchTerm
     );
-   
-    
+    Task<User?> GetByEmailWithRolesAndPermissionsAsync(string email);
+
+
 }

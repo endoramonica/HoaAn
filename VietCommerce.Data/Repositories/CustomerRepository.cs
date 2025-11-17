@@ -7,12 +7,7 @@ namespace VietCommerce.Data.Repositories
 {
     public class CustomerRepository : GenericRepository<Customer>, ICustomerRepository
     {
-        private readonly AppDbContext _context;
-
-        public CustomerRepository(AppDbContext context) : base(context)
-        {
-            _context = context;
-        }
+        public CustomerRepository(AppDbContext context) : base(context){}
 
         // 🔹 Lấy Customer theo UserId (toàn hệ thống)
         public async Task<Customer?> GetByUserIdAsync(Guid userId)

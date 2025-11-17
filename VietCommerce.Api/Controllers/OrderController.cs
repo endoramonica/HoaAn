@@ -1,7 +1,7 @@
 ﻿// File: VietCommerce.Api/Controllers/V1/OrderController.cs
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using VietCommerce.Api.Services.Interfaces;
+using VietCommerce.Application.Services.Services.Interfaces;
 using VietCommerce.Core.DTOs.Orders;
 using VietCommerce.Core.Enums.Orders;
 using VietCommerce.Core.Models;

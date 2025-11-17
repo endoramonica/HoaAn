@@ -1150,9 +1150,11 @@ namespace VietCommerce.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("SubTotal")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TaxAmount")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid?>("TenantId")
@@ -1182,7 +1184,7 @@ namespace VietCommerce.Data.Migrations
 
                     b.HasIndex("StoreId", "CreatedAt");
 
-                    b.ToTable("Orders");
+                    b.ToTable("Orders", (string)null);
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Orders.OrderItem", b =>
@@ -1660,13 +1662,21 @@ namespace VietCommerce.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
                         .IsRequired()
-                        .HasColumnType("varbinary(max)");
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<Guid>("StoreId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("StoreId1")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("TenantId1")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -1674,15 +1684,35 @@ namespace VietCommerce.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_Inventories_CreatedAt");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_Inventories_IsDeleted");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_Inventories_ProductId");
+
+                    b.HasIndex("StoreId1");
+
                     b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId1");
 
                     b.HasIndex("ProductId", "StoreId")
                         .IsUnique()
                         .HasFilter("IsDeleted = 0");
 
+                    b.HasIndex("QuantityAvailable", "ReorderLevel")
+                        .HasDatabaseName("IX_Inventories_LowStock");
+
                     b.HasIndex("StoreId", "IsDeleted");
 
-                    b.ToTable("Inventories");
+                    b.HasIndex("StoreId", "ProductId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Inventories_Store_Product_Unique");
+
+                    b.ToTable("Inventories", (string)null);
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Products.InventoryMovement", b =>
@@ -1791,7 +1821,8 @@ namespace VietCommerce.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("PurchaseCount")
                         .HasColumnType("int");
@@ -1801,7 +1832,8 @@ namespace VietCommerce.Data.Migrations
 
                     b.Property<string>("SKU")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -1834,6 +1866,12 @@ namespace VietCommerce.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AvgRating")
+                        .HasDatabaseName("IX_Products_AvgRating");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("IX_Products_CategoryId");
+
                     b.HasIndex("Code")
                         .IsUnique();
 
@@ -1841,24 +1879,46 @@ namespace VietCommerce.Data.Migrations
 
                     b.HasIndex("CreatedByUserId");
 
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_Products_IsActive");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_Products_IsDeleted");
+
                     b.HasIndex("Name");
+
+                    b.HasIndex("PurchaseCount")
+                        .HasDatabaseName("IX_Products_PurchaseCount");
 
                     b.HasIndex("SKU")
                         .IsUnique()
+                        .HasDatabaseName("IX_Products_SKU_Unique")
                         .HasFilter("IsDeleted = 0");
 
                     b.HasIndex("Slug")
                         .IsUnique();
 
+                    b.HasIndex("StoreId")
+                        .HasDatabaseName("IX_Products_StoreId");
+
                     b.HasIndex("TenantId");
 
+                    b.HasIndex("TrendingScore")
+                        .HasDatabaseName("IX_Products_TrendingScore");
+
                     b.HasIndex("UpdatedBy");
+
+                    b.HasIndex("ViewCount")
+                        .HasDatabaseName("IX_Products_ViewCount");
 
                     b.HasIndex("CategoryId", "IsDeleted");
 
                     b.HasIndex("StoreId", "IsDeleted");
 
-                    b.ToTable("Products");
+                    b.HasIndex("StoreId", "IsActive", "IsDeleted")
+                        .HasDatabaseName("IX_Products_Store_Active_Deleted");
+
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Products.ProductFavorite", b =>
@@ -1881,11 +1941,20 @@ namespace VietCommerce.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_ProductFavorites_CreatedAt");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_ProductFavorites_ProductId");
 
-                    b.ToTable("ProductFavorites");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_ProductFavorites_UserId");
+
+                    b.HasIndex("UserId", "ProductId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ProductFavorites_User_Product_Unique");
+
+                    b.ToTable("ProductFavorites", (string)null);
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Products.ProductImage", b =>
@@ -1897,18 +1966,40 @@ namespace VietCommerce.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<bool>("IsMain")
                         .HasColumnType("bit");
+
+                    b.Property<int>("MediaType")
+                        .HasColumnType("int");
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ThumbnailUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Url")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.HasKey("Id");
 
@@ -2021,13 +2112,34 @@ namespace VietCommerce.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_ProductReviews_IsDeleted");
+
+                    b.HasIndex("IsVisible")
+                        .HasDatabaseName("IX_ProductReviews_IsVisible");
+
                     b.HasIndex("OrderItemId");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_ProductReviews_ProductId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("Rating")
+                        .HasDatabaseName("IX_ProductReviews_Rating");
 
-                    b.ToTable("ProductReviews");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_ProductReviews_UserId");
+
+                    b.HasIndex("ProductId", "IsVisible", "IsDeleted")
+                        .HasDatabaseName("IX_ProductReviews_Product_Visible_Deleted");
+
+                    b.HasIndex("ProductId", "Rating", "IsVisible")
+                        .HasDatabaseName("IX_ProductReviews_Product_Rating_Visible");
+
+                    b.HasIndex("UserId", "ProductId", "OrderItemId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ProductReviews_User_Product_OrderItem_Unique");
+
+                    b.ToTable("ProductReviews", (string)null);
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Products.ProductView", b =>
@@ -2040,20 +2152,23 @@ namespace VietCommerce.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("IpAddress")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("SessionId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("UserAgent")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<Guid?>("UserId")
                         .HasColumnType("uniqueidentifier");
@@ -2063,11 +2178,22 @@ namespace VietCommerce.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_ProductViews_ProductId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("SessionId")
+                        .HasDatabaseName("IX_ProductViews_SessionId");
 
-                    b.ToTable("ProductViews");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_ProductViews_UserId");
+
+                    b.HasIndex("ViewedAt")
+                        .HasDatabaseName("IX_ProductViews_ViewedAt");
+
+                    b.HasIndex("ProductId", "ViewedAt")
+                        .HasDatabaseName("IX_ProductViews_Product_ViewedAt");
+
+                    b.ToTable("ProductViews", (string)null);
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Tasks.WorkTask", b =>
@@ -2380,10 +2506,12 @@ namespace VietCommerce.Data.Migrations
             modelBuilder.Entity("VietCommerce.Core.Entities.Users.UserRole", b =>
                 {
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("UserId");
 
                     b.Property<Guid>("RoleId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("RoleId");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -2391,8 +2519,9 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("TenantId");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -2400,6 +2529,9 @@ namespace VietCommerce.Data.Migrations
                     b.HasKey("UserId", "RoleId");
 
                     b.HasIndex("RoleId");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("IX_UserRoles_TenantId");
 
                     b.ToTable("UserRoles");
                 });
@@ -2744,7 +2876,7 @@ namespace VietCommerce.Data.Migrations
                     b.HasOne("VietCommerce.Core.Entities.Customers.Customer", "Customer")
                         .WithMany("Orders")
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("VietCommerce.Core.Entities.Organization.Store", "Store")
                         .WithMany("Orders")
@@ -2887,18 +3019,27 @@ namespace VietCommerce.Data.Migrations
                     b.HasOne("VietCommerce.Core.Entities.Products.Product", "Product")
                         .WithMany("Inventories")
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("VietCommerce.Core.Entities.Organization.Store", "Store")
-                        .WithMany("Inventories")
+                        .WithMany()
                         .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("VietCommerce.Core.Entities.Organization.Tenant", "Tenant")
+                    b.HasOne("VietCommerce.Core.Entities.Organization.Store", null)
                         .WithMany("Inventories")
-                        .HasForeignKey("TenantId");
+                        .HasForeignKey("StoreId1");
+
+                    b.HasOne("VietCommerce.Core.Entities.Organization.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VietCommerce.Core.Entities.Organization.Tenant", null)
+                        .WithMany("Inventories")
+                        .HasForeignKey("TenantId1");
 
                     b.Navigation("Product");
 
@@ -2948,7 +3089,7 @@ namespace VietCommerce.Data.Migrations
                     b.HasOne("VietCommerce.Core.Entities.Products.Category", "Category")
                         .WithMany("Products")
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("VietCommerce.Core.Entities.Users.User", null)
                         .WithMany()
@@ -3037,7 +3178,7 @@ namespace VietCommerce.Data.Migrations
                     b.HasOne("VietCommerce.Core.Entities.Orders.OrderItem", "OrderItem")
                         .WithMany("Reviews")
                         .HasForeignKey("OrderItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("VietCommerce.Core.Entities.Products.Product", "Product")
@@ -3049,7 +3190,7 @@ namespace VietCommerce.Data.Migrations
                     b.HasOne("VietCommerce.Core.Entities.Users.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("OrderItem");
@@ -3069,7 +3210,8 @@ namespace VietCommerce.Data.Migrations
 
                     b.HasOne("VietCommerce.Core.Entities.Users.User", "User")
                         .WithMany()
-                        .HasForeignKey("UserId");
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Product");
 
@@ -3176,7 +3318,8 @@ namespace VietCommerce.Data.Migrations
                     b.HasOne("VietCommerce.Core.Entities.Users.User", "User")
                         .WithMany("UserRoles")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Role");
 

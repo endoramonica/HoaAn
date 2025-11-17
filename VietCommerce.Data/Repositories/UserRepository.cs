@@ -1,4 +1,4 @@
-// Data/Repositories/UserRepository.cs
+﻿// Data/Repositories/UserRepository.cs
 using Microsoft.EntityFrameworkCore;
 using VietCommerce.Core.Entities.Users;
 using VietCommerce.Core.DTOs.Users;
@@ -18,7 +18,16 @@ public class UserRepository : GenericRepository<User>, IUserRepository
         return await _dbSet
             .FirstOrDefaultAsync(u => u.Email == email.ToLower());
     }
-   
+    public async Task<User?> GetByEmailWithRolesAndPermissionsAsync(string email)
+    {
+        return await _context.Users
+            .Include(u => u.UserRoles) // User → UserRole
+                .ThenInclude(ur => ur.Role) // → Role
+                    .ThenInclude(r => r.RolePermissions) // → RolePermission
+                        .ThenInclude(rp => rp.Permission) // → Permission
+            .FirstOrDefaultAsync(u => u.Email == email);
+    }
+
     public async Task<User?> GetByIdWithRolesAsync(Guid id)
     {
         return await _dbSet

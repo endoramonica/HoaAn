@@ -129,23 +129,14 @@ public class AppDbContext : DbContext
         ConfigureTaskEntities(modelBuilder);
         ConfigureAuditEntities(modelBuilder);
 
-        // Composite Keys
-        modelBuilder.Entity<UserRole>(entity =>
-        {
-            entity.HasKey(ur => new { ur.UserId, ur.RoleId });
-
-            entity.HasOne(ur => ur.User)
-                .WithMany(u => u.UserRoles)
-                .HasForeignKey(ur => ur.UserId)
-                 .IsRequired(false); // 
-
-            entity.HasOne(ur => ur.Role)
-                .WithMany(r => r.UserRoles)
-                .HasForeignKey(ur => ur.RoleId);
-        });
-
+      
         modelBuilder.Entity<RolePermission>().HasKey(rp => new { rp.RoleId, rp.PermissionId });
         modelBuilder.Entity<PromotionProduct>().HasKey(pp => new { pp.PromotionId, pp.ProductId });
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(UserRoleConfiguration).Assembly);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(InventoryConfiguration).Assembly);
+        //modelBuilder.ApplyConfigurationsFromAssembly(typeof(OrderConfiguration).Assembly);
+        //modelBuilder.ApplyConfigurationsFromAssembly(typeof(ProductConfiguration).Assembly);
+        //modelBuilder.ApplyConfigurationsFromAssembly(typeof(ProductFavoriteConfiguration).Assembly);
 
         // Configure many-to-many relationships
         ConfigureManyToManyRelationships(modelBuilder);

@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 //using VietCommerce.Api.Middlewares;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
@@ -8,11 +9,14 @@ using StackExchange.Redis;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using VietCommerce.Api;
-using VietCommerce.Api.Extensions;
-using VietCommerce.Api.Services;
-using VietCommerce.Api.Services.Interfaces;
+using VietCommerce.Api.Middleware;
+using VietCommerce.Application.Extension;
+using VietCommerce.Application.Extensions;
+using VietCommerce.Application.Helpers;
 using VietCommerce.Application.Mappings;
+using VietCommerce.Application.Services.Services;
+using VietCommerce.Application.Services.Services.Interfaces;
+using VietCommerce.Core.Common.Attributes;
 using VietCommerce.Core.Helpers;
 using VietCommerce.Data.Context;
 using VietCommerce.Data.Repositories;
@@ -191,6 +195,7 @@ builder.Services.AddAuthentication(options =>
         }
     };
 });
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddAuthorization();
 // ============================================
 // AUTOMAPPER CONFIGURATION
@@ -198,7 +203,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddAutoMapper(
     typeof(AuthMappingProfile).Assembly,
     typeof(ProductMappingProfile).Assembly,
-    typeof(OrderMappingProfile).Assembly
+    typeof(OrderMappingProfile).Assembly,
+    typeof(ProductFavoriteMappingProfile).Assembly
     
 );
 // ============================================
@@ -217,26 +223,7 @@ builder.Services.AddMemoryCache();
 // ============================================
 // REPOSITORIES REGISTRATION
 // ============================================
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-// RBAC Repositories
-builder.Services.AddScoped<IRoleRepository, RoleRepository>();
-builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
-builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
-builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
-//Product+Order
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-builder.Services.AddScoped<ICartRepository, CartRepository>();
-builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
-builder.Services.AddScoped<IProductRepository,ProductRepository>();
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-
-
-
-
-
-
+builder.Services.AddRepositories();
 
 // ============================================
 // SERVICES REGISTRATION
@@ -274,7 +261,8 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("VietCommercePolicy", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:3000", "http://localhost:3001")
+              .AllowCredentials()
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -318,6 +306,8 @@ app.UseCors("VietCommercePolicy");
 //app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
+// Permission-based middleware (phải sau UseAuthorization)
+app.UsePermissionMiddleware();
 // ============================================
 // ENDPOINTS MAPPING
 // ============================================

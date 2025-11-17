@@ -3,13 +3,13 @@
 // Author: VietCommerce Seeder Team
 // Purpose: Seed role-permission & user-role mapping
 // ================================================================
-
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-
+using VietCommerce.Core.Common.Constants;
 using VietCommerce.Core.Entities.Users;
+using VietCommerce.Core.Enums.Users;
 using VietCommerce.Data.Context;
 
 namespace VietCommerce.Data.Seeders
@@ -18,71 +18,130 @@ namespace VietCommerce.Data.Seeders
     {
         public static async Task SeedAsync(AppDbContext context)
         {
-            // Ensure Roles and Permissions exist
+            // 1. Đảm bảo Role & Permission đã được seed
             await RoleSeed.SeedAsync(context);
             await PermissionSeed.SeedAsync(context);
 
-            // ROLE → PERMISSIONS
+            // 2. Lấy Role
             var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
             var staffRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Staff");
             var customerRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Customer");
             var managerRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Store Manager");
 
+            if (adminRole == null || staffRole == null || customerRole == null || managerRole == null)
+                throw new InvalidOperationException("Roles must be seeded before RBAC mapping.");
+
             var allPerms = await context.Permissions.ToListAsync();
 
-            // Admin có tất cả quyền
-            foreach (var perm in allPerms)
+            // ===== ROLE → PERMISSIONS =====
+            await AddPermissionsToRole(context, adminRole.Id, allPerms);
+            await AddPermissionsToRole(context, staffRole.Id, allPerms.Where(p =>
+                p.Name.StartsWith("product.") ||
+                p.Name.StartsWith("order.") ||
+                p.Name == "inventory.view" ||
+                p.Name == "customer.view"));
+            await AddPermissionsToRole(context, customerRole.Id, allPerms.Where(p =>
+                p.Name == "product.view" ||
+                p.Name == "inventory.view" ||
+                p.Name == "report.view" ||
+                p.Name == PermissionConstants.CustomerAddressManage ||
+                p.Name == PermissionConstants.CartView ||
+                p.Name == PermissionConstants.CartManage ||
+                p.Name == PermissionConstants.OrderCreate ||
+                p.Name == PermissionConstants.OrderViewOwn ||
+                p.Name == PermissionConstants.OrderCancelOwn));
+            await AddPermissionsToRole(context, managerRole.Id, allPerms.Where(p =>
+                p.Name == "inventory.view" ||
+                p.Name == "order.view" ||
+                p.Name == "report.view" ||
+                p.Name == "customer.view" ||
+                p.Name == PermissionConstants.OrderViewAll ||
+                p.Name == PermissionConstants.OrderUpdateStatus ||
+                p.Name == PermissionConstants.AdminAddressRead));
+
+            await context.SaveChangesAsync(); // ✅ Lưu RolePermissions
+
+            // ================================================================
+            // BƯỚC 1: TẠO USERS (nếu chưa có)
+            // ================================================================
+            var seedUsers = new[]
             {
-                if (!await context.RolePermissions.AnyAsync(x => x.RoleId == adminRole.Id && x.PermissionId == perm.Id))
+                new { Email = "system@vietcommerce.com", Name = "system", RoleId = adminRole.Id, Provider = "local" },
+                new { Email = "user111@example.com",    Name = "user111", RoleId = staffRole.Id, Provider = "local" },
+                new { Email = "gg4999425@gmail.com",    Name = "google_user", RoleId = customerRole.Id, Provider = "google" },
+                new { Email = "user@example.com",       Name = "normal_user", RoleId = customerRole.Id, Provider = "local" }
+            };
+
+            foreach (var item in seedUsers)
+            {
+                var userExists = await context.Users.AnyAsync(u => u.Email == item.Email);
+                if (!userExists)
                 {
-                    context.RolePermissions.Add(new RolePermission { Id = Guid.NewGuid(), RoleId = adminRole.Id, PermissionId = perm.Id });
+                    var newUser = new User
+                    {
+                        Id = Guid.NewGuid(),
+                        Email = item.Email,
+                        Name = item.Name,
+                        Provider = item.Provider,
+                        ProviderId = item.Provider == "google" ? "google_123" : null,
+                        IsActive = true,
+                        Status = UserStatus.ACTIVE,
+                        PasswordHash = "seeded_hash", // Nên dùng BCrypt.HashPassword()
+                        CreatedAt = DateTime.UtcNow,
+                        LastLogin = null
+                    };
+
+                    context.Users.Add(newUser);
                 }
             }
 
-            // Staff
-            var staffPerms = allPerms.Where(p => p.Name.StartsWith("product.") || p.Name.StartsWith("order."));
-            foreach (var perm in staffPerms)
-            {
-                if (!await context.RolePermissions.AnyAsync(x => x.RoleId == staffRole.Id && x.PermissionId == perm.Id))
-                {
-                    context.RolePermissions.Add(new RolePermission { Id = Guid.NewGuid(), RoleId = staffRole.Id, PermissionId = perm.Id });
-                }
-            }
-
-            // Customer chỉ được xem
-            var customerPerms = allPerms.Where(p => p.Name.EndsWith(".view"));
-            foreach (var perm in customerPerms)
-            {
-                if (!await context.RolePermissions.AnyAsync(x => x.RoleId == customerRole.Id && x.PermissionId == perm.Id))
-                {
-                    context.RolePermissions.Add(new RolePermission { Id = Guid.NewGuid(), RoleId = customerRole.Id, PermissionId = perm.Id });
-                }
-            }
-
-            // Store Manager
-            var managerPerms = allPerms.Where(p =>
-                p.Name == "inventory.view" || p.Name == "order.view" || p.Name == "report.view");
-            foreach (var perm in managerPerms)
-            {
-                if (!await context.RolePermissions.AnyAsync(x => x.RoleId == managerRole.Id && x.PermissionId == perm.Id))
-                {
-                    context.RolePermissions.Add(new RolePermission { Id = Guid.NewGuid(), RoleId = managerRole.Id, PermissionId = perm.Id });
-                }
-            }
-
+            // ✅ Lưu tất cả Users trước
             await context.SaveChangesAsync();
 
-            // GÁN USER → ROLE
-            var systemUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "system@vietcommerce.com");
-            var user111 = await context.Users.FirstOrDefaultAsync(u => u.Email == "user111@example.com");
-            var googleUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "gg4999425@gmail.com");
-            var normalUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "user@example.com");
+            // ================================================================
+            // BƯỚC 2: GÁN USER → ROLE (sau khi Users đã được lưu)
+            // ================================================================
+            foreach (var item in seedUsers)
+            {
+                var user = await context.Users.FirstOrDefaultAsync(u => u.Email == item.Email);
 
-            if (systemUser != null && !await context.UserRoles.AnyAsync(x => x.UserId == systemUser.Id))
-                context.UserRoles.Add(new UserRole { Id = Guid.NewGuid(), UserId = systemUser.Id, RoleId = adminRole.Id });
+                if (user != null)
+                {
+                    // Kiểm tra xem UserRole đã tồn tại chưa
+                    var roleExists = await context.UserRoles.AnyAsync(ur =>
+                        ur.UserId == user.Id && ur.RoleId == item.RoleId);
 
-            if (user111 != null && !await context.UserRoles.AnyAsync(x => x.UserId == user111.Id))
-                context.UserRoles.Add(new UserRole { Id = Guid.NewGuid(), UserId = user111.Id, RoleId = staffRole.Id });
+                    if (!roleExists)
+                    {
+                        context.UserRoles.Add(new UserRole
+                        {
+                            Id = Guid.NewGuid(),
+                            UserId = user.Id,  // ✅ Bây giờ user.Id đã tồn tại trong DB
+                            RoleId = item.RoleId
+                        });
+                    }
+                }
+            }
+
+            // ✅ Lưu tất cả UserRoles
+            await context.SaveChangesAsync();
+        }
+
+        // Helper: Thêm quyền cho role (tránh lặp code)
+        private static async Task AddPermissionsToRole(AppDbContext context, Guid roleId, IEnumerable<Permission> permissions)
+        {
+            foreach (var perm in permissions)
+            {
+                if (!await context.RolePermissions.AnyAsync(x => x.RoleId == roleId && x.PermissionId == perm.Id))
+                {
+                    context.RolePermissions.Add(new RolePermission
+                    {
+                        Id = Guid.NewGuid(),
+                        RoleId = roleId,
+                        PermissionId = perm.Id
+                    });
+                }
+            }
         }
     }
 }

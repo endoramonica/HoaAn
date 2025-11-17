@@ -15,7 +15,13 @@ public interface IUnitOfWork : IDisposable
     
     // PRODUCT REPOSITORIES
     IProductRepository Products { get; }
+    IProductImageRepository ProductImages { get; }
     ICategoryRepository Categories { get; }
+    // PRODUCT FAVORITE REPOSITORIES
+    IProductFavoriteRepository ProductFavorites { get; }
+    // INVENTORY REPOSITORIES
+    IInventoryRepository Inventories { get; }
+    IInventoryMovementRepository InventoryMovements { get; }
 
     // CART REPOSITORIES 
     ICartRepository Carts { get; }
@@ -27,7 +33,8 @@ public interface IUnitOfWork : IDisposable
     IOrderShippingRepository OrderShipping { get; }
     // CUSTOMER REPOSITORIES
     ICustomerRepository Customers { get; }
-
+    // CUSTOMER ADDRESS REPOSITORIES
+    ICustomerAddressRepository CustomerAddresses { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task<IDbContextTransaction> BeginTransactionAsync();

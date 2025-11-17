@@ -8,4 +8,5 @@ namespace VietCommerce.Core.Enums.Products
         RETURN = 4,
         TRANSFER = 5
     }
+
 }

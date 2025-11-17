@@ -1,9 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using VietCommerce.Api.Services.Interfaces;
-using VietCommerce.Core.DTOs.Authorization;
-using VietCommerce.Core.DTOs.UserRoles;
+using VietCommerce.Application.Services.Services.Interfaces;
 namespace VietCommerce.Api.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]

@@ -17,23 +17,34 @@ namespace VietCommerce.Core.Helpers
             _jwtSettings = options.Value;
         }
 
-        public string GenerateToken(User user)
+        public string GenerateToken(User user, Guid? customerId = null , List<string>? permissions = null )
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_jwtSettings.Key); // ✅ dùng UTF8
+            var key = Encoding.UTF8.GetBytes(_jwtSettings.Key);
 
             var roles = user.UserRoles.Select(ur => ur.Role.Name).ToList();
 
             var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
-            };
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+        new Claim(ClaimTypes.Email, user.Email),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+    };
 
             foreach (var role in roles)
                 claims.Add(new Claim(ClaimTypes.Role, role));
+
+            // ⭐ Thêm customerId nếu có
+            if (customerId.HasValue)
+            {
+                claims.Add(new Claim("customerId", customerId.Value.ToString()));
+            }
+            if (permissions != null)
+            {
+                foreach (var perm in permissions)
+                    claims.Add(new Claim("permission", perm));
+            }
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -43,13 +54,14 @@ namespace VietCommerce.Core.Helpers
                 Audience = _jwtSettings.Audience,
                 SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(key),
-                    SecurityAlgorithms.HmacSha256 // ✅ KHÔNG dùng “Signature”
+                    SecurityAlgorithms.HmacSha256
                 )
             };
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }
+
 
         public string? GetJtiFromToken(string token)
         {

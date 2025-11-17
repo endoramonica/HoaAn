@@ -3,7 +3,8 @@
     using VietCommerce.Core.Common;
     using VietCommerce.Core.Entities.Organization;
     using VietCommerce.Core.Enums.Common;
-    namespace VietCommerce.Core.Entities.Customers
+    using VietCommerce.Core.Common.Extensions;
+namespace VietCommerce.Core.Entities.Customers
     {
         [Table("CustomerAddresses")]
         public class CustomerAddress : BaseEntity, ISoftDelete

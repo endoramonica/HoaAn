@@ -1,10 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Security.Claims;
-using System.Threading.Tasks;
-using VietCommerce.Api.Helpers;
-using VietCommerce.Api.Services.Interfaces;
+using VietCommerce.Application.Helpers;
+using VietCommerce.Application.Services.Services.Interfaces;
 using VietCommerce.Core.DTOs.Cart;
 using VietCommerce.Core.DTOs.Orders;
 

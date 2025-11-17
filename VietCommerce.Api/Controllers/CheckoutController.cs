@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
-using VietCommerce.Api.Services.Interfaces;
+using VietCommerce.Application.Services.Services.Interfaces;
 using VietCommerce.Core.DTOs.Orders;
 using VietCommerce.Core.Models;
 

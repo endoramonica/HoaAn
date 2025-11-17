@@ -1,10 +1,5 @@
-﻿// ================================================================
-// FILE: PermissionSeed.cs
-// Author: VietCommerce Seeder Team
-// Purpose: Seed base permissions for RBAC
-// ================================================================
-
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using VietCommerce.Core.Common.Constants;
 using VietCommerce.Core.Entities.Users;
 using VietCommerce.Data.Context;
 using VietCommerce.Data.Seeds;
@@ -15,8 +10,7 @@ namespace VietCommerce.Data.Seeders
     {
         public static async Task SeedAsync(AppDbContext context)
         {
-            if (await context.Permissions.AnyAsync()) return;
-
+            // 1️⃣ Khởi tạo danh sách permission
             var permissions = new List<Permission>
             {
                 // Product
@@ -36,15 +30,28 @@ namespace VietCommerce.Data.Seeders
 
                 // Inventory & Reports
                 new Permission { Id = Guid.NewGuid(), Name = "inventory.view", Description = "Xem kho hàng" },
-                new Permission { Id = Guid.NewGuid(), Name = "report.view", Description = "Xem báo cáo" }
+                new Permission { Id = Guid.NewGuid(), Name = "report.view", Description = "Xem báo cáo" },
+
+                // ADDRESS PERMISSIONS
+                new Permission { Id = Guid.NewGuid(), Name = PermissionConstants.CustomerAddressManage, Description = "Quản lý địa chỉ cá nhân" },
+                new Permission { Id = Guid.NewGuid(), Name = PermissionConstants.AdminAddressManage, Description = "Quản lý tất cả địa chỉ (admin)" },
+                new Permission { Id = Guid.NewGuid(), Name = PermissionConstants.AdminAddressRead, Description = "Xem tất cả địa chỉ (admin)" },
             };
+
             // Add Cart and Order related permissions
             var cartOrderPerms = CartOrderPermissionSeed.GetCartOrderPermissions();
             permissions.AddRange(cartOrderPerms);
 
+            // 2️⃣ Lọc những permission chưa có trong DB
+            var existingNames = await context.Permissions.Select(p => p.Name).ToListAsync();
+            var permissionsToAdd = permissions.Where(p => !existingNames.Contains(p.Name)).ToList();
 
-            await context.Permissions.AddRangeAsync(permissions);
-            await context.SaveChangesAsync();
+            // 3️⃣ Thêm mới nếu có
+            if (permissionsToAdd.Any())
+            {
+                await context.Permissions.AddRangeAsync(permissionsToAdd);
+                await context.SaveChangesAsync();
+            }
         }
     }
 }

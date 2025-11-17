@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using VietCommerce.Core.Entities.Orders;
+using VietCommerce.Core.Entities.Products;
 using VietCommerce.Data.Context;
 using VietCommerce.Data.Repositories.Interfaces;
 
@@ -24,6 +25,11 @@ public class UnitOfWork : IUnitOfWork
     private IOrderShippingRepository? _orderShippings;
     private IOrderStatusHistoryRepository? _orderStatusHistories;
     private ICustomerRepository? _customer;
+    private IProductImageRepository? _productImages;
+    private IInventoryRepository? _inventories;
+    private IInventoryMovementRepository? _inventoryMovements;
+    private IProductFavoriteRepository _productFavorites;
+    private ICustomerAddressRepository? _customerAddressRepository;
 
     private IDbContextTransaction? _transaction;
     public UnitOfWork(AppDbContext context , ILogger<OrderRepository> logger)
@@ -39,6 +45,8 @@ public class UnitOfWork : IUnitOfWork
     public IUserRoleRepository UserRoles => _userRoles ??= new UserRoleRepository(_context);
     public IRolePermissionRepository RolePermissions => _rolePermissions ??= new RolePermissionRepository(_context);
     public IProductRepository Products => _products ??= new ProductRepository(_context);
+    public IProductFavoriteRepository ProductFavorites =>
+        _productFavorites ??= new ProductFavoriteRepository(_context);
     public ICategoryRepository Categories => _categories ??= new CategoryRepository(_context);
     public ICartRepository Carts
     {
@@ -51,10 +59,12 @@ public class UnitOfWork : IUnitOfWork
     private IOrderShippingRepository _orderShipping;
     public IOrderShippingRepository OrderShipping => _orderShippings ??= new OrderShippingRepository(_context, null!);
     public IOrderStatusHistoryRepository OrderStatusHistories => _orderStatusHistories ??= new OrderStatusHistoryRepository(_context, null!);
-
+    public IProductImageRepository ProductImages => _productImages ??= new ProductImageRepository(_context);
+    public IInventoryRepository Inventories => _inventories ??= new InventoryRepository(_context);
+    public IInventoryMovementRepository InventoryMovements => _inventoryMovements ??= new InventoryMovementRepository(_context);
     public ICustomerRepository Customers => _customer ??= new CustomerRepository(_context);
+    public ICustomerAddressRepository CustomerAddresses => _customerAddressRepository ??= new CustomerAddressRepository(_context);
 
-    
 
     public async Task<int> SaveChangesAsync()
     {

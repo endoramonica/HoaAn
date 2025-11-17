@@ -129,7 +129,7 @@ namespace VietCommerce.Application.Mappings
 
             CreateMap<ProductImage, ProductImageDto>()
                 .ForMember(dest => dest.DisplayOrder, opt => opt.Ignore())
-                .ForMember(dest => dest.IsPrimary, opt => opt.Ignore());
+                .ForMember(dest => dest.IsMain, opt => opt.Ignore());
 
             CreateMap<ProductReview, ProductReviewDto>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.Name : "Unknown"))
