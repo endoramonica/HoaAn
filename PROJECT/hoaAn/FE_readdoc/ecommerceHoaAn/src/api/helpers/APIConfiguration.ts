@@ -1,42 +1,107 @@
 /**
  * API Configuration
- * ✅ CRITICAL: Setup để gửi cookies (sessionId) trong mọi request
+ * ✅ FIXED: Setup để gửi cookies (sessionId) và JWT token trong mọi request
  */
 
 import { OpenAPI } from '@/api/core/OpenAPI';
 import axios from 'axios';
 
 /**
- * Configure API client để include credentials (cookies)
- * ⚠️ QUAN TRỌNG: Phải setup này để sessionId cookie được gửi kèm requests
+ * ✅ Helper: Get token từ sessionStorage hoặc localStorage
  */
-export const configureApiCredentials = () => {
-  // ✅ For generated OpenAPI client
-  if (OpenAPI) {
-    OpenAPI.WITH_CREDENTIALS = true;
-    console.log('[API Config] ✅ OpenAPI credentials enabled');
-  }
-
-  // ✅ For Axios (nếu dùng)
-  if (axios) {
-    axios.defaults.withCredentials = true;
-    console.log('[API Config] ✅ Axios credentials enabled');
-  }
-
-  // ✅ For global fetch (nếu dùng)
-  const originalFetch = window.fetch;
-  window.fetch = function (input, init?) {
-    return originalFetch(input, {
-      ...init,
-      credentials: 'include', // Always include cookies
-    });
-  };
-  console.log('[API Config] ✅ Fetch credentials enabled');
+const getAuthToken = (): string | null => {
+  // Priority 1: sessionStorage (current session)
+  const sessionToken = sessionStorage.getItem('authToken');
+  if (sessionToken) return sessionToken;
+  
+  // Priority 2: localStorage (remember me)
+  const localToken = localStorage.getItem('authToken');
+  if (localToken) return localToken;
+  
+  return null;
 };
 
 /**
+ * Configure API client để include credentials (cookies) và JWT token
+ */
+export const configureApiCredentials = () => {
+  // ✅ 1. Configure OpenAPI client
+  if (OpenAPI) {
+    OpenAPI.WITH_CREDENTIALS = true;
+    
+    // ✅ Dynamic token resolver
+    OpenAPI.TOKEN = async () => {
+      const token = getAuthToken();
+      if (token) {
+        console.log('[API Config] 🔑 Token resolved for OpenAPI request');
+      }
+      return token || 'undefined';
+    };
+    
+    console.log('[API Config] ✅ OpenAPI credentials + token configured');
+    
+  }
+
+  // ✅ 2. Configure Axios (if used)
+  if (axios) {
+    axios.defaults.withCredentials = true;
+    
+    // Axios interceptor for token
+    axios.interceptors.request.use(
+      (config) => {
+        const token = getAuthToken();
+        if (token && !config.headers.Authorization) {
+          config.headers.Authorization = `Bearer ${token}`;
+          console.log('[API Config] 🔑 Token attached to Axios request');
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+    
+    console.log('[API Config] ✅ Axios credentials + token configured');
+  }
+};
+
+/**
+ * ✅ FIXED: Override fetch để tự động gửi token
+ */
+const originalFetch = window.fetch;
+
+window.fetch = new Proxy(originalFetch, {
+  apply: (target, thisArg, args) => {
+    const [url, config = {}] = args;
+    
+    // ✅ FIXED: Lấy token từ sessionStorage hoặc localStorage
+    const token = getAuthToken();
+    
+    // Merge headers
+    const headers = new Headers(config.headers || {});
+    
+    // Thêm Authorization nếu có token
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+      
+      // Only log for API calls
+      if (typeof url === 'string' && url.includes('/api/')) {
+        console.log('[API Config] 🔑 Token added to fetch request:', 
+          url.substring(url.indexOf('/api/'))
+        );
+      }
+    }
+    
+    return target.call(thisArg, url, {
+      ...config,
+      headers,
+      credentials: 'include',
+    });
+  }
+});
+
+console.log('[API Config] ✅ Fetch interceptor configured');
+
+/**
  * Setup CORS headers (nếu cần)
- * Backend phải cho phép credentials
  */
 export const requiredBackendCorsConfig = {
   /**
@@ -58,14 +123,6 @@ export const requiredBackendCorsConfig = {
    * 
    * app.UseCors("AllowCredentials");
    * ```
-   * 
-   * Express (Node.js):
-   * ```javascript
-   * app.use(cors({
-   *   origin: 'http://localhost:3000',
-   *   credentials: true // ✅ CRITICAL
-   * }));
-   * ```
    */
   note: 'Backend must allow credentials in CORS config',
 };
@@ -75,15 +132,20 @@ export const requiredBackendCorsConfig = {
  */
 export const verifyCredentialsConfig = async (): Promise<boolean> => {
   try {
-    // Test với một API endpoint bất kỳ
-    const testResponse = await fetch('/api/v1/Cart/guest', {
+    const token = getAuthToken();
+    console.log('[API Config] 🔍 Verifying config...');
+    console.log('[API Config] Token available:', !!token);
+    console.log('[API Config] Cookies:', document.cookie ? 'Present' : 'None visible (HTTP-only)');
+    
+    // Test với một API endpoint
+    const testResponse = await fetch('https://hbh1z72d-7131.asse.devtunnels.ms/api/v1/Cart', {
       credentials: 'include',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
     });
 
-    console.log('[API Config] ✅ Credentials test passed');
-    console.log('[API Config] 📝 Cookies:', document.cookie ? 'Present' : 'None visible (HTTP-only)');
+    console.log('[API Config] ✅ Test response status:', testResponse.status);
     
-    return true;
+    return testResponse.ok;
   } catch (error) {
     console.error('[API Config] ❌ Credentials test failed:', error);
     return false;
@@ -93,18 +155,13 @@ export const verifyCredentialsConfig = async (): Promise<boolean> => {
 /**
  * ⚠️ TROUBLESHOOTING:
  * 
- * Nếu sessionId không được gửi, kiểm tra:
+ * Nếu vẫn 401 Unauthorized:
  * 
- * 1. ✅ Frontend: OpenAPI.WITH_CREDENTIALS = true
- * 2. ✅ Backend: AllowCredentials() trong CORS
- * 3. ✅ Backend: SameSite = Lax (trong cookie options)
- * 4. ✅ Backend: Secure = false nếu local dev (HTTP)
- * 5. ✅ Same origin: Frontend và Backend cùng domain/port (hoặc CORS đúng)
- * 
- * Debug:
- * - Mở DevTools → Network → Chọn request → Headers
- * - Kiểm tra "Cookie" header có chứa SessionId không
- * - Kiểm tra Response có "Set-Cookie" không
+ * 1. ✅ Check token có trong storage không: sessionStorage.getItem('authToken')
+ * 2. ✅ Check OpenAPI.TOKEN có return token không
+ * 3. ✅ Check Network tab → Request Headers → Authorization: Bearer ...
+ * 4. ✅ Backend CORS phải allow credentials
+ * 5. ✅ Backend JWT middleware phải validate token
  */
 
 export default {

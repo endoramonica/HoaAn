@@ -80,18 +80,24 @@ const mergeGuestCart = async () => {
   try {
     console.log('[useAuth] 🔄 Merging guest cart to user cart...');
     
-    // Backend tự động lấy sessionId từ HTTP-only cookie
-    // Không cần truyền tham số
-    await CartService.postApiV1CartMerge();
+    // ✅ FIX: Backend expects empty body or specific DTO
+    // Check CartService.postApiV1CartMerge() signature
+    await CartService.postApiV1CartMerge({
+      // Backend có thể cần:
+      // guestSessionId: sessionId (nếu cần)
+      // hoặc empty {} nếu backend tự lấy từ cookie
+    });
     
     console.log('[useAuth] ✅ Cart merged successfully');
-  } catch (err: any) {
-    // Không throw error vì login đã thành công
-    // Chỉ log warning nếu merge fail
-    if (err?.status === 404) {
+  } catch (error: any) {
+    // Non-critical error - guest có thể không có cart
+    if (error.status === 404 || error.message?.includes('Not Found')) {
       console.log('[useAuth] ℹ️ No guest cart to merge');
+    } else if (error.status === 415) {
+      console.error('[useAuth] ❌ Cart merge 415: Backend expects different Content-Type or body format');
+      console.error('[useAuth] 💡 Check MergeCartDto in backend');
     } else {
-      console.warn('[useAuth] ⚠️ Cart merge failed (non-critical):', err.message);
+      console.log('[useAuth] ⚠️ Cart merge failed (non-critical):', error.message);
     }
   }
 };

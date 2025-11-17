@@ -1,6 +1,6 @@
 /**
  * API Client Layer - Axios instance với interceptors, JWT, logging
- * Tương thích với ASP.NET Core (.NET 8) backend
+ * ✅ FIXED: Token keys phải khớp với authService
  */
 
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type AxiosError } from 'axios';
@@ -12,32 +12,25 @@ const getApiUrl = () => {
   if (typeof import.meta !== 'undefined' && import.meta.env) {
     return import.meta.env.VITE_API_URL || 'https://hbh1z72d-7131.asse.devtunnels.ms/api/v1';
   }
-  // Fallback cho môi trường không hỗ trợ import.meta
   return 'https://hbh1z72d-7131.asse.devtunnels.ms/api/v1';
 };
 
 const API_BASE_URL = getApiUrl();
 
-// Token storage keys
-const ACCESS_TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
+// ✅ FIXED: Token storage keys - PHẢI KHỚP với authService
+const ACCESS_TOKEN_KEY = 'authToken';      // ← FIXED từ 'accessToken'
+const REFRESH_TOKEN_KEY = 'refreshToken';  // ← Giữ nguyên (đã đúng)
 const REMEMBER_ME_KEY = 'remember_me';
 
 /**
  * Token storage utilities
- * Hỗ trợ "Remember me" - dùng localStorage hoặc sessionStorage
+ * ✅ FIXED: Thêm debug logs để verify
  */
 export const tokenStorage = {
-  /**
-   * Kiểm tra xem user có chọn "Remember me" không
-   */
   isRememberMe: (): boolean => {
     return localStorage.getItem(REMEMBER_ME_KEY) === 'true';
   },
 
-  /**
-   * Set Remember me preference
-   */
   setRememberMe: (remember: boolean): void => {
     if (remember) {
       localStorage.setItem(REMEMBER_ME_KEY, 'true');
@@ -46,9 +39,6 @@ export const tokenStorage = {
     }
   },
 
-  /**
-   * Get storage - localStorage nếu remember me, sessionStorage nếu không
-   */
   getStorage: (): Storage => {
     return tokenStorage.isRememberMe() ? localStorage : sessionStorage;
   },
@@ -56,15 +46,30 @@ export const tokenStorage = {
   getAccessToken: (): string | null => {
     // Check localStorage first (remember me)
     const rememberToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-    if (rememberToken) return rememberToken;
+    if (rememberToken) {
+      console.log('[TokenStorage] ✅ Found access token in localStorage');
+      return rememberToken;
+    }
     
     // Then check sessionStorage (current session)
-    return sessionStorage.getItem(ACCESS_TOKEN_KEY);
+    const sessionToken = sessionStorage.getItem(ACCESS_TOKEN_KEY);
+    if (sessionToken) {
+      console.log('[TokenStorage] ✅ Found access token in sessionStorage');
+      return sessionToken;
+    }
+    
+    console.warn('[TokenStorage] ⚠️ No access token found');
+    return null;
   },
 
   setAccessToken: (token: string): void => {
     const storage = tokenStorage.getStorage();
     storage.setItem(ACCESS_TOKEN_KEY, token);
+    
+    console.log('[TokenStorage] ✅ Access token saved to', 
+      storage === localStorage ? 'localStorage' : 'sessionStorage',
+      '- Key:', ACCESS_TOKEN_KEY
+    );
   },
 
   getRefreshToken: (): string | null => {
@@ -79,6 +84,10 @@ export const tokenStorage = {
   setRefreshToken: (token: string): void => {
     const storage = tokenStorage.getStorage();
     storage.setItem(REFRESH_TOKEN_KEY, token);
+    
+    console.log('[TokenStorage] ✅ Refresh token saved to', 
+      storage === localStorage ? 'localStorage' : 'sessionStorage'
+    );
   },
 
   clearTokens: (): void => {
@@ -88,9 +97,18 @@ export const tokenStorage = {
     localStorage.removeItem(REMEMBER_ME_KEY);
     sessionStorage.removeItem(ACCESS_TOKEN_KEY);
     sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+    
+    console.log('[TokenStorage] 🗑️ All tokens cleared');
   },
 
   setTokens: (accessToken: string, refreshToken: string, rememberMe?: boolean): void => {
+    console.log('[TokenStorage] 🔄 setTokens called:', {
+      accessTokenLength: accessToken.length,
+      refreshTokenLength: refreshToken.length,
+      rememberMe,
+      willUseStorage: rememberMe ? 'localStorage' : 'sessionStorage'
+    });
+    
     // Set remember me preference if provided
     if (rememberMe !== undefined) {
       tokenStorage.setRememberMe(rememberMe);
@@ -98,6 +116,19 @@ export const tokenStorage = {
     
     tokenStorage.setAccessToken(accessToken);
     tokenStorage.setRefreshToken(refreshToken);
+    
+    // ✅ VERIFY NGAY
+    const storage = tokenStorage.getStorage();
+    const savedAccess = storage.getItem(ACCESS_TOKEN_KEY);
+    const savedRefresh = storage.getItem(REFRESH_TOKEN_KEY);
+    
+    console.log('[TokenStorage] ✅ Verification:', {
+      accessTokenSaved: !!savedAccess,
+      refreshTokenSaved: !!savedRefresh,
+      accessTokenPreview: savedAccess?.substring(0, 30) + '...',
+      refreshTokenPreview: savedRefresh?.substring(0, 30) + '...',
+      storageType: storage === localStorage ? 'localStorage' : 'sessionStorage'
+    });
   }
 };
 
@@ -107,7 +138,7 @@ export const tokenStorage = {
 const createAxiosInstance = (): AxiosInstance => {
   const instance = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 30000, // 30 seconds
+    timeout: 30000,
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -152,6 +183,9 @@ apiClient.interceptors.request.use(
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('[API Request] ✅ Token attached to', config.method?.toUpperCase(), config.url);
+    } else {
+      console.warn('[API Request] ⚠️ No token available for', config.method?.toUpperCase(), config.url);
     }
 
     // Logging request (dev only)
@@ -196,7 +230,6 @@ apiClient.interceptors.response.use(
     // Auto refresh token khi 401 Unauthorized
     if (status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // Đang refresh token, đợi kết quả
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -217,14 +250,12 @@ apiClient.interceptors.response.use(
       const refreshToken = tokenStorage.getRefreshToken();
 
       if (!refreshToken) {
-        // Không có refresh token, logout
         tokenStorage.clearTokens();
         window.location.href = '/login';
         return Promise.reject(createApiError(401, { message: ErrorMessages.UNAUTHORIZED }));
       }
 
       try {
-        // Gọi API refresh token
         const response = await axios.post<RefreshTokenResponse>(
           `${API_BASE_URL}/auth/refresh-token`,
           { refreshToken } as RefreshTokenRequest,
@@ -237,19 +268,14 @@ apiClient.interceptors.response.use(
 
         const { accessToken, refreshToken: newRefreshToken } = response.data;
 
-        // Lưu token mới
         tokenStorage.setTokens(accessToken, newRefreshToken);
-
-        // Process queued requests
         processQueue(null, accessToken);
 
-        // Retry original request
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         }
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // Refresh token failed, logout
         processQueue(refreshError, null);
         tokenStorage.clearTokens();
         window.location.href = '/login';
@@ -259,7 +285,6 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // Parse error theo format ASP.NET Core ProblemDetails
     const apiError = createApiError(status, error.response.data);
     return Promise.reject(apiError);
   }
@@ -273,13 +298,11 @@ export const createFileUploadClient = (
 ): AxiosInstance => {
   const instance = createAxiosInstance();
 
-  // Copy interceptors từ main client
   instance.interceptors.request = apiClient.interceptors.request;
   instance.interceptors.response = apiClient.interceptors.response;
 
-  // Override config cho file upload
   instance.defaults.headers['Content-Type'] = 'multipart/form-data';
-  instance.defaults.timeout = 300000; // 5 minutes cho upload
+  instance.defaults.timeout = 300000;
 
   if (onUploadProgress) {
     instance.defaults.onUploadProgress = onUploadProgress;

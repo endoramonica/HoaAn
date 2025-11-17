@@ -1,9 +1,10 @@
 /**
  * Authentication Service
- * Xử lý login, register, logout, refresh token
+ * ✅ FIXED: Sử dụng OpenAPI generated client thay vì custom apiRequest
  */
 
-import { apiRequest, tokenStorage } from '../api/client';
+import { AuthService as ApiAuthService } from '@/api/services/AuthService';
+import { tokenStorage } from '../api/client';
 import type {
   LoginRequest,
   LoginResponse,
@@ -16,28 +17,30 @@ import type {
 } from '../api/types';
 
 /**
- * ✅ Backend Response Type - Actual structure từ API
+ * ✅ OpenAPI Response Structure - Trả về raw response
  */
-interface BackendLoginResponse {
+interface OpenAPIResponse {
   success: boolean;
   data: {
-    token: string;           // ← Backend dùng "token" thay vì "accessToken"
+    token: string;           // ← Backend có thể dùng "token" hoặc "accessToken"
+    accessToken?: string;    // ← Hỗ trợ cả 2
     refreshToken: string;
-    expires: string;
+    expires?: string;
     user: {
       id: string;
       email: string;
-      name: string;
-      avatarUrl: string;
-      provider: string;
-      roles: string[];
+      name?: string;
+      fullName?: string;
+      avatarUrl?: string;
+      provider?: string;
+      roles?: string[];
     };
   };
-  message: string;
+  message?: string;
 }
 
 /**
- * Mock data cho development khi backend chưa sẵn sàng
+ * Mock data cho development
  */
 const MOCK_USER: UserDto = {
   id: 'user-123',
@@ -58,9 +61,6 @@ const MOCK_LOGIN_RESPONSE: LoginResponse = {
   user: MOCK_USER,
 };
 
-/**
- * Kiểm tra xem có sử dụng mock data không
- */
 const getMockMode = () => {
   if (typeof import.meta !== 'undefined') {
     const env = (import.meta as any).env;
@@ -68,27 +68,24 @@ const getMockMode = () => {
       return env.VITE_USE_MOCK_DATA === 'true';
     }
   }
-  return false; // ✅ Default to real API
+  return false;
 };
 
 const USE_MOCK = getMockMode();
 
 class AuthService {
   /**
-   * Đăng nhập
+   * ✅ FIXED: Đăng nhập sử dụng OpenAPI client
    */
   async login(request: LoginRequest): Promise<LoginResponse> {
     try {
       if (USE_MOCK) {
-        // Mock delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Mock validation
         if (!request.email || !request.password) {
           throw new Error('Email và mật khẩu không được để trống');
         }
 
-        // Save tokens with remember me
         tokenStorage.setTokens(
           MOCK_LOGIN_RESPONSE.accessToken, 
           MOCK_LOGIN_RESPONSE.refreshToken,
@@ -98,62 +95,103 @@ class AuthService {
         return MOCK_LOGIN_RESPONSE;
       }
 
-      // ✅ Gọi API với type chính xác từ backend
-      const backendResponse = await apiRequest.post<BackendLoginResponse>('/auth/login', request);
+      console.log('[AuthService] Calling login API via OpenAPI client...');
       
-      console.log('[AuthService] Login response:', backendResponse);
-
-      // ✅ Extract data từ nested structure
-      const { token, refreshToken, user } = backendResponse.data;
-
-      // ✅ Lưu tokens với remember me preference
-      tokenStorage.setTokens(token, refreshToken, request.rememberMe);
+      // ✅ FIXED: Dùng OpenAPI generated AuthService
+      const apiResponse = await ApiAuthService.postApiV1AuthLogin({
+        email: request.email,
+        password: request.password,
+      });
       
-      console.log('[AuthService] Tokens saved:', {
-        accessToken: token.substring(0, 20) + '...',
-        refreshToken: refreshToken.substring(0, 20) + '...',
-        rememberMe: request.rememberMe
+      console.log('[AuthService] 🔍 Raw API Response:', apiResponse);
+      
+      // ✅ Parse response - OpenAPI client trả về raw object
+      const backendResponse = apiResponse as OpenAPIResponse;
+      
+      console.log('[AuthService] Parsed response structure:', {
+        hasSuccess: backendResponse.success !== undefined,
+        hasData: backendResponse.data !== undefined,
+        dataKeys: backendResponse.data ? Object.keys(backendResponse.data) : [],
       });
 
-      // ✅ Transform backend user format sang frontend format
+      // ✅ Extract token - Hỗ trợ cả "token" và "accessToken"
+      const accessToken = backendResponse.data?.accessToken || backendResponse.data?.token;
+      const refreshToken = backendResponse.data?.refreshToken;
+      const user = backendResponse.data?.user;
+
+      // ✅ Validate response data
+      if (!accessToken) {
+        console.error('[AuthService] ❌ Missing accessToken/token in response:', backendResponse);
+        console.error('[AuthService] Available keys:', Object.keys(backendResponse.data || {}));
+        throw new Error('Backend không trả về access token');
+      }
+
+      if (!refreshToken) {
+        console.error('[AuthService] ❌ Missing refreshToken in response');
+        throw new Error('Backend không trả về refresh token');
+      }
+
+      if (!user) {
+        console.error('[AuthService] ❌ Missing user in response');
+        throw new Error('Backend không trả về thông tin user');
+      }
+
+      // ✅ Lưu tokens
+      tokenStorage.setTokens(accessToken, refreshToken, request.rememberMe);
+      
+      console.log('[AuthService] ✅ Tokens saved successfully:', {
+        accessToken: accessToken.substring(0, 30) + '...',
+        refreshToken: refreshToken.substring(0, 30) + '...',
+        rememberMe: request.rememberMe,
+      });
+
+      // ✅ Transform backend user sang frontend format
       const transformedResponse: LoginResponse = {
-        accessToken: token,
-        refreshToken: refreshToken,
-        expiresIn: 7200, // 2 hours default
+        accessToken,
+        refreshToken,
+        expiresIn: 7200,
         user: {
           id: user.id,
           email: user.email,
-          fullName: user.name,
-          avatar: user.avatarUrl || undefined,
-          role: user.roles[0] as any, // Take first role
+          fullName: user.fullName || user.name || user.email,
+          avatar: user.avatarUrl,
+          role: (user.roles && user.roles.length > 0 ? user.roles[0] : 'Customer') as any,
           isEmailConfirmed: true,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }
       };
       
+      console.log('[AuthService] ✅ Login successful:', {
+        userId: transformedResponse.user.id,
+        email: transformedResponse.user.email,
+        role: transformedResponse.user.role,
+      });
+
       return transformedResponse;
-    } catch (error) {
-      console.error('[AuthService] Login error:', error);
+    } catch (error: any) {
+      console.error('[AuthService] ❌ Login error:', error);
+      console.error('[AuthService] Error details:', {
+        message: error.message,
+        body: error.body,
+        status: error.status,
+      });
       throw error;
     }
   }
 
   /**
-   * Đăng nhập bằng Google
+   * ✅ FIXED: Google login
    */
   async loginWithGoogle(request: GoogleLoginRequest): Promise<LoginResponse> {
     try {
       if (USE_MOCK) {
-        // Mock delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Mock validation
         if (!request.idToken) {
           throw new Error('Token Google không hợp lệ');
         }
 
-        // Save tokens
         tokenStorage.setTokens(MOCK_LOGIN_RESPONSE.accessToken, MOCK_LOGIN_RESPONSE.refreshToken);
         
         return {
@@ -166,22 +204,31 @@ class AuthService {
         };
       }
 
-      const backendResponse = await apiRequest.post<BackendLoginResponse>('/auth/google-login', request);
-      const { token, refreshToken, user } = backendResponse.data;
+      const apiResponse = await ApiAuthService.postApiV1AuthLoginGoogle({
+        idToken: request.idToken,
+      });
       
-      // Lưu tokens
-      tokenStorage.setTokens(token, refreshToken);
+      const backendResponse = apiResponse as OpenAPIResponse;
+      const accessToken = backendResponse.data?.accessToken || backendResponse.data?.token;
+      const refreshToken = backendResponse.data?.refreshToken;
+      const user = backendResponse.data?.user;
+      
+      if (!accessToken || !refreshToken || !user) {
+        throw new Error('Invalid response from Google login');
+      }
+
+      tokenStorage.setTokens(accessToken, refreshToken);
       
       return {
-        accessToken: token,
-        refreshToken: refreshToken,
+        accessToken,
+        refreshToken,
         expiresIn: 7200,
         user: {
           id: user.id,
           email: user.email,
-          fullName: user.name,
-          avatar: user.avatarUrl || undefined,
-          role: user.roles[0] as any,
+          fullName: user.fullName || user.name || user.email,
+          avatar: user.avatarUrl,
+          role: (user.roles && user.roles.length > 0 ? user.roles[0] : 'Customer') as any,
           isEmailConfirmed: true,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -194,15 +241,13 @@ class AuthService {
   }
 
   /**
-   * Đăng ký
+   * ✅ FIXED: Register
    */
   async register(request: RegisterRequest): Promise<LoginResponse> {
     try {
       if (USE_MOCK) {
-        // Mock delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Mock validation
         if (!request.email || !request.password || !request.fullName) {
           throw new Error('Vui lòng điền đầy đủ thông tin');
         }
@@ -211,7 +256,6 @@ class AuthService {
           throw new Error('Mật khẩu xác nhận không khớp');
         }
 
-        // Save tokens
         tokenStorage.setTokens(MOCK_LOGIN_RESPONSE.accessToken, MOCK_LOGIN_RESPONSE.refreshToken);
         
         return {
@@ -225,22 +269,35 @@ class AuthService {
         };
       }
 
-      const backendResponse = await apiRequest.post<BackendLoginResponse>('/auth/register', request);
-      const { token, refreshToken, user } = backendResponse.data;
+      const apiResponse = await ApiAuthService.postApiV1AuthRegister({
+        email: request.email,
+        password: request.password,
+        confirmPassword: request.confirmPassword,
+        fullName: request.fullName,
+        phoneNumber: request.phoneNumber,
+      });
       
-      // Lưu tokens
-      tokenStorage.setTokens(token, refreshToken);
+      const backendResponse = apiResponse as OpenAPIResponse;
+      const accessToken = backendResponse.data?.accessToken || backendResponse.data?.token;
+      const refreshToken = backendResponse.data?.refreshToken;
+      const user = backendResponse.data?.user;
+      
+      if (!accessToken || !refreshToken || !user) {
+        throw new Error('Invalid response from register');
+      }
+
+      tokenStorage.setTokens(accessToken, refreshToken);
       
       return {
-        accessToken: token,
-        refreshToken: refreshToken,
+        accessToken,
+        refreshToken,
         expiresIn: 7200,
         user: {
           id: user.id,
           email: user.email,
-          fullName: user.name,
-          avatar: user.avatarUrl || undefined,
-          role: user.roles[0] as any,
+          fullName: user.fullName || user.name || user.email,
+          avatar: user.avatarUrl,
+          role: (user.roles && user.roles.length > 0 ? user.roles[0] : 'Customer') as any,
           isEmailConfirmed: true,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -258,24 +315,20 @@ class AuthService {
   async logout(): Promise<void> {
     try {
       if (USE_MOCK) {
-        // Mock delay
         await new Promise(resolve => setTimeout(resolve, 500));
         tokenStorage.clearTokens();
         return;
       }
 
-      // Gọi API logout (optional - có thể chỉ clear tokens local)
       try {
-        await apiRequest.post('/auth/logout');
+        await ApiAuthService.postApiV1AuthLogout();
       } catch (error) {
-        // Ignore logout API errors
         console.warn('[AuthService] Logout API error (ignored):', error);
       }
       
-      // Clear tokens
       tokenStorage.clearTokens();
+      console.log('[AuthService] ✅ Logged out successfully');
     } catch (error) {
-      // Vẫn clear tokens dù có lỗi
       tokenStorage.clearTokens();
       console.error('[AuthService] Logout error:', error);
     }
@@ -293,7 +346,6 @@ class AuthService {
       }
 
       if (USE_MOCK) {
-        // Mock delay
         await new Promise(resolve => setTimeout(resolve, 500));
         
         const mockResponse: RefreshTokenResponse = {
@@ -307,15 +359,26 @@ class AuthService {
         return mockResponse;
       }
 
-      const request: RefreshTokenRequest = { refreshToken };
-      const response = await apiRequest.post<RefreshTokenResponse>('/auth/refresh-token', request);
+      const apiResponse = await ApiAuthService.postApiV1AuthRefreshToken({
+        refreshToken,
+      });
       
-      // Lưu tokens mới
-      tokenStorage.setTokens(response.accessToken, response.refreshToken);
+      const response = apiResponse as any;
+      const newAccessToken = response.data?.accessToken || response.data?.token;
+      const newRefreshToken = response.data?.refreshToken;
       
-      return response;
+      if (!newAccessToken || !newRefreshToken) {
+        throw new Error('Invalid refresh token response');
+      }
+      
+      tokenStorage.setTokens(newAccessToken, newRefreshToken);
+      
+      return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+        expiresIn: 7200,
+      };
     } catch (error) {
-      // Clear tokens nếu refresh failed
       tokenStorage.clearTokens();
       console.error('[AuthService] Refresh token error:', error);
       throw error;
@@ -323,146 +386,43 @@ class AuthService {
   }
 
   /**
-   * Lấy thông tin user hiện tại
-   */
-  async getCurrentUser(): Promise<UserDto> {
-    try {
-      if (USE_MOCK) {
-        // Mock delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return MOCK_USER;
-      }
-
-      // ✅ Backend endpoint là /users/me chứ không phải /auth/me
-      return await apiRequest.get<UserDto>('/users/me');
-    } catch (error) {
-      console.error('[AuthService] Get current user error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Cập nhật profile
-   */
-  async updateProfile(request: UpdateProfileRequest): Promise<UserDto> {
-    try {
-      if (USE_MOCK) {
-        // Mock delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        return {
-          ...MOCK_USER,
-          ...request,
-          updatedAt: new Date().toISOString(),
-        };
-      }
-
-      return await apiRequest.put<UserDto>('/users/profile', request);
-    } catch (error) {
-      console.error('[AuthService] Update profile error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Đổi mật khẩu
-   */
-  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    try {
-      if (USE_MOCK) {
-        // Mock delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        if (!currentPassword || !newPassword) {
-          throw new Error('Vui lòng điền đầy đủ thông tin');
-        }
-        
-        return;
-      }
-
-      await apiRequest.post('/auth/change-password', {
-        currentPassword,
-        newPassword,
-      });
-    } catch (error) {
-      console.error('[AuthService] Change password error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Kiểm tra xem user đã đăng nhập chưa
+   * Kiểm tra authentication
    */
   isAuthenticated(): boolean {
-    return !!tokenStorage.getAccessToken();
+    const hasToken = !!tokenStorage.getAccessToken();
+    return hasToken;
   }
 
-  /**
-   * Gửi email xác thực
-   */
+  // Placeholder methods - Implement nếu backend có endpoints
+  async getCurrentUser(): Promise<UserDto> {
+    throw new Error('Not implemented - Backend endpoint /users/me needed');
+  }
+
+  async updateProfile(request: UpdateProfileRequest): Promise<UserDto> {
+    throw new Error('Not implemented - Backend endpoint /users/profile needed');
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await ApiAuthService.postApiV1AuthChangePassword({
+      currentPassword,
+      newPassword,
+    });
+  }
+
   async sendVerificationEmail(): Promise<void> {
-    try {
-      if (USE_MOCK) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return;
-      }
-
-      await apiRequest.post('/auth/send-verification-email');
-    } catch (error) {
-      console.error('[AuthService] Send verification email error:', error);
-      throw error;
-    }
+    throw new Error('Not implemented');
   }
 
-  /**
-   * Xác thực email
-   */
   async verifyEmail(token: string): Promise<void> {
-    try {
-      if (USE_MOCK) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return;
-      }
-
-      await apiRequest.post('/auth/verify-email', { token });
-    } catch (error) {
-      console.error('[AuthService] Verify email error:', error);
-      throw error;
-    }
+    await ApiAuthService.getApiV1AuthVerifyEmail(token);
   }
 
-  /**
-   * Quên mật khẩu - Gửi email reset
-   */
   async forgotPassword(email: string): Promise<void> {
-    try {
-      if (USE_MOCK) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return;
-      }
-
-      await apiRequest.post('/auth/forgot-password', { email });
-    } catch (error) {
-      console.error('[AuthService] Forgot password error:', error);
-      throw error;
-    }
+    await ApiAuthService.postApiV1AuthForgotPassword({ email });
   }
 
-  /**
-   * Reset mật khẩu
-   */
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    try {
-      if (USE_MOCK) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return;
-      }
-
-      await apiRequest.post('/auth/reset-password', { token, newPassword });
-    } catch (error) {
-      console.error('[AuthService] Reset password error:', error);
-      throw error;
-    }
+    await ApiAuthService.postApiV1AuthResetPassword({ token, newPassword });
   }
 }
 

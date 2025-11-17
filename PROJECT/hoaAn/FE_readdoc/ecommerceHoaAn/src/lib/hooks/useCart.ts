@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { CartService } from "@/api/services/CartService";
 import type { UpdateCartItemDto } from "@/api/models/UpdateCartItemDto";
-import { type  ApplyCouponDto } from "@/api/models/ApplyCouponDto";
+import { type ApplyCouponDto } from "@/api/models/ApplyCouponDto";
 import { useAuth } from "./useAuth";
 
 interface CartItem {
@@ -29,6 +29,7 @@ interface CartSummary {
 interface UseCartReturn {
   cartItems: CartItem[];
   summary: CartSummary | null;
+  cartItemCount: number; // ✅ ADDED: Quick count for badge
   isLoading: boolean;
   error: string | null;
   isGuest: boolean;
@@ -54,8 +55,28 @@ export function useCart(): UseCartReturn {
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [summary, setSummary] = useState<CartSummary | null>(null);
+  const [cartItemCount, setCartItemCount] = useState<number>(0); // ✅ ADDED
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // ✅ NEW: Fetch cart item count (lightweight for badge)
+  const fetchCartCount = useCallback(async () => {
+    try {
+      const response = isGuest
+        ? await CartService.getApiV1CartGuestItemCount()
+        : await CartService.getApiV1CartItemCount();
+
+      // Backend có thể trả về: { count: 5 } hoặc { data: 5 } hoặc trực tiếp 5
+      const count = response?.data?.count ?? response?.data ?? response ?? 0;
+      setCartItemCount(count);
+    } catch (err: any) {
+      // Silent fail - không hiển thị error cho count
+      if (err?.status !== 404 && err?.status !== 400) {
+        console.warn('Failed to fetch cart count:', err.message);
+      }
+      setCartItemCount(0);
+    }
+  }, [isGuest]);
 
   // Fetch cart data
   const fetchCart = useCallback(async () => {
@@ -63,8 +84,6 @@ export function useCart(): UseCartReturn {
       setIsLoading(true);
       setError(null);
 
-      // Backend tự động xử lý sessionId qua cookie
-      // Không cần truyền sessionId từ frontend
       const cartResponse = isGuest
         ? await CartService.getApiV1CartGuest()
         : await CartService.getApiV1Cart();
@@ -103,14 +122,23 @@ export function useCart(): UseCartReturn {
           itemCount: data.totalItems || data.itemCount || 0,
           appliedCoupon: data.appliedCoupon || data.couponCode,
         });
+        
+        // ✅ Update count from summary
+        setCartItemCount(data.totalItems || data.itemCount || 0);
       }
     } catch (err: any) {
-      // Nếu cart không tồn tại (404), không coi là lỗi
       if (err?.status === 404 || err?.message?.includes('Not Found')) {
         setCartItems([]);
         setSummary(null);
-        setError(null); // ✅ Clear error
+        setCartItemCount(0); // ✅ Reset count
+        setError(null);
         console.log(`📦 ${isGuest ? 'Guest' : 'User'} cart is empty`);
+      } else if (err?.status === 400) {
+        setCartItems([]);
+        setSummary(null);
+        setCartItemCount(0); // ✅ Reset count
+        setError(null);
+        console.warn(`⚠️ ${isGuest ? 'Guest' : 'User'} cart not initialized yet`);
       } else {
         setError(err.message || "Không thể tải giỏ hàng");
         console.error("Error fetching cart:", err);
@@ -124,26 +152,25 @@ export function useCart(): UseCartReturn {
   const updateQuantity = useCallback(
     async (cartItemId: string, quantity: number) => {
       try {
-        const updateDto: UpdateCartItemDto = { 
-          cartItemId,
-          quantity 
-        };
-
         if (isGuest) {
-          // Backend tự lấy sessionId từ cookie
+          const updateDto: UpdateCartItemDto = { quantity };
           await CartService.putApiV1CartGuestItems(cartItemId, updateDto);
         } else {
+          const updateDto: UpdateCartItemDto = {
+            cartItemId,
+            quantity,
+          };
           await CartService.putApiV1CartUpdateItem(updateDto);
         }
 
-        // Refresh cart after update
-        await fetchCart();
+        // ✅ Refresh both count and cart
+        await Promise.all([fetchCartCount(), fetchCart()]);
       } catch (err: any) {
         setError(err.message || "Không thể cập nhật số lượng");
         throw err;
       }
     },
-    [isGuest, fetchCart]
+    [isGuest, fetchCart, fetchCartCount]
   );
 
   // Remove item from cart
@@ -156,14 +183,14 @@ export function useCart(): UseCartReturn {
           await CartService.deleteApiV1CartItems(cartItemId);
         }
 
-        // Refresh cart after removal
-        await fetchCart();
+        // ✅ Refresh both count and cart
+        await Promise.all([fetchCartCount(), fetchCart()]);
       } catch (err: any) {
         setError(err.message || "Không thể xóa sản phẩm");
         throw err;
       }
     },
-    [isGuest, fetchCart]
+    [isGuest, fetchCart, fetchCartCount]
   );
 
   // Clear entire cart
@@ -177,6 +204,7 @@ export function useCart(): UseCartReturn {
 
       setCartItems([]);
       setSummary(null);
+      setCartItemCount(0); // ✅ Reset count
     } catch (err: any) {
       setError(err.message || "Không thể xóa giỏ hàng");
       throw err;
@@ -189,8 +217,6 @@ export function useCart(): UseCartReturn {
       try {
         const couponDto: ApplyCouponDto = { couponCode };
         await CartService.postApiV1CartCouponApply(couponDto);
-
-        // Refresh cart to get updated pricing
         await fetchCart();
       } catch (err: any) {
         setError(err.message || "Mã giảm giá không hợp lệ");
@@ -204,8 +230,6 @@ export function useCart(): UseCartReturn {
   const removeCoupon = useCallback(async () => {
     try {
       await CartService.postApiV1CartCouponRemove();
-
-      // Refresh cart to get updated pricing
       await fetchCart();
     } catch (err: any) {
       setError(err.message || "Không thể xóa mã giảm giá");
@@ -227,14 +251,16 @@ export function useCart(): UseCartReturn {
     }
   }, [isGuest]);
 
-  // Load cart on mount and when auth status changes
+  // ✅ Load cart and count on mount and when auth status changes
   useEffect(() => {
-    fetchCart();
-  }, [fetchCart, isAuthenticated]);
+    fetchCartCount(); // Lightweight count first
+    fetchCart();       // Full cart data
+  }, [fetchCartCount, fetchCart, isAuthenticated]);
 
   return {
     cartItems,
     summary,
+    cartItemCount, // ✅ EXPOSED
     isLoading,
     error,
     isGuest,
