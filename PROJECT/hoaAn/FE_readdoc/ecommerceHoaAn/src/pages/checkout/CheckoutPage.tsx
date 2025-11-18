@@ -1,15 +1,17 @@
 /**
  * CheckoutPage - Trang thanh toán với thiết kế văn hóa Việt
+ * ✅ UPDATED: Sử dụng useCustomerAddress và useCheckout hooks
+ * ✅ FIX: Đúng request format theo backend API
  */
 
 import { useState, useEffect } from 'react';
 import { useCart } from '../../lib/hooks/useCart';
 import { useHybridNavigate } from '../../lib/hooks/useHybridNavigate';
-import { cartService } from '../../lib/services/cartService';
-import { userService } from '../../lib/services/userService';
-import { orderService } from '../../lib/services/orderService';
+import { useCustomerAddress } from '../../lib/hooks/useCustomerAddress';
+import { useCheckout } from '../../lib/hooks/useCheckout';
 import { paymentService } from '../../lib/services/paymentService';
-import { AddressDto, PaymentMethod, CreateOrderRequest } from '../../lib/api/types';
+import { PaymentMethod } from '../../lib/api/types';
+import type { CheckoutDto, CreateAddressDto } from '@/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
@@ -18,7 +20,6 @@ import { Separator } from '../../components/ui/separator';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
-import { Alert, AlertDescription } from '../../components/ui/alert';
 import { 
   Flower2, 
   MapPin, 
@@ -28,11 +29,10 @@ import {
   Check,
   Loader2,
   ArrowLeft,
-  AlertCircle,
   Shield,
   Truck
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { ImageWithFallback } from '../../components/figma/ImageWithFallback';
 
 interface CheckoutPageProps {
@@ -43,19 +43,28 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
   const navigate = useHybridNavigate();
   const { cart, isLoading: cartLoading } = useCart();
   
+  // ✅ Sử dụng custom hooks
+  const { 
+    addresses, 
+    isLoading: addressLoading, 
+    loadAddresses, 
+    addAddress 
+  } = useCustomerAddress();
+  
+  const { 
+    processCheckout, 
+    isProcessing 
+  } = useCheckout();
+  
   // States
-  const [addresses, setAddresses] = useState<AddressDto[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('COD');
   const [showAddAddressForm, setShowAddAddressForm] = useState(false);
   const [orderNote, setOrderNote] = useState('');
   const [couponCode, setCouponCode] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // New address form
-  const [newAddress, setNewAddress] = useState<Omit<AddressDto, 'id'>>({
+  const [newAddress, setNewAddress] = useState<CreateAddressDto>({
     fullName: '',
     phoneNumber: '',
     addressLine1: '',
@@ -65,31 +74,22 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
     isDefault: false,
   });
 
-  // Load addresses
+  // ✅ Load addresses on mount
   useEffect(() => {
     loadAddresses();
-  }, []);
+  }, [loadAddresses]);
 
-  const loadAddresses = async () => {
-    try {
-      setIsLoading(true);
-      const addressData = await userService.getAddresses();
-      setAddresses(addressData);
-
-      // Auto-select default address
-      const defaultAddr = addressData.find(a => a.isDefault);
+  // ✅ Auto-select default address
+  useEffect(() => {
+    if (addresses.length > 0 && !selectedAddressId) {
+      const defaultAddr = addresses.find(a => a.isDefault);
       if (defaultAddr?.id) {
         setSelectedAddressId(defaultAddr.id);
-      } else if (addressData.length > 0 && addressData[0].id) {
-        setSelectedAddressId(addressData[0].id);
+      } else if (addresses[0].id) {
+        setSelectedAddressId(addresses[0].id);
       }
-    } catch (err: any) {
-      console.error('Load addresses error:', err);
-      toast.error('Không thể tải địa chỉ');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [addresses, selectedAddressId]);
 
   const handleAddAddress = async () => {
     try {
@@ -99,51 +99,28 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
         return;
       }
 
-      const addedAddress = await userService.addAddress(newAddress);
-      setAddresses(prev => [...prev, addedAddress]);
+      const addedAddress = await addAddress(newAddress);
       
-      if (addedAddress.id) {
+      if (addedAddress?.id) {
         setSelectedAddressId(addedAddress.id);
+        setShowAddAddressForm(false);
+        setNewAddress({
+          fullName: '',
+          phoneNumber: '',
+          addressLine1: '',
+          ward: '',
+          district: '',
+          province: '',
+          isDefault: false,
+        });
       }
-
-      setShowAddAddressForm(false);
-      setNewAddress({
-        fullName: '',
-        phoneNumber: '',
-        addressLine1: '',
-        ward: '',
-        district: '',
-        province: '',
-        isDefault: false,
-      });
-
-      toast.success('Thêm địa chỉ thành công');
     } catch (err: any) {
       console.error('Add address error:', err);
-      toast.error(err.message || 'Không thể thêm địa chỉ');
-    }
-  };
-
-  const handleApplyCoupon = async () => {
-    try {
-      if (!couponCode.trim()) {
-        toast.error('Vui lòng nhập mã giảm giá');
-        return;
-      }
-
-      await cartService.applyCoupon({ couponCode: couponCode.trim() });
-      toast.success('Áp dụng mã giảm giá thành công');
-    } catch (err: any) {
-      console.error('Apply coupon error:', err);
-      toast.error(err.message || 'Mã giảm giá không hợp lệ');
     }
   };
 
   const handlePlaceOrder = async () => {
     try {
-      setIsProcessing(true);
-      setError(null);
-
       if (!selectedAddressId) {
         toast.error('Vui lòng chọn địa chỉ giao hàng');
         return;
@@ -160,75 +137,89 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
         return;
       }
 
-      // Create order request
-      const orderRequest: CreateOrderRequest = {
-        items: cart.items.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-        })),
-        shippingAddress: {
-          fullName: selectedAddress.fullName,
+      // ✅ Create checkout request ĐÚNG FORMAT theo backend API
+      const checkoutData: CheckoutDto = {
+        cartId: cart.id, // ✅ Backend yêu cầu cartId
+        shippingInfo: {
+          recipientName: selectedAddress.fullName,
           phoneNumber: selectedAddress.phoneNumber,
-          addressLine1: selectedAddress.addressLine1,
-          addressLine2: selectedAddress.addressLine2,
+          address: selectedAddress.addressLine1,
           ward: selectedAddress.ward,
           district: selectedAddress.district,
-          province: selectedAddress.province,
-          postalCode: selectedAddress.postalCode,
+          city: selectedAddress.province, // Backend dùng "city" thay vì "province"
+          postalCode: selectedAddress.postalCode || '',
+          deliveryNote: orderNote || '',
+          shippingMethod: 'standard', // Default shipping method
         },
-        paymentMethod: selectedPaymentMethod,
-        note: orderNote || undefined,
-        couponCode: cart.couponCode || undefined,
+        couponCode: cart.couponCode || couponCode || undefined,
+        notes: orderNote || undefined,
       };
 
-      // Create order
-      const order = await orderService.createOrder(orderRequest);
+      console.log('[CheckoutPage] 🛒 Checkout data:', checkoutData);
 
-      // Handle payment
+      // ✅ Process checkout
+      const result = await processCheckout(checkoutData);
+
+      if (!result) {
+        toast.error('Không thể đặt hàng');
+        onNavigate('failed', { reason: 'Checkout failed' });
+        return;
+      }
+
+      console.log('[CheckoutPage] ✅ Checkout result:', result);
+
+      // ✅ Handle payment based on method
       if (selectedPaymentMethod === 'COD') {
-        toast.success('Đặt hàng thành công!');
+        // COD - Navigate to success immediately
         onNavigate('success', { 
-          orderId: order.id, 
-          orderNumber: order.orderNumber 
+          orderId: result.orderId, 
+          orderNumber: result.orderNumber 
         });
       } else if (selectedPaymentMethod === 'BankTransfer') {
+        // Bank Transfer - Show banking info
         onNavigate('success', { 
-          orderId: order.id, 
-          orderNumber: order.orderNumber,
+          orderId: result.orderId, 
+          orderNumber: result.orderNumber,
           paymentMethod: 'BankTransfer',
         });
       } else {
-        // Online payment - Create payment and redirect
+        // Online payment (VNPay, Momo, ZaloPay) - Create payment and redirect
         const paymentResponse = await paymentService.createPayment({
-          orderId: order.id,
-          amount: order.total,
+          orderId: result.orderId,
+          amount: result.totalAmount,
           paymentMethod: selectedPaymentMethod,
-          returnUrl: `${window.location.origin}/checkout?payment=success&orderId=${order.id}`,
-          cancelUrl: `${window.location.origin}/checkout?payment=failed&orderId=${order.id}`,
+          returnUrl: `${window.location.origin}/checkout?step=success&orderId=${result.orderId}&orderNumber=${result.orderNumber}`,
+          cancelUrl: `${window.location.origin}/checkout?step=failed&orderId=${result.orderId}&reason=Payment cancelled`,
         });
 
         if (paymentResponse.paymentUrl) {
           toast.success('Đang chuyển đến cổng thanh toán...');
-          sessionStorage.setItem('pendingOrderId', order.id);
-          sessionStorage.setItem('pendingOrderNumber', order.orderNumber);
+          
+          // Save pending order info
+          sessionStorage.setItem('pendingOrderId', result.orderId);
+          sessionStorage.setItem('pendingOrderNumber', result.orderNumber);
+          
+          // Redirect to payment gateway
           window.location.href = paymentResponse.paymentUrl;
+        } else {
+          // Payment processed without redirect
+          onNavigate('success', { 
+            orderId: result.orderId, 
+            orderNumber: result.orderNumber 
+          });
         }
       }
     } catch (err: any) {
-      console.error('Place order error:', err);
+      console.error('[CheckoutPage] ❌ Place order error:', err);
       const errorMsg = err.message || 'Không thể đặt hàng';
-      setError(errorMsg);
       toast.error(errorMsg);
-      
-      onNavigate('failed', {
-        reason: errorMsg,
-      });
-    } finally {
-      setIsProcessing(false);
+      onNavigate('failed', { reason: errorMsg });
     }
   };
 
-  if (isLoading || cartLoading) {
+  const isLoading = addressLoading || cartLoading;
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-[#FFFBEB] flex items-center justify-center">
         <div className="text-center">
@@ -587,36 +578,6 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
 
                     <Separator className="bg-[#92400E]/20" />
 
-                    {/* Coupon */}
-                    <div className="space-y-2">
-                      <Label className="text-[#92400E]">Mã giảm giá</Label>
-                      <div className="flex space-x-2">
-                        <Input
-                          placeholder="Nhập mã"
-                          value={couponCode}
-                          onChange={(e) => setCouponCode(e.target.value)}
-                          className="border-[#92400E]/30"
-                          disabled={!!cart.couponCode}
-                        />
-                        <Button
-                          onClick={handleApplyCoupon}
-                          variant="outline"
-                          className="border-[#F59E0B] text-[#F59E0B] hover:bg-[#F59E0B]/10"
-                          disabled={!!cart.couponCode}
-                        >
-                          Áp dụng
-                        </Button>
-                      </div>
-                      {cart.couponCode && (
-                        <p className="text-sm text-[#F59E0B] flex items-center">
-                          <Check className="w-4 h-4 mr-1" />
-                          Đã áp dụng: {cart.couponCode}
-                        </p>
-                      )}
-                    </div>
-
-                    <Separator className="bg-[#92400E]/20" />
-
                     {/* Price breakdown */}
                     <div className="space-y-2">
                       <div className="flex justify-between text-[#92400E]/70">
@@ -627,12 +588,6 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
                         <span>Phí vận chuyển:</span>
                         <span>{cart.shippingFee.toLocaleString('vi-VN')}₫</span>
                       </div>
-                      {cart.taxAmount > 0 && (
-                        <div className="flex justify-between text-[#92400E]/70">
-                          <span>Thuế:</span>
-                          <span>{cart.taxAmount.toLocaleString('vi-VN')}₫</span>
-                        </div>
-                      )}
                       {cart.discountAmount > 0 && (
                         <div className="flex justify-between text-[#F59E0B]">
                           <span>Giảm giá:</span>
