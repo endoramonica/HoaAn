@@ -273,6 +273,49 @@ public class ProductService : BaseService, IProductService
         "GetProductBySlug",
         "Product retrieved successfully");
     }
+    public async Task<ApiResponse<ProductDetailDto>> GetProductByBarcodeAsync(
+    string code,
+    Guid? actorUserId = null)
+{
+    return await ExecuteAsApiResponseAsync(async () =>
+    {
+        // Validate
+        ValidateNotEmpty(code, nameof(code));
+
+        // Cache key
+        var cacheKey = CreateCacheKey(CACHE_KEY_PRODUCT, "barcode", code);
+
+        // Fetch from cache or DB
+        var product = await GetFromCacheOrExecuteAsync(
+            cacheKey,
+            async () => await _unitOfWork.Products.GetByCodeAsync(code),
+            CACHE_DURATION_DETAIL
+        );
+
+        if (product == null)
+        {
+            throw new KeyNotFoundException("Product not found");
+        }
+
+        // Check active status
+        if (!product.IsActive)
+        {
+            // User must have permission to view inactive product
+            if (!actorUserId.HasValue ||
+                !await _permissionService.CheckUserPermissionAsync(actorUserId.Value, "product.view"))
+            {
+                throw new UnauthorizedAccessException("Product not available");
+            }
+        }
+
+        // Map to DTO
+        var result = _mapper.Map<ProductDetailDto>(product);
+
+        return result;
+    },
+    "GetProductByBarcode",
+    "Product retrieved successfully");
+}
 
     // ============================================
     // LIST (PAGINATED) - WITH CACHE
@@ -596,13 +639,16 @@ public class ProductService : BaseService, IProductService
     // ============================================
     // PRIVATE HELPER METHODS
     // ============================================
-    private async Task InvalidateProductCachesAsync(Guid? storeId, Guid? categoryId, Guid? productId = null)
+    private async Task InvalidateProductCachesAsync(
+    Guid? storeId,
+    Guid? categoryId,
+    Guid? productId = null)
     {
         var tasks = new List<Task>
-        {
-            // Invalidate list caches
-            InvalidateCacheByPrefixAsync($"{CACHE_KEY_PRODUCT_LIST}:*")
-        };
+    {
+        // Invalidate list caches
+        InvalidateCacheByPrefixAsync($"{CACHE_KEY_PRODUCT_LIST}:*")
+    };
 
         if (productId.HasValue)
         {
@@ -621,4 +667,5 @@ public class ProductService : BaseService, IProductService
 
         await Task.WhenAll(tasks);
     }
+
 }

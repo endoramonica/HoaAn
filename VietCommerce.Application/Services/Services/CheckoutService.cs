@@ -1,11 +1,15 @@
 ﻿// File: VietCommerce.Api/Services/CheckoutService.cs (FIXED VERSION)
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using VietCommerce.Application.Services.Payments;
 using VietCommerce.Application.Services.Services.Interfaces;
 using VietCommerce.Core.DTOs.Orders;
 using VietCommerce.Core.Entities.Orders;
+using VietCommerce.Core.Entities.Payments;
 using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Enums.Orders;
+using VietCommerce.Core.Enums.Payments;
 using VietCommerce.Core.Models;
 using VietCommerce.Data.Repositories.Interfaces;
 
@@ -18,11 +22,15 @@ namespace VietCommerce.Application.Services.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<CheckoutService> _logger;
+        private readonly IVnpayService _vnpayService;
+        private readonly IHttpContextAccessor _httpContext;
 
         public CheckoutService(
             IOrderRepository orderRepository,
             IOrderItemRepository orderItemRepository,
             IUnitOfWork unitOfWork,
+            IVnpayService vnpayService,
+            IHttpContextAccessor httpContext,
             IMapper mapper,
             ILogger<CheckoutService> logger)
         {
@@ -31,6 +39,8 @@ namespace VietCommerce.Application.Services.Services
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
+            _vnpayService = vnpayService;
+            _httpContext = httpContext;
         }
 
         /// <summary>
@@ -165,33 +175,100 @@ namespace VietCommerce.Application.Services.Services
                 _logger.LogInformation("✅ Order {OrderNumber} created successfully for user {UserId}",
                     order.OrderNumber, userId);
 
-                // [11] Return response
-                var response = new CheckoutResponseDto
+                // === SAU KHI COMMIT TRANSACTION, TRƯỚC return ===
+                // [11] Handle Payment
+                if (dto.PaymentMethod != PaymentMethodType.COD)
                 {
-                    OrderId = order.Id,
-                    OrderNumber = order.OrderNumber,
-                    Status = order.Status,
-                    TotalAmount = order.TotalAmount,
-                    CreatedAt = order.CreatedAt,
-                    StoreId = order.StoreId,
-                    StoreName = order.Store?.Name,
-                    CustomerId = customer.Id,
-                    CustomerName = customer.Name,
-                    Items = orderItems.Select(oi => new OrderItemDTO
+                    // Online payment: Tạo Payment record và generate VNPay URL
+                    var payment = new Payment
                     {
-                        Id = oi.Id,
-                        OrderId = oi.OrderId,
-                        ProductId = oi.ProductId,
-                        ProductName = oi.ProductName,
-                        ProductSKU = oi.ProductCode,
-                        UnitPrice = oi.UnitPrice,
-                        Quantity = oi.Quantity,
-                        TotalPrice = oi.TotalPrice
-                    }).ToList(),
-                    Shipping = _mapper.Map<OrderShippingDto>(orderShipping)
-                };
+                        Id = Guid.NewGuid(),
+                        OrderId = order.Id,
+                        MethodId = await GetPaymentMethodIdAsync(dto.PaymentMethod),
+                        Amount = order.TotalAmount,
+                        Status = PaymentMethodType.PENDING,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await _unitOfWork.Payments.AddAsync(payment);
+                    await _unitOfWork.SaveChangesAsync();
 
-                return ApiResponse<CheckoutResponseDto>.SuccessResponse(response, "Order created successfully");
+                    var ip = _httpContext.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+                    var paymentUrl = _vnpayService.CreatePaymentUrl(order.OrderNumber, order.TotalAmount, ip);
+
+                    // [12] Return response with payment URL
+                    var response = new CheckoutResponseDto
+                    {
+                        OrderId = order.Id,
+                        OrderNumber = order.OrderNumber,
+                        Status = order.Status,
+                        TotalAmount = order.TotalAmount,
+                        CreatedAt = order.CreatedAt,
+                        StoreId = order.StoreId,
+                        StoreName = order.Store?.Name,
+                        CustomerId = customer.Id,
+                        CustomerName = customer.Name,
+                        Items = orderItems.Select(oi => new OrderItemDTO
+                        {
+                            Id = oi.Id,
+                            OrderId = oi.OrderId,
+                            ProductId = oi.ProductId,
+                            ProductName = oi.ProductName,
+                            ProductSKU = oi.ProductCode,
+                            UnitPrice = oi.UnitPrice,
+                            Quantity = oi.Quantity,
+                            TotalPrice = oi.TotalPrice
+                        }).ToList(),
+                        Shipping = _mapper.Map<OrderShippingDto>(orderShipping),
+                        PaymentUrl = paymentUrl,
+                        PaymentMethodUsed = dto.PaymentMethod.ToString()
+                    };
+
+                    return ApiResponse<CheckoutResponseDto>.SuccessResponse(response, "Order created successfully. Redirect to payment.");
+                }
+                else
+                {
+                    // COD: Tạo Payment record với status PENDING
+                    var payment = new Payment
+                    {
+                        Id = Guid.NewGuid(),
+                        OrderId = order.Id,
+                        MethodId = await GetPaymentMethodIdAsync(dto.PaymentMethod),
+                        Amount = order.TotalAmount,
+                        Status = PaymentMethodType.PENDING,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await _unitOfWork.Payments.AddAsync(payment);
+                    await _unitOfWork.SaveChangesAsync();
+
+                    // [12] Return response for COD
+                    var response = new CheckoutResponseDto
+                    {
+                        OrderId = order.Id,
+                        OrderNumber = order.OrderNumber,
+                        Status = order.Status,
+                        TotalAmount = order.TotalAmount,
+                        CreatedAt = order.CreatedAt,
+                        StoreId = order.StoreId,
+                        StoreName = order.Store?.Name,
+                        CustomerId = customer.Id,
+                        CustomerName = customer.Name,
+                        Items = orderItems.Select(oi => new OrderItemDTO
+                        {
+                            Id = oi.Id,
+                            OrderId = oi.OrderId,
+                            ProductId = oi.ProductId,
+                            ProductName = oi.ProductName,
+                            ProductSKU = oi.ProductCode,
+                            UnitPrice = oi.UnitPrice,
+                            Quantity = oi.Quantity,
+                            TotalPrice = oi.TotalPrice
+                        }).ToList(),
+                        Shipping = _mapper.Map<OrderShippingDto>(orderShipping),
+                        PaymentMethodUsed = "COD"
+                    };
+
+                    return ApiResponse<CheckoutResponseDto>.SuccessResponse(response, "Order created successfully. Payment on delivery.");
+                }
             }
             catch (Exception ex)
             {
@@ -416,7 +493,12 @@ namespace VietCommerce.Application.Services.Services
             return dto;
         }
 
-        
-         
+        // helpers  
+        private async Task<Guid?> GetPaymentMethodIdAsync(PaymentMethodType type)
+        {
+            var method = await _unitOfWork.PaymentMethods.GetByCodeAsync(type.ToString());
+            return method?.Id;
+        }
+
     }
 }

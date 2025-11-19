@@ -16,4 +16,7 @@ public class CheckoutResponseDto
     public string? CustomerName { get; set; } // Added for display
     public List<OrderItemDTO> Items { get; set; } = new List<OrderItemDTO>();
     public OrderShippingDto Shipping { get; set; } = null!;
+    // Thêm
+    public string? PaymentUrl { get; set; }
+    public string? PaymentMethodUsed { get; set; }
 }

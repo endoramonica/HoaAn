@@ -7,9 +7,9 @@ namespace VietCommerce.Core.Enums.Payments
         BANK_TRANSFER = 3,
         E_WALLET = 4,
         COD = 5,
-        INSTALLMENT = 6,
-        PENDING = 7,
-        CONFIRMED = 8,
-        FAILED = 9
+        // INSTALLMENT = 6, // kkhoan tra gop 
+        PENDING = 7,// status
+        CONFIRMED = 8,// status
+        FAILED = 9 // status
     }
 }

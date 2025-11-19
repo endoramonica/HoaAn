@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using VietCommerce.Core.Enums.Payments;
 
 
 namespace VietCommerce.Core.DTOs.Orders;
@@ -16,4 +17,6 @@ public class CheckoutDto
 
     [MaxLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
     public string? Notes { get; set; }
+    // Thêm vào cuối class
+    public PaymentMethodType PaymentMethod { get; set; } = PaymentMethodType.COD;
 }

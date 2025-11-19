@@ -43,6 +43,11 @@ public interface IProductService
     
     Task<ApiResponse<ProductDetailDto>> GetProductBySlugAsync(string slug, Guid? actorUserId = null);
 
+    /// Get product by code (public)
+    Task<ApiResponse<ProductDetailDto>> GetProductByBarcodeAsync(
+    string code,
+    Guid? actorUserId = null);
+
     
     // LIST & SEARCH (Public/Protected)
     

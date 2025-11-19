@@ -30,6 +30,9 @@ public class UnitOfWork : IUnitOfWork
     private IInventoryMovementRepository? _inventoryMovements;
     private IProductFavoriteRepository _productFavorites;
     private ICustomerAddressRepository? _customerAddressRepository;
+    private IPaymentRepository? _payments;
+    private IPaymentMethodRepository? _paymentMethods;
+
 
     private IDbContextTransaction? _transaction;
     public UnitOfWork(AppDbContext context , ILogger<OrderRepository> logger)
@@ -64,6 +67,12 @@ public class UnitOfWork : IUnitOfWork
     public IInventoryMovementRepository InventoryMovements => _inventoryMovements ??= new InventoryMovementRepository(_context);
     public ICustomerRepository Customers => _customer ??= new CustomerRepository(_context);
     public ICustomerAddressRepository CustomerAddresses => _customerAddressRepository ??= new CustomerAddressRepository(_context);
+    public IPaymentRepository Payments =>
+            _payments ??= new PaymentRepository(_context);
+
+    public IPaymentMethodRepository PaymentMethods =>
+        _paymentMethods ??= new PaymentMethodRepository(_context);
+
 
 
     public async Task<int> SaveChangesAsync()

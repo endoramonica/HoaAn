@@ -35,6 +35,9 @@ public interface IUnitOfWork : IDisposable
     ICustomerRepository Customers { get; }
     // CUSTOMER ADDRESS REPOSITORIES
     ICustomerAddressRepository CustomerAddresses { get; }
+    // PAYMENT REPOSITORIES
+    IPaymentRepository Payments { get; }
+    IPaymentMethodRepository PaymentMethods { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task<IDbContextTransaction> BeginTransactionAsync();
