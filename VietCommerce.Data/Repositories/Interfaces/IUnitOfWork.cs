@@ -31,13 +31,30 @@ public interface IUnitOfWork : IDisposable
     IOrderItemRepository OrderItems { get; }
     IOrderStatusHistoryRepository OrderStatusHistories { get; }
     IOrderShippingRepository OrderShipping { get; }
+
     // CUSTOMER REPOSITORIES
     ICustomerRepository Customers { get; }
-    // CUSTOMER ADDRESS REPOSITORIES
     ICustomerAddressRepository CustomerAddresses { get; }
+
+    // ✅ CRM REPOSITORIES - ADDED
+    ICRMInteractionRepository CRMInteractions { get; }
+
     // PAYMENT REPOSITORIES
     IPaymentRepository Payments { get; }
     IPaymentMethodRepository PaymentMethods { get; }
+  
+    // ✅ LOGISTICS REPOSITORIES - STOCK TRANSFER
+    ISupplierRepository Suppliers { get; }
+    IStockTransferRepository StockTransfers { get; }
+    ITransferItemRepository TransferItems { get; }
+    // HRM 
+    IEmployeeRepository Employees { get; }
+    IShiftRepository Shifts { get; }
+    IWorkScheduleRepository WorkSchedules { get; }
+    ILeaveRequestRepository LeaveRequests { get; }
+    // Notifications
+    INotificationRepository Notifications { get; }
+    INotificationTemplateRepository NotificationTemplates { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task<IDbContextTransaction> BeginTransactionAsync();

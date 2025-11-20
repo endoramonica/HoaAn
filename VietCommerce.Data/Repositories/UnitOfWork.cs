@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using VietCommerce.Core.Entities.Orders;
 using VietCommerce.Core.Entities.Products;
@@ -30,8 +31,20 @@ public class UnitOfWork : IUnitOfWork
     private IInventoryMovementRepository? _inventoryMovements;
     private IProductFavoriteRepository _productFavorites;
     private ICustomerAddressRepository? _customerAddressRepository;
+    private ICRMInteractionRepository? _crmInteractionRepository;
     private IPaymentRepository? _payments;
     private IPaymentMethodRepository? _paymentMethods;
+    private ISupplierRepository? _supplierRepository;
+    private IStockTransferRepository? _stockTransfers;
+    private ITransferItemRepository? _transferItems;
+    private ILeaveRequestRepository? _leaveRequests;
+    private IEmployeeRepository? _employee;
+    private IWorkScheduleRepository? _workSchedule;
+    private IShiftRepository? _shift;
+    public INotificationRepository? _notifications;
+    public INotificationTemplateRepository? _notificationTemplates;
+
+
 
 
     private IDbContextTransaction? _transaction;
@@ -72,6 +85,29 @@ public class UnitOfWork : IUnitOfWork
 
     public IPaymentMethodRepository PaymentMethods =>
         _paymentMethods ??= new PaymentMethodRepository(_context);
+
+    public ICRMInteractionRepository CRMInteractions => 
+    _crmInteractionRepository ??= new CRMInteractionRepository(_context);
+    public ISupplierRepository Suppliers => 
+    _supplierRepository ??= new SupplierRepository(_context);
+    public IStockTransferRepository StockTransfers => 
+    _stockTransfers ??= new StockTransferRepository (_context);
+    public ITransferItemRepository TransferItems => 
+    _transferItems ??= new TransferItemRepository(_context);
+    public IEmployeeRepository Employees => 
+    _employee ??= new EmployeeRepository(_context);
+    public IWorkScheduleRepository WorkSchedules => 
+    _workSchedule ??= new WorkScheduleRepository(_context);
+    public IShiftRepository Shifts => 
+    _shift ??= new ShiftRepository(_context);
+    public ILeaveRequestRepository LeaveRequests => 
+    _leaveRequests ??= new LeaveRequestRepository(_context);
+
+    public INotificationRepository Notifications =>
+        _notifications ??= new NotificationRepository(_context);
+    public INotificationTemplateRepository NotificationTemplates =>
+        _notificationTemplates ??= new NotificationTemplateRepository(_context);
+
 
 
 

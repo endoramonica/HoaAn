@@ -101,7 +101,7 @@ public interface IProductService
 }
 ```
 
-### 4. IInventoryService
+### 4. IInventoryService - done 
 ```csharp
 public interface IInventoryService
 {
@@ -115,7 +115,7 @@ public interface IInventoryService
 }
 ```
 
-### 5. IOrderService
+### 5. IOrderService 
 ```csharp
 public interface IOrderService
 {
@@ -149,7 +149,7 @@ public interface IPaymentService
 }
 ```
 
-### 7. ICustomerService (CRM)
+### 7. ICustomerService (CRM) - done 
 ```csharp
 public interface ICustomerService
 {
@@ -258,7 +258,7 @@ public interface ITaskService
 }
 ```
 
-### 15. INotificationService
+### 15. INotificationService - progressing 
 ```csharp
 public interface INotificationService
 {
@@ -284,7 +284,7 @@ public interface IAnalyticsService
 }
 ```
 
-### 17. IAuditLogService
+### 17. IAuditLogService - wait 
 ```csharp
 public interface IAuditLogService
 {
@@ -294,7 +294,7 @@ public interface IAuditLogService
 }
 ```
 
-### 18. ICategoryService
+### 18. ICategoryService - finish 
 ```csharp
 public interface ICategoryService
 {

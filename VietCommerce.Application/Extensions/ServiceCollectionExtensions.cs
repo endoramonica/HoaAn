@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using VietCommerce.Application.Services.Admin_Staff_Manager;
 using VietCommerce.Application.Services.EndUser;
 using VietCommerce.Application.Services.EndUser.EndUser_Interfaces;
+using VietCommerce.Application.Services.Payments;
 using VietCommerce.Application.Services.Services;
 using VietCommerce.Application.Services.Services.Identity;
 using VietCommerce.Application.Services.Services.Interfaces;
@@ -68,6 +69,7 @@ namespace VietCommerce.Application.Extension
             services.AddScoped<ILoginAttemptService, RedisLoginAttemptService>();
             services.AddScoped<IWishlistService, WishlistService>();
             services.AddScoped<IAddressService, AddressService>();
+            services.AddScoped<IVnpayService, VnpayService>();
 
 
 

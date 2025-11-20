@@ -1,0 +1,49 @@
+﻿Dưới đây là danh sách toàn bộ các endpoint (API Routes) được tạo ra từ `CustomerController`.
+
+**Base URL:** `/api/customers`
+
+### 1. Quản lý Khách hàng (General Management)
+| Method | URL Endpoint | Mô tả | Permission |
+| :--- | :--- | :--- | :--- |
+| **GET** | `/` | Lấy danh sách khách hàng (có phân trang & lọc) | `customer.view` |
+| **POST** | `/` | Tạo mới khách hàng | `customer.manage` |
+| **GET** | `/search` | Tìm kiếm khách hàng theo từ khóa | `customer.view` |
+| **GET** | `/{id}` | Lấy chi tiết khách hàng theo ID | `customer.view` |
+| **PUT** | `/{id}` | Cập nhật thông tin khách hàng | `customer.manage` |
+| **DELETE** | `/{id}` | Xóa mềm (Soft Delete) khách hàng | `customer.manage` |
+| **GET** | `/{id}/statistics` | Lấy thống kê chi tiêu/đơn hàng của khách | `customer.view` |
+
+### 2. Quản lý Đơn hàng của Khách (Customer Orders)
+| Method | URL Endpoint | Mô tả | Permission |
+| :--- | :--- | :--- | :--- |
+| **GET** | `/{id}/orders` | Lấy danh sách đơn hàng của khách (phân trang) | `customer.view` |
+| **GET** | `/{id}/orders/summary` | Lấy tổng quan đơn hàng (Tổng tiền, ngày mua đầu/cuối) | `customer.view` |
+
+### 3. Quản lý Địa chỉ (Address Management)
+| Method | URL Endpoint | Mô tả | Permission |
+| :--- | :--- | :--- | :--- |
+| **GET** | `/{id}/addresses` | Lấy tất cả địa chỉ của một khách hàng | `customer.view` |
+| **POST** | `/addresses` | Thêm mới địa chỉ cho khách hàng | `customer.manage` |
+| **GET** | `/addresses/{addressId}` | Lấy chi tiết một địa chỉ cụ thể | `customer.view` |
+| **PUT** | `/addresses/{addressId}` | Cập nhật một địa chỉ cụ thể | `customer.manage` |
+| **DELETE** | `/addresses/{addressId}` | Xóa một địa chỉ | `customer.manage` |
+| **PUT** | `/{id}/addresses/{addressId}/default` | Thiết lập địa chỉ mặc định | `customer.manage` |
+
+### 4. Quản lý CRM & Tương tác (CRM Interactions)
+| Method | URL Endpoint | Mô tả | Permission |
+| :--- | :--- | :--- | :--- |
+| **GET** | `/{id}/interactions` | Lấy lịch sử tương tác của khách hàng | `customer.view` |
+| **POST** | `/interactions` | Tạo mới tương tác (Note, Call, Email...) | `customer.manage` |
+| **GET** | `/interactions/upcoming` | Lấy danh sách các lịch hẹn/follow-up sắp tới | `customer.view` |
+| **GET** | `/interactions/{interactionId}` | Lấy chi tiết tương tác | `customer.view` |
+| **PUT** | `/interactions/{interactionId}` | Cập nhật tương tác | `customer.manage` |
+| **DELETE** | `/interactions/{interactionId}` | Xóa tương tác | `customer.manage` |
+| **PUT** | `/interactions/{interactionId}/complete` | Đánh dấu tương tác đã hoàn thành | `customer.manage` |
+
+### 5. Khách hàng thân thiết (Loyalty System)
+| Method | URL Endpoint | Mô tả | Permission |
+| :--- | :--- | :--- | :--- |
+| **POST** | `/{id}/loyalty/add` | Cộng điểm tích lũy thủ công | `customer.manage` |
+| **POST** | `/{id}/loyalty/deduct` | Trừ điểm tích lũy thủ công | `customer.manage` |
+| **PUT** | `/{id}/tier` | Cập nhật hạng thành viên (Tier) | `customer.manage` |
+| **GET** | `/{id}/loyalty-history` | Xem lịch sử thay đổi điểm | `customer.view` |

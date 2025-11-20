@@ -73,11 +73,11 @@ public class CustomerMappingProfile : Profile
 
         // CRMInteraction -> CRMInteractionDto
         CreateMap<CRMInteraction, CRMInteractionDto>()
-            .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Customer.Name))
-            .ForMember(dest => dest.CustomerEmail, opt => opt.MapFrom(src => src.Customer.Email))
-            .ForMember(dest => dest.CustomerPhone, opt => opt.MapFrom(src => src.Customer.Phone))
+            .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Customer != null ? src.Customer.Name : null))
+            .ForMember(dest => dest.CustomerEmail, opt => opt.MapFrom(src => src.Customer != null ? src.Customer.Email : null))
+            .ForMember(dest => dest.CustomerPhone, opt => opt.MapFrom(src => src.Customer != null ? src.Customer.Phone : null))
             .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedByUser != null ? src.CreatedByUser.Name : null))
-            .ForMember(dest => dest.UpdatedByName, opt => opt.Ignore()); // Will need to be set manually if needed
+            .ForMember(dest => dest.UpdatedByName, opt => opt.Ignore()); // Will need to be loaded separately if needed
 
         // CRMInteraction -> CRMInteractionListDto
         CreateMap<CRMInteraction, CRMInteractionListDto>()

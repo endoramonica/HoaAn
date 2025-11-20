@@ -568,5 +568,10 @@ namespace VietCommerce.Data.Repositories
                     : query.OrderBy(o => o.CreatedAt)
             };
         }
+
+        public Task<Order> GetByOrderNumberWithDetailsAsync(string orderNumber)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

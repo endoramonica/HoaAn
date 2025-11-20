@@ -13,6 +13,7 @@ public interface IOrderRepository : IGenericRepository<Order>
     Task<IEnumerable<Order>> GetByStoreIdAsync(Guid storeId);
     Task<IEnumerable<Order>> GetByStatusAsync(OrderStatus status);
     Task<IEnumerable<Order>> GetRecentOrdersAsync(int count = 10, Guid? storeId = null);
+    Task<Order>GetByOrderNumberAsync(string orderNumber);
     Task<PaginatedResult<Order>> GetPaginatedAsync(OrderFilterDTO filter, Guid? restrictToCustomerId = null);
 
     Task<List<Order>> GetOrdersByStatusAsync(OrderStatus status);
@@ -23,6 +24,8 @@ public interface IOrderRepository : IGenericRepository<Order>
     Task<bool> CancelOrderAsync(Guid orderId, string reason, Guid changedBy); // Cancel order
     Task<PaginatedResult<Order>> GetAllOrdersAsync(OrderFilterDTO filter); // Admin order list
     Task<Order> GetByIdWithDetailsAsync(Guid orderId);
+    Task<Order> GetByOrderNumberWithDetailsAsync(string orderNumber);
+
     Task<bool> UpdateStatusAsync(Guid orderId, OrderStatus newStatus);
     Task<List<OrderStatusHistory>> GetStatusHistoryAsync(Guid orderId);
     Task<IEnumerable<Order>> SearchOrdersAsync(string searchTerm);

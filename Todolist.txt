@@ -1,0 +1,12 @@
+﻿20-11
+claude
+hoàn thiện Supplier Controller ( dong anh ly )- done 
+hoàn thiện customerService ( nhuquuynhtran) - done 
+grok dong anh ly 
+hoàn thiện Employee Service ( perlexity endora )
+Cần bổ sung EmployeeRepostitory
+    + Employees.HasLeaveRequestsAsync(id)
+Task Service + COntroller ( endora claude  )
+NotificationServcie chua DI IcurrentUser
+PaymentService 
+

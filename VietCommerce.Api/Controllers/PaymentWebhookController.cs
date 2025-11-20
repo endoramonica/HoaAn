@@ -1,5 +1,4 @@
-﻿// File: VietCommerce.Api/Controllers/PaymentWebhookController.cs
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VietCommerce.Application.Services.Payments;
 using VietCommerce.Core.Entities.Payments;
@@ -41,8 +40,9 @@ namespace VietCommerce.Api.Controllers
                 var responseCode = _vnpayService.GetResponseCode(data);
                 var orderNumber = _vnpayService.GetTransactionRef(data);
                 var transactionNo = data.GetValueOrDefault("vnp_TransactionNo");
-                 
-                var order = await _unitOfWork.Orders.GetByIdWithDetailsAsync(orderId);
+
+                // Sử dụng phương thức mới lấy order theo orderNumber (string)
+                var order = await _unitOfWork.Orders.GetByOrderNumberAsync(orderNumber);
                 if (order == null)
                     return Ok(new { RspCode = "01", Message = "Order not found" });
 
@@ -67,10 +67,10 @@ namespace VietCommerce.Api.Controllers
                     payment.PaymentTransactions.Add(transaction);
 
                     order.Status = OrderStatus.Confirmed;
-                    order.IsPaid = true;
-                    order.PaidAt = DateTime.UtcNow;
-                    order.PaymentMethod = "VNPay";
-                    order.TransactionId = transactionNo;
+                    //order.IsPaid = true;
+                    //order.PaidAt = DateTime.UtcNow;
+                    //order.PaymentMethod = "VNPay";
+                    //order.TransactionId = transactionNo;
 
                     await _unitOfWork.SaveChangesAsync();
                     _logger.LogInformation("Payment confirmed for order {OrderNumber}", orderNumber);

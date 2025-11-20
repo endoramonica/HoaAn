@@ -252,10 +252,10 @@ public class AppDbContext : DbContext
                 .HasFilter("IsDeleted = 0");
 
             // Self-referencing relationship for Manager
-            entity.HasOne(u => u.Manager)
-                .WithMany(u => u.Subordinates)
-                .HasForeignKey(u => u.ManagerId)
-                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(u => u.EmployeeProfile)
+               .WithOne(e => e.User)
+               .HasForeignKey<Employee>(e => e.Id)
+               .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(u => u.UserRoles)
                 .WithOne(ur => ur.User)
@@ -726,7 +726,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Employee>(entity =>
         {
             entity.HasIndex(e => e.Code).IsUnique();
-            entity.HasIndex(e => e.Email).IsUnique();
+            //entity.HasIndex(e => e.Email).IsUnique();
 
            // Self-referencing relationship for Manager
             entity.HasOne(e => e.Manager)
@@ -737,7 +737,7 @@ public class AppDbContext : DbContext
             // 1–1 Employee ↔ User
             entity.HasOne(e => e.User)
                 .WithOne(u => u.EmployeeProfile)
-                .HasForeignKey<Employee>(e => e.UserId)
+                .HasForeignKey<Employee>(e => e.Id)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasMany(e => e.Performance)
@@ -877,8 +877,8 @@ public class AppDbContext : DbContext
         // Employee
         modelBuilder.Entity<Employee>()
             .HasIndex(e => new { e.StoreId, e.Status }); // Lọc nhân viên theo trạng thái
-    // Cần bổ sung:
-modelBuilder.Entity<Product>()
+                                                         // Cần bổ sung:
+        modelBuilder.Entity<Product>()
     .HasIndex(p => new { p.CategoryId, p.IsDeleted });
 
 modelBuilder.Entity<Payment>()

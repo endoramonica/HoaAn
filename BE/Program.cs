@@ -240,10 +240,28 @@ builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
 builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
 builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
 builder.Services.AddScoped<ICustomerAddressRepository, CustomerAddressRepository>();
+builder.Services.AddScoped<IPaymentMethodRepository, PaymentMethodRepository>();
+builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
+builder.Services.AddScoped<IStockTransferRepository, StockTransferRepository>();
+builder.Services.AddScoped<ITransferItemRepository, TransferItemRepository>();
+builder.Services.AddScoped<ICRMInteractionRepository, CRMInteractionRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IProductImageRepository, ProductImageRepository>();
+builder.Services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
+builder.Services.AddScoped<IProductFavoriteRepository, ProductFavoriteRepository>();
+builder.Services.AddScoped<IOrderStatusHistoryRepository, OrderStatusHistoryRepository>();
+builder.Services.AddScoped<IOrderShippingRepository, OrderShippingRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();  
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+builder.Services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
+builder.Services.AddScoped<IWorkScheduleRepository, WorkScheduleRepository>();
+builder.Services.AddScoped<IShiftRepository, ShiftRepository>();
 
 
 // ✅ Register all application-level services
 builder.Services.AddScoped<IInventoryService, InventoryService>();
+
 builder.Services.AddAllServices();
 
 // ================================================================

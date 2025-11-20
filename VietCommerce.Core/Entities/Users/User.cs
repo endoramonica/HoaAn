@@ -26,12 +26,7 @@ public class User : AuditableEntity, ISoftDelete
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedBy { get; set; }
-    // --- Manager hierarchy ---
-    public Guid? ManagerId { get; set; }
-    [ForeignKey(nameof(ManagerId))]
-    public virtual User? Manager { get; set; }
-    [InverseProperty(nameof(Manager))]
-    public virtual ICollection<User> Subordinates { get; set; } = new List<User>();
+  
     public string? Provider { get; set; } = "local"; // e.g., "local", "google", "facebook"
     public string? ProviderId { get; set; } // ID from the external provider
     public string? AvatarUrl { get; set; }
