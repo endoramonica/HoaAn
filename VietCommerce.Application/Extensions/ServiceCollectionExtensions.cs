@@ -48,17 +48,21 @@ namespace VietCommerce.Application.Extension
         }
 
         /// <summary>
-        /// Register domain services and repositories
+        /// Register application services and repositories
         /// </summary>
         public static IServiceCollection AddAllServices(this IServiceCollection services)
         {
-            // ✅ Đăng ký HttpContextAccessor đúng cách
+            // Http accessor
             services.AddHttpContextAccessor();
 
-            // Generic service/repo
+            // Generic
             services.AddScoped(typeof(IGenericServices<>), typeof(GenericServices<>));
+            services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
-            // Application services
+            // Helpers
+            services.AddScoped<JwtHelper>();
+
+            // Application Services
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<ICheckoutService, CheckoutService>();
             services.AddScoped<IAuthService, AuthService>();
@@ -70,18 +74,59 @@ namespace VietCommerce.Application.Extension
             services.AddScoped<IWishlistService, WishlistService>();
             services.AddScoped<IAddressService, AddressService>();
             services.AddScoped<IVnpayService, VnpayService>();
-
-
-
-
-            // Repositories
-            services.AddScoped<IOrderItemRepository, OrderItemRepository>();
-
-            // RBAC services
+            services.AddScoped<IPaymentService, PaymentService>();
+            services.AddScoped<ISupplierService, SupplierService>();
+            services.AddScoped<IStockTransferService, StockTransferService>();
+            services.AddScoped<IEmployeeService, EmployeeService>();
+            services.AddScoped<ILeaveRequestService, LeaveRequestService>();
+            services.AddScoped<IWorkScheduleService, WorkScheduleService>();
+            
+            // RBAC / Auth
             services.AddScoped<IPermissionService, PermissionService>();
             services.AddScoped<ICurrentUser, CurrentUserService>();
 
-            // services.AddScoped<IRoleService, RoleService>();
+            // -------------------------------
+            // REPOSITORIES (FULL LIST ADDED)
+            // -------------------------------
+
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IProductRepository, ProductRepository>();
+            services.AddScoped<ICategoryRepository, CategoryRepository>();
+            services.AddScoped<IOrderRepository, OrderRepository>();
+            services.AddScoped<ICartRepository, CartRepository>();
+            services.AddScoped<IInventoryRepository, InventoryRepository>();
+
+            services.AddScoped<IRoleRepository, RoleRepository>();
+            services.AddScoped<IUserRoleRepository, UserRoleRepository>();
+            services.AddScoped<IPermissionRepository, PermissionRepository>();
+            services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
+
+            services.AddScoped<ICustomerAddressRepository, CustomerAddressRepository>();
+            services.AddScoped<IPaymentMethodRepository, PaymentMethodRepository>();
+            services.AddScoped<ISupplierRepository, SupplierRepository>();
+            services.AddScoped<IStockTransferRepository, StockTransferRepository>();
+            services.AddScoped<ITransferItemRepository, TransferItemRepository>();
+            services.AddScoped<ICRMInteractionRepository, CRMInteractionRepository>();
+
+            services.AddScoped<IPaymentRepository, PaymentRepository>();
+            services.AddScoped<IProductImageRepository, ProductImageRepository>();
+            services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
+            services.AddScoped<IProductFavoriteRepository, ProductFavoriteRepository>();
+
+            services.AddScoped<IOrderStatusHistoryRepository, OrderStatusHistoryRepository>();
+            services.AddScoped<IOrderShippingRepository, OrderShippingRepository>();
+            services.AddScoped<ICustomerRepository, CustomerRepository>();
+
+            services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+            services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+            services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
+            services.AddScoped<IWorkScheduleRepository, WorkScheduleRepository>();
+            services.AddScoped<IShiftRepository, ShiftRepository>();
+
+            services.AddScoped<IOrderItemRepository, OrderItemRepository>();
 
             return services;
         }

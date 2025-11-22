@@ -229,14 +229,15 @@ public class WorkScheduleService : BaseService, IWorkScheduleService
             var schedule = await _unitOfWork.WorkSchedules.GetByIdAsync(id);
             ThrowIf(schedule == null, $"Không tìm thấy lịch làm việc với ID: {id}");
 
-            // Validate times if changed
+            // ✅ Determine new times (use existing if not provided)
             var newStartTime = request.StartTime ?? schedule!.StartTime;
             var newEndTime = request.EndTime ?? schedule.EndTime;
 
+            // ✅ Validate times (only if both are provided or using defaults)
             ThrowIf(newEndTime <= newStartTime,
                 "Giờ kết thúc phải sau giờ bắt đầu");
 
-            // Check for conflicts if times changed
+            // ✅ Check for conflicts if times changed
             if (request.StartTime.HasValue || request.EndTime.HasValue)
             {
                 var hasConflict = await _unitOfWork.WorkSchedules
@@ -251,7 +252,7 @@ public class WorkScheduleService : BaseService, IWorkScheduleService
                     $"Nhân viên đã có lịch làm việc trùng thời gian trong ngày {schedule.Date:dd/MM/yyyy}");
             }
 
-            // Apply partial updates
+            // ✅ Apply partial updates
             if (request.StartTime.HasValue)
                 schedule!.StartTime = request.StartTime.Value;
 
@@ -304,7 +305,7 @@ public class WorkScheduleService : BaseService, IWorkScheduleService
             ThrowIf(schedule == null, $"Không tìm thấy lịch làm việc với ID: {id}");
 
             // Prevent deleting past schedules
-            ThrowIf(schedule! < DateTime.UtcNow.Date,
+            ThrowIf(schedule!.Date < DateTime.UtcNow.Date,
                 "Không thể xóa lịch làm việc trong quá khứ");
 
             _unitOfWork.WorkSchedules.Delete(schedule);

@@ -17,10 +17,10 @@ namespace VietCommerce.Core.Entities.HRM
         public DateTime Date { get; set; }
         [Required]
         [MaxLength(8)]
-        public string StartTime { get; set; } = string.Empty;
+        public TimeSpan StartTime { get; set; }
         [Required]
         [MaxLength(8)]
-        public string EndTime { get; set; } = string.Empty;
+        public TimeSpan EndTime { get; set; } 
         [Required]
         public WorkScheduleType Type { get; set; } = WorkScheduleType.Regular;
         [Required]
@@ -30,6 +30,7 @@ namespace VietCommerce.Core.Entities.HRM
         // Navigation properties
         [ForeignKey(nameof(EmployeeId))]
         public Employee Employee { get; set; } = null!;
+        public string? ShiftName { get; set; }
     }
     public enum WorkScheduleType
     {

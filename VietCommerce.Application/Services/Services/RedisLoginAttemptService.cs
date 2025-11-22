@@ -55,7 +55,8 @@ namespace VietCommerce.Application.Services.Services
         {
             if (string.IsNullOrWhiteSpace(email))
             {
-                _logger.LogWarning("⚠️ GetKey called with null or empty email");
+                // 🚨 THAY ĐỔI ĐỂ LOG CẢ STACK TRACE
+                _logger.LogWarning(new ArgumentNullException(nameof(email)), "⚠️ GetKey called with null or empty email. Source: {Source}", new System.Diagnostics.StackFrame(1)?.GetMethod()?.DeclaringType?.FullName);
                 return null;
             }
 

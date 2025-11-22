@@ -4,6 +4,7 @@ namespace VietCommerce.Core.DTOs.HRM
 {
     public class WorkScheduleFilters
     {
+        public string? ShiftName { get; set; }
         public Guid? EmployeeId { get; set; }
         public Guid? StoreId { get; set; }
         public DateTime? DateFrom { get; set; }

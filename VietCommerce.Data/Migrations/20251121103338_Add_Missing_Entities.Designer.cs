@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VietCommerce.Data.Context;
 
@@ -11,9 +12,11 @@ using VietCommerce.Data.Context;
 namespace VietCommerce.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251121103338_Add_Missing_Entities")]
+    partial class Add_Missing_Entities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1645,7 +1648,13 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("StoreId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("StoreId1")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("TenantId1")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -1653,21 +1662,27 @@ namespace VietCommerce.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAt");
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_Inventories_CreatedAt");
 
-                    b.HasIndex("IsDeleted");
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_Inventories_IsDeleted");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_Inventories_ProductId");
 
-                    b.HasIndex("QuantityAvailable");
-
-                    b.HasIndex("ReorderLevel");
+                    b.HasIndex("StoreId1");
 
                     b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId1");
 
                     b.HasIndex("ProductId", "StoreId")
                         .IsUnique()
                         .HasFilter("IsDeleted = 0");
+
+                    b.HasIndex("QuantityAvailable", "ReorderLevel")
+                        .HasDatabaseName("IX_Inventories_LowStock");
 
                     b.HasIndex("StoreId", "IsDeleted");
 
@@ -2977,19 +2992,27 @@ namespace VietCommerce.Data.Migrations
                     b.HasOne("VietCommerce.Core.Entities.Products.Product", "Product")
                         .WithMany("Inventories")
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("VietCommerce.Core.Entities.Organization.Store", "Store")
-                        .WithMany("Inventories")
+                        .WithMany()
                         .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("VietCommerce.Core.Entities.Organization.Tenant", "Tenant")
+                    b.HasOne("VietCommerce.Core.Entities.Organization.Store", null)
                         .WithMany("Inventories")
+                        .HasForeignKey("StoreId1");
+
+                    b.HasOne("VietCommerce.Core.Entities.Organization.Tenant", "Tenant")
+                        .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VietCommerce.Core.Entities.Organization.Tenant", null)
+                        .WithMany("Inventories")
+                        .HasForeignKey("TenantId1");
 
                     b.Navigation("Product");
 

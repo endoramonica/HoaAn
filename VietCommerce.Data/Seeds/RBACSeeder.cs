@@ -1,7 +1,7 @@
 ﻿// ================================================================
 // FILE: RBACSeeder.cs
 // Author: VietCommerce Seeder Team
-// Purpose: Seed role-permission & user-role mapping
+// Purpose: Seed role-permission & user-role mapping (safe version)
 // ================================================================
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -18,11 +18,11 @@ namespace VietCommerce.Data.Seeders
     {
         public static async Task SeedAsync(AppDbContext context)
         {
-            // 1. Đảm bảo Role & Permission đã được seed
+            // 1️⃣ Đảm bảo Role & Permission đã được seed
             await RoleSeed.SeedAsync(context);
             await PermissionSeed.SeedAsync(context);
 
-            // 2. Lấy Role
+            // 2️⃣ Lấy Role
             var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Administrator");
             var staffRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Staff");
             var customerRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Customer");
@@ -59,7 +59,7 @@ namespace VietCommerce.Data.Seeders
                 p.Name == PermissionConstants.OrderUpdateStatus ||
                 p.Name == PermissionConstants.AdminAddressRead));
 
-            await context.SaveChangesAsync(); // ✅ Lưu RolePermissions
+            await context.SaveChangesAsync(); // Lưu RolePermissions
 
             // ================================================================
             // BƯỚC 1: TẠO USERS (nếu chưa có)
@@ -95,8 +95,7 @@ namespace VietCommerce.Data.Seeders
                 }
             }
 
-            // ✅ Lưu tất cả Users trước
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(); // Lưu tất cả Users trước
 
             // ================================================================
             // BƯỚC 2: GÁN USER → ROLE (sau khi Users đã được lưu)
@@ -107,7 +106,6 @@ namespace VietCommerce.Data.Seeders
 
                 if (user != null)
                 {
-                    // Kiểm tra xem UserRole đã tồn tại chưa
                     var roleExists = await context.UserRoles.AnyAsync(ur =>
                         ur.UserId == user.Id && ur.RoleId == item.RoleId);
 
@@ -116,14 +114,28 @@ namespace VietCommerce.Data.Seeders
                         context.UserRoles.Add(new UserRole
                         {
                             Id = Guid.NewGuid(),
-                            UserId = user.Id,  // ✅ Bây giờ user.Id đã tồn tại trong DB
+                            UserId = user.Id, // chắc chắn UserId không rỗng
                             RoleId = item.RoleId
                         });
                     }
                 }
             }
 
-            // ✅ Lưu tất cả UserRoles
+            // ================================================================
+            // 🔍 Debug log & detach UserRole vô chủ
+            // ================================================================
+            var problematicUserRoles = context.ChangeTracker.Entries<UserRole>()
+                .Where(e => e.State != EntityState.Unchanged && e.Entity.UserId == Guid.Empty)
+                .ToList();
+
+            foreach (var entry in problematicUserRoles)
+            {
+                var role = context.Roles.AsNoTracking().FirstOrDefault(r => r.Id == entry.Entity.RoleId);
+                Console.WriteLine($"⚠️ Detaching UserRole Id: {entry.Entity.Id}, UserId: {entry.Entity.UserId}, RoleId: {entry.Entity.RoleId}, RoleName: {role?.Name ?? "Unknown"}");
+                entry.State = EntityState.Detached; // detach để EF Core không ném lỗi
+            }
+
+            // ✅ Lưu tất cả UserRoles còn lại
             await context.SaveChangesAsync();
         }
 

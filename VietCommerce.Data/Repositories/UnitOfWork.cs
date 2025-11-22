@@ -43,7 +43,7 @@ public class UnitOfWork : IUnitOfWork
     private IShiftRepository? _shift;
     public INotificationRepository? _notifications;
     public INotificationTemplateRepository? _notificationTemplates;
-
+    public ITaskRepository? _tasks;
 
 
 
@@ -107,6 +107,8 @@ public class UnitOfWork : IUnitOfWork
         _notifications ??= new NotificationRepository(_context);
     public INotificationTemplateRepository NotificationTemplates =>
         _notificationTemplates ??= new NotificationTemplateRepository(_context);
+    public ITaskRepository Tasks =>
+        _tasks ??= new TaskRepository(_context);
 
 
 

@@ -1,15 +1,18 @@
-﻿using System.ComponentModel.DataAnnotations;
-namespace VietCommerce.Core.DTOs.Payments;
+﻿using VietCommerce.Core.Enums.Payments;
 
-// 2. Request DTOs
+namespace VietCommerce.Core.DTOs.Orders;
+
+/// <summary>
+/// Base request cho tất cả các loại thanh toán
+/// </summary>
 public class PaymentRequest
-    {
-        [Required]
-        public Guid OrderId { get; set; }
-        [Required]
-        public Guid PaymentMethodId { get; set; }
-        [Required]
-        [Range(0.01, double.MaxValue)]
-        public decimal Amount { get; set; }
-        public string? Note { get; set; }
-    }
+{
+    public Guid OrderId { get; set; }
+    public PaymentMethodType PaymentType { get; set; }
+    public decimal Amount { get; set; }
+
+    // Optional fields cho các loại thanh toán khác nhau
+    public string? CardNumber { get; set; }
+    public string? CVV { get; set; }
+    public string? ShippingAddress { get; set; }
+}

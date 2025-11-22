@@ -1,10 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
 namespace VietCommerce.Core.DTOs.Payments;
 
+/// <summary>
+/// Request cho hoàn tiền
+/// </summary>
 public class RefundRequest
-    {
-        [Required]
-        public decimal Amount { get; set; }
-        [Required]
-        public string Reason { get; set; } = string.Empty;
-    }
+{
+    public decimal Amount { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string? Note { get; set; }
+}

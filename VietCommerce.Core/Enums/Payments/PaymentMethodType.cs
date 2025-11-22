@@ -10,6 +10,9 @@ namespace VietCommerce.Core.Enums.Payments
         // INSTALLMENT = 6, // kkhoan tra gop 
         PENDING = 7,// status
         CONFIRMED = 8,// status
-        FAILED = 9 // status
+        FAILED = 9, // status
+        REFUNDED = 10, // status,
+        VOID = 11 // status
+
     }
 }

@@ -9,6 +9,8 @@ namespace VietCommerce.Core.DTOs.Tasks
     /// </summary>
     public class TaskFilters
     {
+        public Guid? UserId { get; set; }
+
         /// <summary>
         /// Filter by assignee ID
         /// </summary>

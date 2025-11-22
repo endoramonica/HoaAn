@@ -2,49 +2,32 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using VietCommerce.Core.Entities.Products;
 
-namespace VietCommerce.Data.Context;
-
 public class InventoryConfiguration : IEntityTypeConfiguration<Inventory>
 {
     public void Configure(EntityTypeBuilder<Inventory> builder)
     {
         builder.ToTable("Inventories");
 
-        // 🔹 Primary Key
         builder.HasKey(i => i.Id);
 
-        // 🔹 RowVersion for Optimistic Concurrency
         builder.Property(i => i.RowVersion)
             .IsRowVersion()
             .IsConcurrencyToken();
 
-        // 🔹 Unique Constraint - 1 inventory per product per store
         builder.HasIndex(i => new { i.StoreId, i.ProductId })
             .IsUnique()
             .HasDatabaseName("IX_Inventories_Store_Product_Unique");
 
-        // 🔹 Indexes
-        builder.HasIndex(i => i.ProductId)
-            .HasDatabaseName("IX_Inventories_ProductId");
+        builder.HasIndex(i => i.ProductId);
+        builder.HasIndex(i => i.IsDeleted);
+        builder.HasIndex(i => i.QuantityAvailable);
+        builder.HasIndex(i => i.ReorderLevel);
 
-        builder.HasIndex(i => i.IsDeleted)
-            .HasDatabaseName("IX_Inventories_IsDeleted");
-
-        // 🔹 Index for low stock alerts
-        builder.HasIndex(i => new { i.QuantityAvailable, i.ReorderLevel })
-            .HasDatabaseName("IX_Inventories_LowStock");
-
-        // 🔹 Index on CreatedAt (performance optimization)
-        builder.HasIndex(i => i.CreatedAt)
-            .HasDatabaseName("IX_Inventories_CreatedAt");
-
-        // ===========================================================
-        // 🔗 RELATIONSHIPS
-        // ===========================================================
+        builder.HasIndex(i => i.CreatedAt);
 
         // Store
         builder.HasOne(i => i.Store)
-            .WithMany()
+            .WithMany(s => s.Inventories)   // nếu Store có Inventories
             .HasForeignKey(i => i.StoreId)
             .OnDelete(DeleteBehavior.Restrict);
 
@@ -52,17 +35,16 @@ public class InventoryConfiguration : IEntityTypeConfiguration<Inventory>
         builder.HasOne(i => i.Product)
             .WithMany(p => p.Inventories)
             .HasForeignKey(i => i.ProductId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict); // tránh cascade nguy hiểm
 
-        // 🆕 Tenant (Optional relationship)
+        // Tenant
+        // Tenant
         builder.HasOne(i => i.Tenant)
-            .WithMany()
-            .HasForeignKey(i => i.TenantId)
-            .OnDelete(DeleteBehavior.Restrict);
+               .WithMany(t => t.Inventories) // <- sử dụng navigation collection
+               .HasForeignKey(i => i.TenantId)
+               .OnDelete(DeleteBehavior.Restrict);
 
-        // ===========================================================
-        // 🔎 GLOBAL QUERY FILTER (Soft Delete)
-        // ===========================================================
+
         builder.HasQueryFilter(i => !i.IsDeleted);
     }
 }

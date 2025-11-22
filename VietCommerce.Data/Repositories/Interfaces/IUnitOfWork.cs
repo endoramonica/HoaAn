@@ -52,6 +52,8 @@ public interface IUnitOfWork : IDisposable
     IShiftRepository Shifts { get; }
     IWorkScheduleRepository WorkSchedules { get; }
     ILeaveRequestRepository LeaveRequests { get; }
+    // Task
+    ITaskRepository Tasks { get; }
     // Notifications
     INotificationRepository Notifications { get; }
     INotificationTemplateRepository NotificationTemplates { get; }

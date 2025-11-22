@@ -9,8 +9,9 @@ public class WorkScheduleDto
     public Guid EmployeeId { get; set; }
     public string EmployeeName { get; set; } = string.Empty;
     public DateTime Date { get; set; }
-    public string StartTime { get; set; } = string.Empty;
-    public string EndTime { get; set; } = string.Empty;
+    public string? ShiftName { get; set; }
+    public TimeSpan StartTime { get; set; }
+    public TimeSpan EndTime { get; set; } 
     public WorkScheduleType Type { get; set; }
     public WorkScheduleStatus Status { get; set; }
     public string? Notes { get; set; }

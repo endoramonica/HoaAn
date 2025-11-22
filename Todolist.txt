@@ -1,12 +1,16 @@
 ﻿20-11
 claude
-hoàn thiện Supplier Controller ( dong anh ly )- done 
-hoàn thiện customerService ( nhuquuynhtran) - done 
 grok dong anh ly 
-hoàn thiện Employee Service ( perlexity endora )
-Cần bổ sung EmployeeRepostitory
-    + Employees.HasLeaveRequestsAsync(id)
-Task Service + COntroller ( endora claude  )
+hoàn thiện Employee Service + controller - done 
 NotificationServcie chua DI IcurrentUser
-PaymentService 
-
+PaymentService + controller - done
+workschedule service + controller - done 
+task service + controller - done
+shift service + controller - done
+stock service + controller - done
+inventory service + controller - done
+supplier service + controller - done
+customer service + controller - done 
+leaveRequest service + controller - done
+22-11-25: ecommerce endUser Profile flow 
+merge to add social community functionality

@@ -1,9 +1,0 @@
-﻿Dưới đây là danh sách các endpoint trong controller API mẫu mà tôi đã đề xuất dựa trên service IShiftService của bạn:
-
-Endpoint	HTTP Method	URL	Mô tả
-Lấy danh sách ca làm việc phân trang, filter	GET	api/shifts	Trả về danh sách ca làm việc theo phân trang và bộ lọc.
-Lấy chi tiết ca làm việc theo ID	GET	api/shifts/{id}	Trả về chi tiết của ca làm việc theo ID cụ thể.
-Lấy ca làm việc hiện tại của người dùng	GET	api/shifts/current/{userId}	Lấy ca làm việc đang hoạt động của người dùng theo UserId.
-Mở ca làm việc mới	POST	api/shifts/open	Tạo và mở một ca làm việc mới.
-Đóng ca làm việc theo ID	POST	api/shifts/close/{id}	Đóng ca làm việc đã mở, theo ID.
-Cập nhật thông tin ca làm việc	PUT	api/shifts/{id}	Cập nhật thông tin ca làm việc, như trạng thái, ghi chú.

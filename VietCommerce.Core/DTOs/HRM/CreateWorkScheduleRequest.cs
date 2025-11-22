@@ -7,8 +7,8 @@ public class CreateWorkScheduleRequest
 {
     public Guid EmployeeId { get; set; }
     public DateTime Date { get; set; }
-    public string StartTime { get; set; } = string.Empty;
-    public string EndTime { get; set; } = string.Empty;
+    public TimeSpan StartTime { get; set; } 
+    public TimeSpan EndTime { get; set; } 
     public WorkScheduleType Type { get; set; } = WorkScheduleType.Regular;
     public string? Notes { get; set; }
 }

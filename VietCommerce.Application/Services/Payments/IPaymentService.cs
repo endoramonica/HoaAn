@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using VietCommerce.Core.DTOs.Orders;
 using VietCommerce.Core.DTOs.Payments;
 using VietCommerce.Core.Models;
 

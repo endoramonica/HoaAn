@@ -21,6 +21,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		BACKEND_ENDPOINTS_QUICK_REFERENCE.md = BACKEND_ENDPOINTS_QUICK_REFERENCE.md
 		BACKEND_SPECIFICATION_COMPLETE.md = BACKEND_SPECIFICATION_COMPLETE.md
 		DETAILED_BACKEND_IMPLEMENTATION_GUIDE_FOR_CSHARP_TEAM.txt = DETAILED_BACKEND_IMPLEMENTATION_GUIDE_FOR_CSHARP_TEAM.txt
+		BE\Controllers\Endpoint\EndpointCustomerController.txt = BE\Controllers\Endpoint\EndpointCustomerController.txt
+		BE\Controllers\Endpoint\ShiftController.txt = BE\Controllers\Endpoint\ShiftController.txt
 		SYSTEM_CONTEXT_PROMPT.md = SYSTEM_CONTEXT_PROMPT.md
 		Todolist.txt = Todolist.txt
 	EndProjectSection

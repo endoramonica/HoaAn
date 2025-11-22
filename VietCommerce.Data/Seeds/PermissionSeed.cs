@@ -66,6 +66,12 @@ namespace VietCommerce.Data.Seeders
                 new Permission { Id = Guid.NewGuid(), Name = "tasks.view_own", Description = "Xem việc của mình" },
                 new Permission { Id = Guid.NewGuid(), Name = "tasks.view_all", Description = "Xem tất cả việc" },
                 new Permission { Id = Guid.NewGuid(), Name = "tasks.create", Description = "Tạo việc" },
+                new Permission { Id = Guid.NewGuid(), Name = "tasks.update_own", Description = "Cập nhật việc của mình" },
+                new Permission { Id = Guid.NewGuid(), Name = "tasks.update_all", Description = "Cập nhật tất cả việc" },
+                new Permission { Id = Guid.NewGuid(), Name = "tasks.delete_own", Description = "Xóa việc của mình" },
+                new Permission { Id = Guid.NewGuid(), Name = "tasks.delete_all", Description = "Xóa tất cả việc" },
+                new Permission { Id = Guid.NewGuid(), Name = "tasks.complete", Description = "Hoàn thành việc" },
+                new Permission { Id = Guid.NewGuid(), Name = "tasks.update_status", Description = "Cập nhật trạng thái việc" },
 
                 // Analytics & Reports
                 new Permission { Id = Guid.NewGuid(), Name = "analytics.view_store_dashboard", Description = "Xem dashboard cửa hàng" },
@@ -107,6 +113,16 @@ namespace VietCommerce.Data.Seeders
                 new Permission { Id = Guid.NewGuid(), Name = "payment.calculate", Description = "Tính toán tổng đơn hàng" },
                 new Permission { Id = Guid.NewGuid(), Name = "payment.view.own", Description = "Xem lịch sử thanh toán của mình" },
                 new Permission { Id = Guid.NewGuid(), Name = "payment.view.all", Description = "Xem toàn bộ lịch sử thanh toán" },
+                // Admin-only
+                new Permission { Id = Guid.NewGuid(), Name = "admin.manage_users", Description = "Quản lý người dùng (Admin)" },
+                new Permission { Id = Guid.NewGuid(), Name = "admin.manage_roles", Description = "Quản lý vai trò (Admin)" },
+                new Permission { Id = Guid.NewGuid(), Name = "admin.manage_permissions", Description = "Quản lý quyền (Admin)" },
+                new Permission { Id = Guid.NewGuid(), Name = "admin.system_configuration", Description = "Cấu hình hệ thống (Admin)" },
+                new Permission { Id = Guid.NewGuid(), Name = "admin.database_backup", Description = "Sao lưu cơ sở dữ liệu (Admin)" },
+                new Permission { Id = Guid.NewGuid(), Name = "admin.system_monitor", Description = "Giám sát hệ thống (Admin)" },
+                new Permission { Id = Guid.NewGuid(), Name = "admin.manage_stores", Description = "Quản lý cửa hàng (Admin)" },
+                new Permission { Id = Guid.NewGuid(), Name = "admin.view_all_analytics", Description = "Xem toàn bộ báo cáo (Admin)" },
+                new Permission { Id = Guid.NewGuid(), Name = "admin.super_admin", Description = "Siêu quản trị viên (Admin)" },
 
 
             };

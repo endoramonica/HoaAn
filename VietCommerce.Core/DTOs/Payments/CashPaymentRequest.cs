@@ -1,7 +1,12 @@
 ﻿namespace VietCommerce.Core.DTOs.Payments;
 
-public class CashPaymentRequest : PaymentRequest
-    {
-        // Cash specific fields if any (e.g. AmountReceived, ChangeReturned)
-        public decimal AmountReceived { get; set; }
-    }
+/// <summary>
+/// Request cho thanh toán tiền mặt
+/// </summary>
+public class CashPaymentRequest
+{
+    public Guid OrderId { get; set; }
+    public decimal AmountDue { get; set; }
+    public decimal AmountReceived { get; set; }
+    public decimal Change => AmountReceived - AmountDue;
+}
