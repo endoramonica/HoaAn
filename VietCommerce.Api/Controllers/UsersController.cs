@@ -6,7 +6,7 @@ namespace VietCommerce.Api.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
-[Authorize(Roles = "Administrator")]
+[Authorize(Roles = "Administrator,Staff")]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;

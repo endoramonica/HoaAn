@@ -14,6 +14,8 @@ using VietCommerce.Core.Entities.CRM;
 using VietCommerce.Core.Entities.Logistics;
 using VietCommerce.Core.Entities.HRM;
 using VietCommerce.Core.Entities.Tasks;
+using VietCommerce.Data.Context.Configurations.Notifications;
+using VietCommerce.Data.Context.Configurations.SocialCommunity;
 
 namespace VietCommerce.Data.Context;
 
@@ -93,6 +95,12 @@ public class AppDbContext : DbContext
 
     // Tasks
     public DbSet<WorkTask> Tasks { get; set; } = null!;
+    // SocialComunity
+    public DbSet<Post> Posts { get; set; }
+    public DbSet<Comment> Comments { get; set; }
+    public DbSet<Like> Likes { get; set; }
+    public DbSet<Bookmark> Bookmarks { get; set; }
+    
 
     #endregion
 
@@ -121,7 +129,6 @@ public class AppDbContext : DbContext
         ConfigurePaymentEntities(modelBuilder);
         ConfigureCartEntities(modelBuilder);
         ConfigureMarketingEntities(modelBuilder);
-        ConfigureNotificationEntities(modelBuilder);
         ConfigureCRMEntities(modelBuilder);
         ConfigureLogisticsEntities(modelBuilder);
         ConfigureHRMEntities(modelBuilder);
@@ -137,6 +144,17 @@ public class AppDbContext : DbContext
         //modelBuilder.ApplyConfigurationsFromAssembly(typeof(OrderConfiguration).Assembly);
         //modelBuilder.ApplyConfigurationsFromAssembly(typeof(ProductConfiguration).Assembly);
         //modelBuilder.ApplyConfigurationsFromAssembly(typeof(ProductFavoriteConfiguration).Assembly);
+        // Notifications module
+        modelBuilder.ApplyConfiguration(new NotificationConfiguration());
+        modelBuilder.ApplyConfiguration(new NotificationTemplateConfiguration());
+        // modelBuilder.ApplyConfiguration(new NotificationPreferenceConfiguration());
+
+        // Social Community module
+        modelBuilder.ApplyConfiguration(new PostConfiguration());
+        modelBuilder.ApplyConfiguration(new CommentConfiguration());
+        modelBuilder.ApplyConfiguration(new LikeConfiguration());
+        modelBuilder.ApplyConfiguration(new BookmarkConfiguration());
+        
 
         // Configure many-to-many relationships
         ConfigureManyToManyRelationships(modelBuilder);
@@ -663,20 +681,7 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.Cascade);
     }
 
-    private void ConfigureNotificationEntities(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<Notification>(entity =>
-        {
-            
-            entity.HasIndex(n => new { n.UserId, n.Read });
-        });
-
-        modelBuilder.Entity<NotificationTemplate>()
-            .HasMany(nt => nt.Notifications)
-            .WithOne(n => n.Template)
-            .HasForeignKey(n => n.TemplateId)
-            .OnDelete(DeleteBehavior.Restrict);
-    }
+    
 
     private void ConfigureCRMEntities(ModelBuilder modelBuilder)
     {

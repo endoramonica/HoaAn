@@ -14,3 +14,9 @@ customer service + controller - done
 leaveRequest service + controller - done
 22-11-25: ecommerce endUser Profile flow 
 merge to add social community functionality
+fix loi null parameter key cua redis advanced : them dem thoi gian 
+	: 16:40 11.22.25: kiểm tra thành công bạn phải logout rồi mới có thể login nhé 
+	: 17:00 11.22.25: mô tả : 
+		nhập sai mk mới có 3 lần chưa dẫn đến logic khóa đnagw nhập thì nhập đúng mk  
+		lỗi redis null parameter key
+
