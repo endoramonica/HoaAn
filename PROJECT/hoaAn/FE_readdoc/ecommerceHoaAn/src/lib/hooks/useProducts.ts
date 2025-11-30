@@ -1,108 +1,271 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ProductService } from '@/api/services/ProductService';
-import type { ProductListDtoPaginatedResultApiResponse, ProductDetailDtoApiResponse, ProductListDtoPaginatedResult } from '../../api';
+/**
+ * useProducts Hook - React Query Integration
+ * ✅ UPDATED: Uses Orval generated API
+ * ✅ React Query for caching and state management
+ */
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getVietCommerceAPI } from '../../../Api/generated-orval';
+import type {
+  GetApiV1ProductParams,
+  ProductCreateDto,
+  ProductUpdateDto,
+  PatchApiV1ProductIdStockBody,
+  PatchApiV1ProductIdActiveBody,
+  PatchApiV1ProductIdFeaturedBody,
+} from '../../../Api/generated-orval/schemas';
 import { toast } from 'sonner';
 
-export function useProduct() {
-  const [products, setProducts] = useState<ProductListDtoPaginatedResult | null>(null);
-  const [productDetail, setProductDetail] = useState<ProductDetailDtoApiResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const api = getVietCommerceAPI();
 
-  // Fetch danh sách sản phẩm
-  const fetchProducts = useCallback(async (
-    page = 1,
-    pageSize = 10,
-    searchTerm?: string,
-    categoryId?: string,
-    storeId?: string
-  ) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await ProductService.getApiV1Product(page, pageSize, searchTerm, categoryId, storeId);
-      setProducts(res.data ?? null);
-    } catch (err: any) {
-      setError(err?.message || 'Lỗi khi lấy sản phẩm');
-      toast.error(err?.message || 'Lỗi khi lấy sản phẩm');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+// Query Keys
+export const productsKeys = {
+  all: ['products'] as const,
+  lists: () => [...productsKeys.all, 'list'] as const,
+  list: (params: GetApiV1ProductParams) => [...productsKeys.lists(), params] as const,
+  details: () => [...productsKeys.all, 'detail'] as const,
+  detail: (id: string) => [...productsKeys.details(), id] as const,
+  slug: (slug: string) => [...productsKeys.details(), 'slug', slug] as const,
+  category: (categoryId: string) => [...productsKeys.all, 'category', categoryId] as const,
+  store: (storeId: string) => [...productsKeys.all, 'store', storeId] as const,
+  favorites: () => [...productsKeys.all, 'favorites'] as const,
+};
 
-  // Fetch chi tiết sản phẩm
-  const fetchProductDetail = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await ProductService.getApiV1Product1(id);
-      setProductDetail({ data: res.data }); // res.data là ProductDetailDto
-    } catch (err: any) {
-      setError(err?.message || 'Lỗi khi lấy chi tiết sản phẩm');
-      toast.error(err?.message || 'Lỗi khi lấy chi tiết sản phẩm');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+// Fetch Products List with Filters
+export const useProducts = (params?: GetApiV1ProductParams) => {
+  return useQuery({
+    queryKey: productsKeys.list(params || {}),
+    queryFn: async () => {
+      const data = await api.getApiV1Product(params);
+      return data;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
 
-  // Cập nhật stock
-  const updateStock = useCallback(async (id: string, stock: number) => {
-    try {
-      await ProductService.patchApiV1ProductStock(id, stock);
-      toast.success('Cập nhật tồn kho thành công');
-    } catch (err: any) {
-      toast.error(err?.message || 'Lỗi khi cập nhật tồn kho');
-    }
-  }, []);
+// Fetch Product Detail by ID
+export const useProductDetail = (id: string) => {
+  return useQuery({
+    queryKey: productsKeys.detail(id),
+    queryFn: async () => {
+      const data = await api.getApiV1ProductId(id);
+      return data;
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
 
-  // Cập nhật active / featured
-  const updateActive = useCallback(async (id: string, active: boolean) => {
-    try {
-      await ProductService.patchApiV1ProductActive(id, active);
-      toast.success('Cập nhật trạng thái thành công');
-    } catch (err: any) {
-      toast.error(err?.message || 'Lỗi khi cập nhật trạng thái');
-    }
-  }, []);
+// Fetch Product by Slug
+export const useProductBySlug = (slug: string) => {
+  return useQuery({
+    queryKey: productsKeys.slug(slug),
+    queryFn: async () => {
+      const data = await api.getApiV1ProductSlugSlug(slug);
+      return data;
+    },
+    enabled: !!slug,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
 
-  const updateFeatured = useCallback(async (id: string, featured: boolean) => {
-    try {
-      await ProductService.patchApiV1ProductFeatured(id, featured);
-      toast.success('Cập nhật nổi bật thành công');
-    } catch (err: any) {
-      toast.error(err?.message || 'Lỗi khi cập nhật nổi bật');
-    }
-  }, []);
+// Fetch Products by Category
+export const useProductsByCategory = (categoryId: string) => {
+  return useQuery({
+    queryKey: productsKeys.category(categoryId),
+    queryFn: async () => {
+      const data = await api.getApiV1ProductCategoryCategoryId(categoryId);
+      return data;
+    },
+    enabled: !!categoryId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
 
-  // Favorite / view
-  const favoriteProduct = useCallback(async (id: string) => {
-    try {
-      await ProductService.postApiV1ProductFavorite(id);
-      toast.success('Đã thêm vào yêu thích');
-    } catch (err: any) {
-      toast.error(err?.message || 'Lỗi khi thêm yêu thích');
-    }
-  }, []);
+// Fetch Products by Store
+export const useProductsByStore = (storeId: string) => {
+  return useQuery({
+    queryKey: productsKeys.store(storeId),
+    queryFn: async () => {
+      const data = await api.getApiV1ProductStoreStoreId(storeId);
+      return data;
+    },
+    enabled: !!storeId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
 
-  const viewProduct = useCallback(async (id: string) => {
-    try {
-      await ProductService.postApiV1ProductView(id);
-    } catch (err: any) {
-      console.error('Error view product', err);
-    }
-  }, []);
+// Fetch Favorite Products
+export const useFavoriteProducts = () => {
+  return useQuery({
+    queryKey: productsKeys.favorites(),
+    queryFn: async () => {
+      const data = await api.getApiV1ProductFavorites();
+      return data;
+    },
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  });
+};
 
-  return {
-    products,
-    productDetail,
-    loading,
-    error,
-    fetchProducts,
-    fetchProductDetail,
-    updateStock,
-    updateActive,
-    updateFeatured,
-    favoriteProduct,
-    viewProduct,
-  };
-}
+// Get Product Stock
+export const useProductStock = (id: string) => {
+  return useQuery({
+    queryKey: [...productsKeys.detail(id), 'stock'],
+    queryFn: async () => {
+      const data = await api.getApiV1ProductIdStock(id);
+      return data;
+    },
+    enabled: !!id,
+    staleTime: 1000 * 30, // 30 seconds (stock changes frequently)
+  });
+};
+
+// Create Product
+export const useCreateProduct = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: ProductCreateDto) => {
+      const result = await api.postApiV1Product(data);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productsKeys.lists() });
+      toast.success('Tạo sản phẩm thành công!');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Không thể tạo sản phẩm');
+    },
+  });
+};
+
+// Update Product
+export const useUpdateProduct = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: ProductUpdateDto }) => {
+      const result = await api.putApiV1ProductId(id, data);
+      return result;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: productsKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: productsKeys.lists() });
+      toast.success('Cập nhật sản phẩm thành công!');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Không thể cập nhật sản phẩm');
+    },
+  });
+};
+
+// Delete Product
+export const useDeleteProduct = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const result = await api.deleteApiV1ProductId(id);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productsKeys.lists() });
+      toast.success('Xóa sản phẩm thành công!');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Không thể xóa sản phẩm');
+    },
+  });
+};
+
+// Update Stock
+export const useUpdateStock = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, quantity }: { id: string; quantity: number }) => {
+      const body: PatchApiV1ProductIdStockBody = { quantity };
+      const result = await api.patchApiV1ProductIdStock(id, body);
+      return result;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: productsKeys.detail(variables.id) });
+      toast.success('Cập nhật tồn kho thành công!');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Không thể cập nhật tồn kho');
+    },
+  });
+};
+
+// Toggle Active Status
+export const useToggleActive = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const body: PatchApiV1ProductIdActiveBody = { isActive };
+      const result = await api.patchApiV1ProductIdActive(id, body);
+      return result;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: productsKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: productsKeys.lists() });
+      toast.success('Cập nhật trạng thái thành công!');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Không thể cập nhật trạng thái');
+    },
+  });
+};
+
+// Toggle Featured Status
+export const useToggleFeatured = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, isFeatured }: { id: string; isFeatured: boolean }) => {
+      const body: PatchApiV1ProductIdFeaturedBody = { isFeatured };
+      const result = await api.patchApiV1ProductIdFeatured(id, body);
+      return result;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: productsKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: productsKeys.lists() });
+      toast.success('Cập nhật nổi bật thành công!');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Không thể cập nhật nổi bật');
+    },
+  });
+};
+
+// Track Product View
+export const useTrackView = () => {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const result = await api.postApiV1ProductIdView(id);
+      return result;
+    },
+    // No toast for view tracking (silent)
+  });
+};
+
+// Toggle Favorite
+export const useToggleFavorite = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const result = await api.postApiV1ProductIdFavorite(id);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productsKeys.favorites() });
+      toast.success('Đã cập nhật yêu thích!');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Không thể cập nhật yêu thích');
+    },
+  });
+};

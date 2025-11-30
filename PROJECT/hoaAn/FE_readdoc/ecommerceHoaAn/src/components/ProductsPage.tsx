@@ -10,6 +10,10 @@ import { QuickViewModal } from './QuickViewModal';
 import { BackToTop } from './ui/back-to-top';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useWishlist } from '../lib/hooks/useWishlist';
+import { useCart } from '../lib/hooks/useCart';
+import { useAuth } from '../lib/hooks/useAuth';
+import { getVietCommerceAPI } from '../../Api/generated-orval';
+import type { AddToCartDto } from '../../Api/generated-orval/schemas';
 import { vietCommerceProductService } from '../lib/services/vietCommerceProductService';
 import { type ProductListDto, type ProductFilterDto } from '@/api';
 import { 
@@ -25,6 +29,9 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
+import { toast } from 'sonner';
+
+const api = getVietCommerceAPI();
 
 type SortOption = 'newest' | 'price-low' | 'price-high' | 'name';
 type ViewMode = 'grid' | 'list';
@@ -54,9 +61,12 @@ export function ProductsPage({}: ProductsPageProps) {
   
   // Wishlist state - track loading cho từng product
   const [wishlistLoading, setWishlistLoading] = useState<Set<string>>(new Set());
+  const [cartLoading, setCartLoading] = useState<Set<string>>(new Set());
   
-  // Wishlist hook
+  // Hooks
   const { toggleWishlist, isInWishlist, loading: wishlistHookLoading } = useWishlist();
+  const { refreshCart } = useCart();
+  const { isAuthenticated } = useAuth();
 
   // Categories - có thể fetch từ API sau
   const categories = [
@@ -195,6 +205,52 @@ export function ProductsPage({}: ProductsPageProps) {
     } finally {
       // Remove loading state
       setWishlistLoading(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleAddToCart = async (productId: string, productName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (cartLoading.has(productId)) {
+      return;
+    }
+    
+    try {
+      setCartLoading(prev => new Set(prev).add(productId));
+      
+      const dto: AddToCartDto = { 
+        productId, 
+        quantity: 1
+      };
+      
+      if (isAuthenticated) {
+        await api.postApiV1CartAdd(dto);
+      } else {
+        await api.postApiV1CartGuestAdd(dto);
+      }
+      
+      await refreshCart();
+      
+      toast.success('Đã thêm vào giỏ hàng!', {
+        description: productName,
+      });
+    } catch (error: any) {
+      console.error('Add to cart error:', error);
+      
+      if (error.message?.includes('Insufficient stock')) {
+        toast.error('Sản phẩm không đủ số lượng trong kho');
+      } else if (error.status === 401) {
+        toast.error('Vui lòng đăng nhập để thêm vào giỏ hàng');
+      } else {
+        toast.error(error.message || 'Không thể thêm vào giỏ hàng');
+      }
+    } finally {
+      setCartLoading(prev => {
         const newSet = new Set(prev);
         newSet.delete(productId);
         return newSet;
@@ -460,10 +516,20 @@ export function ProductsPage({}: ProductsPageProps) {
                             
                               <Button 
                                 className="w-full bg-red-600 hover:bg-red-700 text-white"
-                                disabled={!product.inStock}
+                                disabled={!product.inStock || cartLoading.has(productId)}
+                                onClick={(e) => handleAddToCart(productId, productName, e)}
                               >
-                                <ShoppingCart className="w-4 h-4 mr-2" />
-                                {product.inStock ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+                                {cartLoading.has(productId) ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Đang thêm...
+                                  </>
+                                ) : (
+                                  <>
+                                    <ShoppingCart className="w-4 h-4 mr-2" />
+                                    {product.inStock ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+                                  </>
+                                )}
                               </Button>
                             </CardContent>
                           </div>

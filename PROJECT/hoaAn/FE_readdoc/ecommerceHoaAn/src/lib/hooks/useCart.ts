@@ -1,3 +1,10 @@
+/**
+ * useCart Hook - UPDATED for Checkout Flow
+ * ✅ Returns proper cart object with id for checkout
+ * ✅ Handles both guest and authenticated users
+ * ✅ Auto-detects user status from useAuth
+ */
+
 import { useState, useEffect, useCallback } from "react";
 import { CartService } from "@/api/services/CartService";
 import type { UpdateCartItemDto } from "@/api/models/UpdateCartItemDto";
@@ -17,19 +24,33 @@ interface CartItem {
   maxQuantity: number;
 }
 
-interface CartSummary {
+interface Cart {
+  id: string;
+  items: CartItem[];
   subtotal: number;
   discount: number;
   shippingFee: number;
-  total: number;
+  totalAmount: number;
   itemCount: number;
-  appliedCoupon?: string;
+  couponCode?: string;
 }
 
 interface UseCartReturn {
+  // ✅ NEW: Return full cart object for checkout
+  cart: Cart | null;
+
+  // Legacy support (deprecated but kept for compatibility)
   cartItems: CartItem[];
-  summary: CartSummary | null;
-  cartItemCount: number; // ✅ ADDED: Quick count for badge
+  summary: {
+    subtotal: number;
+    discount: number;
+    shippingFee: number;
+    total: number;
+    itemCount: number;
+    appliedCoupon?: string;
+  } | null;
+
+  cartItemCount: number;
   isLoading: boolean;
   error: string | null;
   isGuest: boolean;
@@ -50,40 +71,46 @@ interface UseCartReturn {
  * - Tự động refresh khi auth status thay đổi
  */
 export function useCart(): UseCartReturn {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const isGuest = !isAuthenticated;
 
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [summary, setSummary] = useState<CartSummary | null>(null);
-  const [cartItemCount, setCartItemCount] = useState<number>(0); // ✅ ADDED
+  const [cart, setCart] = useState<Cart | null>(null);
+  const [cartItemCount, setCartItemCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ NEW: Fetch cart item count (lightweight for badge)
+  // ✅ Fetch cart item count (lightweight for badge)
   const fetchCartCount = useCallback(async () => {
     try {
       const response = isGuest
         ? await CartService.getApiV1CartGuestItemCount()
         : await CartService.getApiV1CartItemCount();
 
-      // Backend có thể trả về: { count: 5 } hoặc { data: 5 } hoặc trực tiếp 5
       const count = response?.data?.count ?? response?.data ?? response ?? 0;
       setCartItemCount(count);
+      return count;
     } catch (err: any) {
-      // Silent fail - không hiển thị error cho count
       if (err?.status !== 404 && err?.status !== 400) {
         console.warn('Failed to fetch cart count:', err.message);
       }
       setCartItemCount(0);
+      return 0;
     }
   }, [isGuest]);
 
-  // Fetch cart data
+  // ✅ Fetch full cart data
   const fetchCart = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+    // For guest users, ensure we have a sessionId
+    if (isGuest) {
+      let sessionId = localStorage.getItem('guest_cart_session_id');
+      if (!sessionId) {
+        sessionId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+        localStorage.setItem('guest_cart_session_id', sessionId);
+        console.log('[useCart] 🆕 Created guest cart sessionId:', sessionId);
+      }
+    }
 
+    try {
       const cartResponse = isGuest
         ? await CartService.getApiV1CartGuest()
         : await CartService.getApiV1Cart();
@@ -92,9 +119,9 @@ export function useCart(): UseCartReturn {
         ? await CartService.getApiV1CartGuestSummary()
         : await CartService.getApiV1CartSummary();
 
-      // Transform API response to CartItem format
-      if (cartResponse?.data?.items) {
-        const transformedItems: CartItem[] = cartResponse.data.items.map((item: any) => ({
+      // ✅ Transform API response to CartItem format
+      const transformedItems: CartItem[] = cartResponse?.data?.items
+        ? cartResponse.data.items.map((item: any) => ({
           id: item.id || item.cartItemId,
           productId: item.productId,
           name: item.productName || item.name,
@@ -105,46 +132,48 @@ export function useCart(): UseCartReturn {
           category: item.category || "",
           inStock: item.stockAvailable > 0,
           maxQuantity: item.stockAvailable || 99,
-        }));
-        setCartItems(transformedItems);
+        }))
+        : [];
+
+      // ✅ Build complete cart object
+      const summaryData = summaryResponse?.data;
+      const cartData = cartResponse?.data;
+
+      if (transformedItems.length > 0 || summaryData) {
+        const newCart = {
+          id: cartData?.id || cartData?.cartId || 'guest-cart',
+          items: transformedItems,
+          subtotal: summaryData?.subTotal || summaryData?.subtotal || 0,
+          discount: summaryData?.discount || 0,
+          shippingFee: summaryData?.shippingFee || 0,
+          totalAmount: summaryData?.totalAmount || summaryData?.total || 0,
+          itemCount: summaryData?.totalItems || summaryData?.itemCount || transformedItems.length,
+          couponCode: summaryData?.appliedCoupon || summaryData?.couponCode,
+        };
+
+        setCart(newCart);
+        setCartItemCount(newCart.itemCount);
       } else {
-        setCartItems([]);
+        setCart(null);
+        setCartItemCount(0);
       }
 
-      // Transform summary response
-      if (summaryResponse?.data) {
-        const data = summaryResponse.data;
-        setSummary({
-          subtotal: data.subTotal || data.subtotal || 0,
-          discount: data.discount || 0,
-          shippingFee: data.shippingFee || 0,
-          total: data.totalAmount || data.total || 0,
-          itemCount: data.totalItems || data.itemCount || 0,
-          appliedCoupon: data.appliedCoupon || data.couponCode,
-        });
-        
-        // ✅ Update count from summary
-        setCartItemCount(data.totalItems || data.itemCount || 0);
-      }
+      setError(null);
     } catch (err: any) {
       if (err?.status === 404 || err?.message?.includes('Not Found')) {
-        setCartItems([]);
-        setSummary(null);
-        setCartItemCount(0); // ✅ Reset count
+        setCart(null);
+        setCartItemCount(0);
         setError(null);
         console.log(`📦 ${isGuest ? 'Guest' : 'User'} cart is empty`);
       } else if (err?.status === 400) {
-        setCartItems([]);
-        setSummary(null);
-        setCartItemCount(0); // ✅ Reset count
+        setCart(null);
+        setCartItemCount(0);
         setError(null);
         console.warn(`⚠️ ${isGuest ? 'Guest' : 'User'} cart not initialized yet`);
       } else {
         setError(err.message || "Không thể tải giỏ hàng");
         console.error("Error fetching cart:", err);
       }
-    } finally {
-      setIsLoading(false);
     }
   }, [isGuest]);
 
@@ -163,7 +192,6 @@ export function useCart(): UseCartReturn {
           await CartService.putApiV1CartUpdateItem(updateDto);
         }
 
-        // ✅ Refresh both count and cart
         await Promise.all([fetchCartCount(), fetchCart()]);
       } catch (err: any) {
         setError(err.message || "Không thể cập nhật số lượng");
@@ -183,7 +211,6 @@ export function useCart(): UseCartReturn {
           await CartService.deleteApiV1CartItems(cartItemId);
         }
 
-        // ✅ Refresh both count and cart
         await Promise.all([fetchCartCount(), fetchCart()]);
       } catch (err: any) {
         setError(err.message || "Không thể xóa sản phẩm");
@@ -202,9 +229,8 @@ export function useCart(): UseCartReturn {
         await CartService.deleteApiV1CartClear();
       }
 
-      setCartItems([]);
-      setSummary(null);
-      setCartItemCount(0); // ✅ Reset count
+      setCart(null);
+      setCartItemCount(0);
     } catch (err: any) {
       setError(err.message || "Không thể xóa giỏ hàng");
       throw err;
@@ -251,16 +277,63 @@ export function useCart(): UseCartReturn {
     }
   }, [isGuest]);
 
-  // ✅ Load cart and count on mount and when auth status changes
+  // ✅ Load cart on mount and when auth status changes
+  // CRITICAL: Wait for auth to finish loading before fetching cart
   useEffect(() => {
-    fetchCartCount(); // Lightweight count first
-    fetchCart();       // Full cart data
-  }, [fetchCartCount, fetchCart, isAuthenticated]);
+    // Don't fetch cart while auth is still loading
+    if (authLoading) {
+      console.log('[useCart] ⏳ Waiting for auth to finish loading...');
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadCart = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      console.log(`[useCart] 🔄 Loading cart for ${isGuest ? 'guest' : 'user'}...`);
+
+      try {
+        // Fetch both cart data and count in parallel
+        await Promise.all([
+          fetchCart(),
+          fetchCartCount()
+        ]);
+
+        console.log('[useCart] ✅ Cart loaded successfully');
+      } catch (err: any) {
+        console.error('[useCart] ❌ Error loading cart:', err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadCart();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authLoading, isAuthenticated, isGuest]);
 
   return {
-    cartItems,
-    summary,
-    cartItemCount, // ✅ EXPOSED
+    // ✅ NEW: Full cart object for checkout
+    cart,
+
+    // Legacy support (deprecated)
+    cartItems: cart?.items || [],
+    summary: cart ? {
+      subtotal: cart.subtotal,
+      discount: cart.discount,
+      shippingFee: cart.shippingFee,
+      total: cart.totalAmount,
+      itemCount: cart.itemCount,
+      appliedCoupon: cart.couponCode,
+    } : null,
+
+    cartItemCount,
     isLoading,
     error,
     isGuest,

@@ -1,6 +1,6 @@
 /**
  * Authentication Service
- * ✅ FIXED: Sử dụng OpenAPI generated client thay vì custom apiRequest
+ * ✅ FIXED: Extract error messages from backend response body
  */
 
 import { AuthService as ApiAuthService } from '@/api/services/AuthService';
@@ -17,13 +17,13 @@ import type {
 } from '../api/types';
 
 /**
- * ✅ OpenAPI Response Structure - Trả về raw response
+ * ✅ OpenAPI Response Structure
  */
 interface OpenAPIResponse {
   success: boolean;
   data: {
-    token: string;           // ← Backend có thể dùng "token" hoặc "accessToken"
-    accessToken?: string;    // ← Hỗ trợ cả 2
+    token: string;
+    accessToken?: string;
     refreshToken: string;
     expires?: string;
     user: {
@@ -37,6 +37,66 @@ interface OpenAPIResponse {
     };
   };
   message?: string;
+}
+
+/**
+ * ✅ Helper: Extract error message from OpenAPI client error
+ * Priority:
+ * 1. error.body.message (backend custom message)
+ * 2. error.body.title
+ * 3. error.message
+ * 4. Default message
+ */
+function extractErrorMessage(error: any, defaultMessage: string): string {
+  console.log('[AuthService] 🔍 Extracting error message...');
+  console.log('[AuthService] Error structure:', {
+    hasBody: !!error.body,
+    bodyType: typeof error.body,
+    hasMessage: !!error.message,
+    status: error.status,
+  });
+
+  // Case 1: error.body is an object with message
+  if (error.body && typeof error.body === 'object') {
+    console.log('[AuthService] 📦 error.body content:', error.body);
+    
+    if (error.body.message) {
+      console.log('[AuthService] ✅ Found message in error.body.message');
+      return error.body.message;
+    }
+    
+    if (error.body.title) {
+      console.log('[AuthService] ✅ Found message in error.body.title');
+      return error.body.title;
+    }
+
+    // Case 2: error.body is a string (rare but possible)
+    if (typeof error.body === 'string') {
+      console.log('[AuthService] ✅ error.body is string');
+      return error.body;
+    }
+  }
+
+  // Case 3: Axios-style error.response.data.message
+  if (error.response?.data?.message) {
+    console.log('[AuthService] ✅ Found message in error.response.data.message');
+    return error.response.data.message;
+  }
+
+  // Case 4: Direct error.message (but avoid generic ones)
+  if (error.message && error.message !== 'Unauthorized' && error.message !== 'Request failed') {
+    console.log('[AuthService] ✅ Using error.message');
+    return error.message;
+  }
+
+  // Case 5: String error
+  if (typeof error === 'string') {
+    console.log('[AuthService] ✅ Error is string');
+    return error;
+  }
+
+  console.log('[AuthService] ⚠️ Using default message:', defaultMessage);
+  return defaultMessage;
 }
 
 /**
@@ -75,7 +135,7 @@ const USE_MOCK = getMockMode();
 
 class AuthService {
   /**
-   * ✅ FIXED: Đăng nhập sử dụng OpenAPI client
+   * ✅ FIXED: Login with proper error message extraction
    */
   async login(request: LoginRequest): Promise<LoginResponse> {
     try {
@@ -97,7 +157,6 @@ class AuthService {
 
       console.log('[AuthService] Calling login API via OpenAPI client...');
       
-      // ✅ FIXED: Dùng OpenAPI generated AuthService
       const apiResponse = await ApiAuthService.postApiV1AuthLogin({
         email: request.email,
         password: request.password,
@@ -105,24 +164,14 @@ class AuthService {
       
       console.log('[AuthService] 🔍 Raw API Response:', apiResponse);
       
-      // ✅ Parse response - OpenAPI client trả về raw object
       const backendResponse = apiResponse as OpenAPIResponse;
       
-      console.log('[AuthService] Parsed response structure:', {
-        hasSuccess: backendResponse.success !== undefined,
-        hasData: backendResponse.data !== undefined,
-        dataKeys: backendResponse.data ? Object.keys(backendResponse.data) : [],
-      });
-
-      // ✅ Extract token - Hỗ trợ cả "token" và "accessToken"
       const accessToken = backendResponse.data?.accessToken || backendResponse.data?.token;
       const refreshToken = backendResponse.data?.refreshToken;
       const user = backendResponse.data?.user;
 
-      // ✅ Validate response data
       if (!accessToken) {
-        console.error('[AuthService] ❌ Missing accessToken/token in response:', backendResponse);
-        console.error('[AuthService] Available keys:', Object.keys(backendResponse.data || {}));
+        console.error('[AuthService] ❌ Missing accessToken/token in response');
         throw new Error('Backend không trả về access token');
       }
 
@@ -136,16 +185,10 @@ class AuthService {
         throw new Error('Backend không trả về thông tin user');
       }
 
-      // ✅ Lưu tokens
       tokenStorage.setTokens(accessToken, refreshToken, request.rememberMe);
       
-      console.log('[AuthService] ✅ Tokens saved successfully:', {
-        accessToken: accessToken.substring(0, 30) + '...',
-        refreshToken: refreshToken.substring(0, 30) + '...',
-        rememberMe: request.rememberMe,
-      });
+      console.log('[AuthService] ✅ Tokens saved successfully');
 
-      // ✅ Transform backend user sang frontend format
       const transformedResponse: LoginResponse = {
         accessToken,
         refreshToken,
@@ -162,26 +205,30 @@ class AuthService {
         }
       };
       
-      console.log('[AuthService] ✅ Login successful:', {
-        userId: transformedResponse.user.id,
-        email: transformedResponse.user.email,
-        role: transformedResponse.user.role,
-      });
+      console.log('[AuthService] ✅ Login successful:', transformedResponse.user.email);
 
       return transformedResponse;
+      
     } catch (error: any) {
       console.error('[AuthService] ❌ Login error:', error);
-      console.error('[AuthService] Error details:', {
-        message: error.message,
-        body: error.body,
-        status: error.status,
-      });
-      throw error;
+      console.error('[AuthService] Full error object:', JSON.stringify(error, null, 2));
+      
+      // ✅ CRITICAL: Extract message from error.body
+      const errorMessage = extractErrorMessage(error, 'Đăng nhập thất bại');
+      
+      console.error('[AuthService] 🎯 Final error message to display:', errorMessage);
+      
+      // ✅ Create new error with extracted message
+      const customError = new Error(errorMessage);
+      (customError as any).status = error.status;
+      (customError as any).originalError = error;
+      
+      throw customError;
     }
   }
 
   /**
-   * ✅ FIXED: Google login
+   * ✅ FIXED: Google login with error extraction
    */
   async loginWithGoogle(request: GoogleLoginRequest): Promise<LoginResponse> {
     try {
@@ -234,14 +281,20 @@ class AuthService {
           updatedAt: new Date().toISOString(),
         }
       };
-    } catch (error) {
+      
+    } catch (error: any) {
       console.error('[AuthService] Google login error:', error);
-      throw error;
+      
+      const errorMessage = extractErrorMessage(error, 'Đăng nhập bằng Google thất bại');
+      
+      const customError = new Error(errorMessage);
+      (customError as any).status = error.status;
+      throw customError;
     }
   }
 
   /**
-   * ✅ FIXED: Register
+   * ✅ FIXED: Register with error extraction
    */
   async register(request: RegisterRequest): Promise<LoginResponse> {
     try {
@@ -303,14 +356,20 @@ class AuthService {
           updatedAt: new Date().toISOString(),
         }
       };
-    } catch (error) {
+      
+    } catch (error: any) {
       console.error('[AuthService] Register error:', error);
-      throw error;
+      
+      const errorMessage = extractErrorMessage(error, 'Đăng ký thất bại');
+      
+      const customError = new Error(errorMessage);
+      (customError as any).status = error.status;
+      throw customError;
     }
   }
 
   /**
-   * Đăng xuất
+   * Logout
    */
   async logout(): Promise<void> {
     try {
@@ -335,7 +394,7 @@ class AuthService {
   }
 
   /**
-   * Refresh access token
+   * Refresh token
    */
   async refreshToken(): Promise<RefreshTokenResponse> {
     try {
@@ -386,27 +445,37 @@ class AuthService {
   }
 
   /**
-   * Kiểm tra authentication
+   * Check authentication
    */
   isAuthenticated(): boolean {
-    const hasToken = !!tokenStorage.getAccessToken();
-    return hasToken;
+    return !!tokenStorage.getAccessToken();
   }
 
-  // Placeholder methods - Implement nếu backend có endpoints
+  /**
+   * Change password
+   */
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    try {
+      await ApiAuthService.postApiV1AuthChangePassword({
+        currentPassword,
+        newPassword,
+      });
+    } catch (error: any) {
+      const errorMessage = extractErrorMessage(error, 'Đổi mật khẩu thất bại');
+      const customError = new Error(errorMessage);
+      throw customError;
+    }
+  }
+
+  /**
+   * Placeholder methods
+   */
   async getCurrentUser(): Promise<UserDto> {
     throw new Error('Not implemented - Backend endpoint /users/me needed');
   }
 
   async updateProfile(request: UpdateProfileRequest): Promise<UserDto> {
     throw new Error('Not implemented - Backend endpoint /users/profile needed');
-  }
-
-  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    await ApiAuthService.postApiV1AuthChangePassword({
-      currentPassword,
-      newPassword,
-    });
   }
 
   async sendVerificationEmail(): Promise<void> {

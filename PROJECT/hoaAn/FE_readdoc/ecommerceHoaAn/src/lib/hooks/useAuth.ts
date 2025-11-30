@@ -1,7 +1,6 @@
 /**
  * useAuth Hook
- * Custom hook để quản lý authentication state
- * ✅ UPDATED: Tự động merge guest cart sau khi login
+ * ✅ FIXED: Properly extract error messages from authService
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -30,16 +29,12 @@ interface UseAuthReturn {
   updateProfile: (request: UpdateProfileRequest) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   refreshUser: () => Promise<void>;
+  requireAuth: () => void;
+
 }
 
-/**
- * ✅ Local Storage Keys for user data
- */
 const USER_STORAGE_KEY = 'current_user';
 
-/**
- * ✅ Helper: Lưu user vào localStorage
- */
 const saveUserToStorage = (user: UserDto) => {
   try {
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
@@ -48,9 +43,6 @@ const saveUserToStorage = (user: UserDto) => {
   }
 };
 
-/**
- * ✅ Helper: Lấy user từ localStorage
- */
 const getUserFromStorage = (): UserDto | null => {
   try {
     const userJson = localStorage.getItem(USER_STORAGE_KEY);
@@ -61,9 +53,6 @@ const getUserFromStorage = (): UserDto | null => {
   }
 };
 
-/**
- * ✅ Helper: Xóa user từ localStorage
- */
 const clearUserFromStorage = () => {
   try {
     localStorage.removeItem(USER_STORAGE_KEY);
@@ -72,30 +61,33 @@ const clearUserFromStorage = () => {
   }
 };
 
-/**
- * ✅ NEW: Merge guest cart to user cart after login
- * Backend tự động lấy sessionId từ cookie
- */
 const mergeGuestCart = async () => {
   try {
-    console.log('[useAuth] 🔄 Merging guest cart to user cart...');
-    
-    // ✅ FIX: Backend expects empty body or specific DTO
-    // Check CartService.postApiV1CartMerge() signature
-    await CartService.postApiV1CartMerge({
-      // Backend có thể cần:
-      // guestSessionId: sessionId (nếu cần)
-      // hoặc empty {} nếu backend tự lấy từ cookie
-    });
-    
+    // Get guest cart sessionId from localStorage
+    const guestSessionId = localStorage.getItem('guest_cart_session_id');
+
+    if (!guestSessionId) {
+      console.log('[useAuth] ℹ️ No guest cart sessionId found, skipping merge');
+      return;
+    }
+
+    console.log('[useAuth] 🔄 Merging guest cart to user cart...', { guestSessionId });
+
+    // Call merge API with sessionId
+    await CartService.postApiV1CartMerge({ sessionId: guestSessionId });
+
     console.log('[useAuth] ✅ Cart merged successfully');
+
+    // Clear guest cart sessionId after successful merge
+    localStorage.removeItem('guest_cart_session_id');
+    console.log('[useAuth] 🗑️ Cleared guest cart sessionId');
   } catch (error: any) {
-    // Non-critical error - guest có thể không có cart
     if (error.status === 404 || error.message?.includes('Not Found')) {
-      console.log('[useAuth] ℹ️ No guest cart to merge');
+      console.log('[useAuth] ℹ️ No guest cart to merge (404)');
+      // Clear sessionId anyway
+      localStorage.removeItem('guest_cart_session_id');
     } else if (error.status === 415) {
-      console.error('[useAuth] ❌ Cart merge 415: Backend expects different Content-Type or body format');
-      console.error('[useAuth] 💡 Check MergeCartDto in backend');
+      console.error('[useAuth] ❌ Cart merge 415: Backend expects different Content-Type');
     } else {
       console.log('[useAuth] ⚠️ Cart merge failed (non-critical):', error.message);
     }
@@ -107,17 +99,12 @@ export const useAuth = (): UseAuthReturn => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * ✅ Load user khi component mount - Từ localStorage thay vì API
-   */
   useEffect(() => {
     const loadUser = () => {
       try {
-        // Check token có tồn tại không
         const hasToken = authService.isAuthenticated();
 
         if (hasToken) {
-          // Load user từ localStorage
           const savedUser = getUserFromStorage();
 
           if (savedUser) {
@@ -125,7 +112,6 @@ export const useAuth = (): UseAuthReturn => {
             setUser(savedUser);
           } else {
             console.warn('[useAuth] Token exists but no user data found');
-            // Token có nhưng không có user data → Clear tokens
             tokenStorage.clearTokens();
           }
         } else {
@@ -133,7 +119,6 @@ export const useAuth = (): UseAuthReturn => {
         }
       } catch (err) {
         console.error('[useAuth] Load user error:', err);
-        // Nếu có lỗi, clear tokens
         tokenStorage.clearTokens();
         clearUserFromStorage();
       } finally {
@@ -145,8 +130,7 @@ export const useAuth = (): UseAuthReturn => {
   }, []);
 
   /**
-   * Login
-   * ✅ UPDATED: Tự động merge cart sau khi login thành công
+   * ✅ FIXED: Login with proper error message extraction
    */
   const login = useCallback(async (request: LoginRequest) => {
     try {
@@ -158,18 +142,19 @@ export const useAuth = (): UseAuthReturn => {
 
       console.log('[useAuth] Login successful, user:', response.user.email);
 
-      // ✅ Lưu user vào state VÀ localStorage
       setUser(response.user);
       saveUserToStorage(response.user);
 
-      // ✅ Merge guest cart to user cart
       await mergeGuestCart();
 
       toast.success('Đăng nhập thành công!');
-    } catch (err) {
+    } catch (err: any) {
       console.error('[useAuth] Login error:', err);
-      const errorMessage =
-        err instanceof ApiError ? err.getDisplayMessage() : 'Đăng nhập thất bại';
+
+      // ✅ FIXED: Ưu tiên message từ Error.message (đã được authService xử lý)
+      const errorMessage = (err as Error).message || 'Đăng nhập thất bại';
+
+      console.log('[useAuth] 🎯 Error message to display:', errorMessage);
 
       setError(errorMessage);
       toast.error(errorMessage);
@@ -180,8 +165,7 @@ export const useAuth = (): UseAuthReturn => {
   }, []);
 
   /**
-   * Login with Google
-   * ✅ UPDATED: Tự động merge cart sau khi login thành công
+   * ✅ FIXED: Google login with proper error handling
    */
   const loginWithGoogle = useCallback(async (idToken: string) => {
     try {
@@ -191,19 +175,17 @@ export const useAuth = (): UseAuthReturn => {
       const request: GoogleLoginRequest = { idToken };
       const response = await authService.loginWithGoogle(request);
 
-      // ✅ Lưu user
       setUser(response.user);
       saveUserToStorage(response.user);
 
-      // ✅ Merge guest cart to user cart
       await mergeGuestCart();
 
       toast.success('Đăng nhập bằng Google thành công!');
-    } catch (err) {
-      const errorMessage =
-        err instanceof ApiError
-          ? err.getDisplayMessage()
-          : 'Đăng nhập bằng Google thất bại';
+    } catch (err: any) {
+      console.error('[useAuth] Google login error:', err);
+
+      // ✅ FIXED: Use Error.message directly
+      const errorMessage = (err as Error).message || 'Đăng nhập bằng Google thất bại';
 
       setError(errorMessage);
       toast.error(errorMessage);
@@ -214,8 +196,7 @@ export const useAuth = (): UseAuthReturn => {
   }, []);
 
   /**
-   * Register
-   * ✅ UPDATED: Tự động merge cart sau khi đăng ký thành công
+   * ✅ FIXED: Register with proper error handling
    */
   const register = useCallback(async (request: RegisterRequest) => {
     try {
@@ -224,17 +205,17 @@ export const useAuth = (): UseAuthReturn => {
 
       const response = await authService.register(request);
 
-      // ✅ Lưu user
       setUser(response.user);
       saveUserToStorage(response.user);
 
-      // ✅ Merge guest cart to user cart
       await mergeGuestCart();
 
       toast.success('Đăng ký thành công!');
-    } catch (err) {
-      const errorMessage =
-        err instanceof ApiError ? err.getDisplayMessage() : 'Đăng ký thất bại';
+    } catch (err: any) {
+      console.error('[useAuth] Register error:', err);
+
+      // ✅ FIXED: Use Error.message directly
+      const errorMessage = (err as Error).message || 'Đăng ký thất bại';
 
       setError(errorMessage);
       toast.error(errorMessage);
@@ -252,14 +233,12 @@ export const useAuth = (): UseAuthReturn => {
       setIsLoading(true);
       await authService.logout();
 
-      // ✅ Clear user from state và storage
       setUser(null);
       clearUserFromStorage();
 
       toast.success('Đăng xuất thành công!');
     } catch (err) {
       console.error('[useAuth] Logout error:', err);
-      // Vẫn clear user dù có lỗi
       setUser(null);
       clearUserFromStorage();
     } finally {
@@ -277,16 +256,15 @@ export const useAuth = (): UseAuthReturn => {
 
       const updatedUser = await authService.updateProfile(request);
 
-      // ✅ Cập nhật user
       setUser(updatedUser);
       saveUserToStorage(updatedUser);
 
       toast.success('Cập nhật thông tin thành công!');
-    } catch (err) {
-      const errorMessage =
-        err instanceof ApiError
-          ? err.getDisplayMessage()
-          : 'Cập nhật thông tin thất bại';
+    } catch (err: any) {
+      console.error('[useAuth] Update profile error:', err);
+
+      // ✅ FIXED: Use Error.message directly
+      const errorMessage = (err as Error).message || 'Cập nhật thông tin thất bại';
 
       setError(errorMessage);
       toast.error(errorMessage);
@@ -308,11 +286,11 @@ export const useAuth = (): UseAuthReturn => {
         await authService.changePassword(currentPassword, newPassword);
 
         toast.success('Đổi mật khẩu thành công!');
-      } catch (err) {
-        const errorMessage =
-          err instanceof ApiError
-            ? err.getDisplayMessage()
-            : 'Đổi mật khẩu thất bại';
+      } catch (err: any) {
+        console.error('[useAuth] Change password error:', err);
+
+        // ✅ FIXED: Use Error.message directly
+        const errorMessage = (err as Error).message || 'Đổi mật khẩu thất bại';
 
         setError(errorMessage);
         toast.error(errorMessage);
@@ -323,23 +301,41 @@ export const useAuth = (): UseAuthReturn => {
     },
     []
   );
+  /**
+ * Require user to be logged in before performing an action
+ * - Shows toast
+ * - Throws typed error "AUTH_REQUIRED"
+ * - Auto-redirects to /login
+ */
+  const requireAuth = () => {
+    if (!user) {
+      const msg = 'Vui lòng đăng nhập để tiếp tục.';
+      toast.error(msg);
+
+      // 👇 Redirect only if running in browser (avoid SSR issues)
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+
+      const error = new Error('AUTH_REQUIRED');
+      (error as any).code = 'AUTH_REQUIRED';
+      throw error;
+    }
+  };
 
   /**
-   * ✅ Refresh user data - Gọi API nếu backend có endpoint
-   * Nếu backend không có /users/me thì dùng cached data
+   * Refresh user data
    */
   const refreshUser = useCallback(async () => {
     try {
       setIsLoading(true);
 
-      // Try to get fresh data from API
       try {
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
         saveUserToStorage(currentUser);
         console.log('[useAuth] User refreshed from API');
       } catch (apiError) {
-        // Nếu API fail, dùng cached data
         console.warn('[useAuth] API refresh failed, using cached data');
         const cachedUser = getUserFromStorage();
         if (cachedUser) {
@@ -366,6 +362,8 @@ export const useAuth = (): UseAuthReturn => {
     updateProfile,
     changePassword,
     refreshUser,
+
+    requireAuth,
   };
 };
 

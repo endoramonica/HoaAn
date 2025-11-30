@@ -9,13 +9,19 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useWishlist } from '../lib/hooks/useWishlist';
-import { Heart, ShoppingCart, Eye } from 'lucide-react';
-import { ProductListDto } from '../lib/api/types';
+import { useCart } from '../lib/hooks/useCart';
+import { useAuth } from '../lib/hooks/useAuth';
+import { getVietCommerceAPI } from '../../Api/generated-orval';
+import type { AddToCartDto } from '../../Api/generated-orval/schemas';
+import { Heart, ShoppingCart, Eye, Loader2 } from 'lucide-react';
+import type { ProductListDto } from '../lib/api/types';
+import { toast } from 'sonner';
+
+const api = getVietCommerceAPI();
 
 interface ProductCardProps {
   product: ProductListDto;
   onQuickView?: (product: ProductListDto) => void;
-  onAddToCart?: (product: ProductListDto) => void;
   viewMode?: 'grid' | 'list';
   showWishlistButton?: boolean;
 }
@@ -23,12 +29,14 @@ interface ProductCardProps {
 export function ProductCard({ 
   product, 
   onQuickView, 
-  onAddToCart,
   viewMode = 'grid',
   showWishlistButton = true 
 }: ProductCardProps) {
-  const { toggleWishlist, isInWishlist } = useWishlist({ autoLoad: false });
+  const { toggleWishlist, isInWishlist } = useWishlist();
+  const { refreshCart } = useCart();
+  const { isAuthenticated } = useAuth();
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const isInWishlistState = isInWishlist(product.id);
 
@@ -36,7 +44,7 @@ export function ProductCard({
     e.stopPropagation();
     setIsTogglingWishlist(true);
     try {
-      await toggleWishlist(product.id, product.name);
+      await toggleWishlist(product.id);
     } catch (error) {
       console.error('Error toggling wishlist:', error);
     } finally {
@@ -44,10 +52,45 @@ export function ProductCard({
     }
   };
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onAddToCart) {
-      onAddToCart(product);
+    
+    if (!product?.id) {
+      toast.error('Không tìm thấy sản phẩm');
+      return;
+    }
+
+    try {
+      setIsAddingToCart(true);
+      
+      const dto: AddToCartDto = { 
+        productId: product.id, 
+        quantity: 1
+      };
+      
+      if (isAuthenticated) {
+        await api.postApiV1CartAdd(dto);
+      } else {
+        await api.postApiV1CartGuestAdd(dto);
+      }
+      
+      await refreshCart();
+      
+      toast.success('Đã thêm vào giỏ hàng!', {
+        description: product.name,
+      });
+    } catch (error: any) {
+      console.error('Add to cart error:', error);
+      
+      if (error.message?.includes('Insufficient stock')) {
+        toast.error('Sản phẩm không đủ số lượng trong kho');
+      } else if (error.status === 401) {
+        toast.error('Vui lòng đăng nhập để thêm vào giỏ hàng');
+      } else {
+        toast.error(error.message || 'Không thể thêm vào giỏ hàng');
+      }
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 
@@ -187,11 +230,20 @@ export function ProductCard({
           {/* Add to Cart Button */}
           <Button 
             className="w-full bg-red-600 hover:bg-red-700 text-white"
-            disabled={!product.inStock}
+            disabled={!product.inStock || isAddingToCart}
             onClick={handleAddToCart}
           >
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            {product.inStock ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+            {isAddingToCart ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Đang thêm...
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                {product.inStock ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+              </>
+            )}
           </Button>
         </CardContent>
       </div>

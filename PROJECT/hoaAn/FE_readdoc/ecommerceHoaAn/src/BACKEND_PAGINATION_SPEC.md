@@ -291,7 +291,7 @@ public class ProductService : IProductService
 ## ⚠️ QUAN TRỌNG - CHECKLIST
 
 ### ✅ Pagination Logic
-- [ ] `page` bắt đầu từ **1** (không phải 0)
+- [X] `page` bắt đầu từ **1** (không phải 0)
 - [ ] `pageSize` có giá trị mặc định là 12
 - [ ] `pageSize` tối đa là 100 (validate để tránh query quá lớn)
 - [ ] `totalPages = Math.Ceiling((double)totalCount / pageSize)`
@@ -313,8 +313,8 @@ public class ProductService : IProductService
 - [ ] Hoặc sử dụng `[JsonPropertyName("camelCaseName")]` attribute
 
 ### ✅ Performance
-- [ ] Sử dụng `AsNoTracking()` cho read-only queries
-- [ ] Index database cho các trường thường xuyên filter/sort (Name, Price, CategoryId, CreatedAt)
+- [X] Sử dụng `AsNoTracking()` cho read-only queries
+- [X ] Index database cho các trường thường xuyên filter/sort (Name, Price, CategoryId, CreatedAt)
 - [ ] Limit maximum pageSize để tránh query quá lớn
 - [ ] Cân nhắc caching cho categories và filters phổ biến
 
@@ -393,7 +393,7 @@ Nếu có thắc mắc hoặc cần clarification, vui lòng liên hệ Frontend
 
 **Endpoint Base URL:**
 ```
-Development: https://hbh1z72d-7131.asse.devtunnels.ms/api/v1
+Development: https://localhost:7131
 Production: TBD
 ```
 

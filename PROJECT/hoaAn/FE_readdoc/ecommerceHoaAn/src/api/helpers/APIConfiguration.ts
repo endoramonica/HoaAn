@@ -138,7 +138,7 @@ export const verifyCredentialsConfig = async (): Promise<boolean> => {
     console.log('[API Config] Cookies:', document.cookie ? 'Present' : 'None visible (HTTP-only)');
     
     // Test với một API endpoint
-    const testResponse = await fetch('https://hbh1z72d-7131.asse.devtunnels.ms/api/v1/Cart', {
+    const testResponse = await fetch('https://localhost:7131/api/v1/Cart', {
       credentials: 'include',
       headers: token ? { 'Authorization': `Bearer ${token}` } : {},
     });

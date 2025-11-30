@@ -9,11 +9,10 @@ import { type RefreshTokenRequest, type RefreshTokenResponse } from './types';
 
 // Lấy API URL từ environment variable
 const getApiUrl = () => {
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env.VITE_API_URL || 'https://hbh1z72d-7131.asse.devtunnels.ms/api/v1';
-  }
-  return 'https://hbh1z72d-7131.asse.devtunnels.ms/api/v1';
+  return import.meta.env.VITE_API_URL ?? "https://localhost:7131/api/v1";
 };
+
+
 
 const API_BASE_URL = getApiUrl();
 
@@ -50,14 +49,14 @@ export const tokenStorage = {
       console.log('[TokenStorage] ✅ Found access token in localStorage');
       return rememberToken;
     }
-    
+
     // Then check sessionStorage (current session)
     const sessionToken = sessionStorage.getItem(ACCESS_TOKEN_KEY);
     if (sessionToken) {
       console.log('[TokenStorage] ✅ Found access token in sessionStorage');
       return sessionToken;
     }
-    
+
     console.warn('[TokenStorage] ⚠️ No access token found');
     return null;
   },
@@ -65,8 +64,8 @@ export const tokenStorage = {
   setAccessToken: (token: string): void => {
     const storage = tokenStorage.getStorage();
     storage.setItem(ACCESS_TOKEN_KEY, token);
-    
-    console.log('[TokenStorage] ✅ Access token saved to', 
+
+    console.log('[TokenStorage] ✅ Access token saved to',
       storage === localStorage ? 'localStorage' : 'sessionStorage',
       '- Key:', ACCESS_TOKEN_KEY
     );
@@ -76,7 +75,7 @@ export const tokenStorage = {
     // Check localStorage first (remember me)
     const rememberToken = localStorage.getItem(REFRESH_TOKEN_KEY);
     if (rememberToken) return rememberToken;
-    
+
     // Then check sessionStorage (current session)
     return sessionStorage.getItem(REFRESH_TOKEN_KEY);
   },
@@ -84,8 +83,8 @@ export const tokenStorage = {
   setRefreshToken: (token: string): void => {
     const storage = tokenStorage.getStorage();
     storage.setItem(REFRESH_TOKEN_KEY, token);
-    
-    console.log('[TokenStorage] ✅ Refresh token saved to', 
+
+    console.log('[TokenStorage] ✅ Refresh token saved to',
       storage === localStorage ? 'localStorage' : 'sessionStorage'
     );
   },
@@ -97,7 +96,7 @@ export const tokenStorage = {
     localStorage.removeItem(REMEMBER_ME_KEY);
     sessionStorage.removeItem(ACCESS_TOKEN_KEY);
     sessionStorage.removeItem(REFRESH_TOKEN_KEY);
-    
+
     console.log('[TokenStorage] 🗑️ All tokens cleared');
   },
 
@@ -108,20 +107,20 @@ export const tokenStorage = {
       rememberMe,
       willUseStorage: rememberMe ? 'localStorage' : 'sessionStorage'
     });
-    
+
     // Set remember me preference if provided
     if (rememberMe !== undefined) {
       tokenStorage.setRememberMe(rememberMe);
     }
-    
+
     tokenStorage.setAccessToken(accessToken);
     tokenStorage.setRefreshToken(refreshToken);
-    
+
     // ✅ VERIFY NGAY
     const storage = tokenStorage.getStorage();
     const savedAccess = storage.getItem(ACCESS_TOKEN_KEY);
     const savedRefresh = storage.getItem(REFRESH_TOKEN_KEY);
-    
+
     console.log('[TokenStorage] ✅ Verification:', {
       accessTokenSaved: !!savedAccess,
       refreshTokenSaved: !!savedRefresh,
@@ -180,7 +179,7 @@ const processQueue = (error: any, token: string | null = null) => {
 apiClient.interceptors.request.use(
   (config) => {
     const token = tokenStorage.getAccessToken();
-    
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log('[API Request] ✅ Token attached to', config.method?.toUpperCase(), config.url);
@@ -315,23 +314,23 @@ export const createFileUploadClient = (
  * Generic API request wrapper
  */
 export const apiRequest = {
-  get: function<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  get: function <T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     return apiClient.get<T>(url, config).then(response => response.data);
   },
 
-  post: function<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  post: function <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     return apiClient.post<T>(url, data, config).then(response => response.data);
   },
 
-  put: function<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  put: function <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     return apiClient.put<T>(url, data, config).then(response => response.data);
   },
 
-  patch: function<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  patch: function <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     return apiClient.patch<T>(url, data, config).then(response => response.data);
   },
 
-  delete: function<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  delete: function <T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     return apiClient.delete<T>(url, config).then(response => response.data);
   },
 };

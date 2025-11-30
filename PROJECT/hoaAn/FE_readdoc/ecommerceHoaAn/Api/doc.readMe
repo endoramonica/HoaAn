@@ -1,0 +1,18 @@
+API Folder Overview
+Thư mục Api/generated-orval chứa client TypeScript được orval sinh từ swagger.json. File index.ts xuất ra factory getVietCommerceAPI với ~90 hàm gọi REST cho toàn bộ domain (auth, cart, product, order, wishlist, social feed...). Mỗi hàm đã gắn đầy đủ url, phương thức HTTP, headers và kiểu dữ liệu DTO, ví dụ postApiV1AuthRegister, getApiV1Cart, postApiV1CheckoutProcess, v.v.
+index.tsLines 92-210
+const postApiV1AuthRegister = (registerRequestDTO: RegisterRequestDTO) => {  return apiClient<void>({    url: `/api/v1/Auth/register`,    method: 'POST',    headers: { 'Content-Type': 'application/json' },    data: registerRequestDTO,  });};
+Thư mục con generated-orval/schemas chứa hơn 100 file DTO/type dùng bởi các hàm ở trên. Đây là nguồn các interface AddToCartDto, ProductDetailDtoApiResponse, WishlistItemDtoListApiResponse… giúp code React có type-safe response payload.
+scripts/generate.ts
+Script Node này tự động hóa việc regen client: chạy npx orval --config orval.config.js để viết lại Api/generated-orval, sau đó dùng openapi-typescript-codegen sinh thêm một client khác ở src/Api/generated-client (dùng cho các thư viện hoặc luồng khác cần kiểu union). Bạn chỉ cần cập nhật swagger.json, sau đó chạy script để sync code với backend.
+generate.tsLines 1-20
+console.log('🚀 Running ORVAL...');execSync('npx orval --config orval.config.js', { stdio: 'inherit' });console.log('🚀 Running openapi-typescript-codegen...');generate({  input: swaggerPath,  output: './src/Api/generated-client',  clientName: 'ApiClient',  useUnionTypes: true,});
+Tài nguyên và cách dùng
+Nguồn tài nguyên: client REST typed, DTO schemas, và script tái sinh client → đóng vai trò cầu nối giữa React/Vite và VietCommerce backend.
+Sử dụng ở đâu: import getVietCommerceAPI() trong các hook/services React (ví dụ src/lib/hooks/useCart.ts, src/api/services/*). Bạn có thể khởi tạo 1 lần rồi destructuring các hàm cần cho component hoặc context của mình.
+Sử dụng khi nào: khi cần gọi endpoint chính thức theo spec mới nhất (đăng ký/đăng nhập, checkout, CRUD sản phẩm, thống kê đơn hàng, wishlist…). Mỗi tính năng FE nên ưu tiên dùng hàm đã sinh để tránh viết tay URL, method, kiểu dữ liệu.
+Tác vụ phù hợp:
+Lấp đầy logic trong src/lib/services/src/api/services bằng cách wrap lại hàm đã sinh, thêm caching/error handling.
+Viết hook mới (vd. usePostsFeed) chỉ cần gọi getApiV1PostsFeed.
+Tạo migration khi backend đổi schema: cập nhật swagger.json, chạy Api/scripts/generate.ts, rồi fix compile errors để đồng bộ hóa.
+Thư mục Api vì thế là “nguồn sự thật” cho mọi tương tác HTTP của app; hãy giữ nó được regenerate thường xuyên và import trực tiếp để tận dụng type-safety và coverage đầy đủ của VietCommerce API.

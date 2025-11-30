@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "sonner";
+import { OpenAPI } from "@/api/generated-client";
+import { request } from "@/api/generated-client/core/request";
 
 // Context Provider
 import { AppProvider } from "./lib/contexts/AppContext";
@@ -22,7 +24,7 @@ import { CartPage } from "./components/CartPage";
 import { ProfilePage } from "./components/ProfilePage";
 import { CalendarPage } from "./components/CalendarPage";
 import WishlistPage from "./components/WishlistPage";
-import { CommunityPage } from "./components/CommunityPage";
+import { CommunityPage } from "./components/community";
 import { QAPage } from "./components/QAPage";
 
 // Auth Pages
@@ -78,7 +80,10 @@ export default function App() {
               <Route path="/wishlist" element={<WishlistPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/calendar" element={<CalendarPage />} />
-              <Route path="/community" element={<CommunityPage />} />
+              <Route
+                path="/community"
+                element={<CommunityPage onBack={() => window.history.back()} />}
+              />
               <Route path="/qa" element={<QAPage />} />
             </Route>
 

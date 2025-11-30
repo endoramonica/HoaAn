@@ -5,10 +5,13 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Star, ShoppingCart, Heart, Minus, Plus, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useWishlist } from '../lib/hooks/useWishlist';
-import { CartService } from '@/api/services/CartService';
+import { getVietCommerceAPI } from '../../Api/generated-orval';
+import type { AddToCartDto } from '../../Api/generated-orval/schemas';
 import { useCart } from '../lib/hooks/useCart';
 import { useAuth } from '../lib/hooks/useAuth';
 import { toast } from 'sonner';
+
+const api = getVietCommerceAPI();
 
 interface Product {
   id: string;
@@ -38,7 +41,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
   const { isAuthenticated } = useAuth();
   const { refreshCart } = useCart();
 
-  // ✅ Add to cart handler
+  // ✅ Add to cart handler using Orval API
   const handleAddToCart = async () => {
     if (!product?.id) {
       toast.error('Không tìm thấy sản phẩm');
@@ -48,15 +51,17 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
     try {
       setIsAddingToCart(true);
       
-      const dto = { 
+      const dto: AddToCartDto = { 
         productId: product.id, 
         quantity 
       };
       
       // Tự động detect guest/user
-      const response = isAuthenticated 
-        ? await CartService.postApiV1CartAdd(dto)
-        : await CartService.postApiV1CartGuestAdd(dto);
+      if (isAuthenticated) {
+        await api.postApiV1CartAdd(dto);
+      } else {
+        await api.postApiV1CartGuestAdd(dto);
+      }
       
       // Refresh cart để update badge số lượng
       await refreshCart();

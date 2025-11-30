@@ -2,7 +2,7 @@
  * LoginPage - Trang đăng nhập (Phase 1: ĐÃ MIGRATE HOÀN TOÀN)
  * Dùng react-router-dom thuần, không onNavigate, không hybrid
  */
-import { useState, FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../lib/hooks/useAuth";
 import { Button } from "../../components/ui/button";

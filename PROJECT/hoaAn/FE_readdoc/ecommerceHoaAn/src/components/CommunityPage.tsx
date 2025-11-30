@@ -1,192 +1,306 @@
-import { useState, useRef } from 'react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Textarea } from './ui/textarea';
-import { Badge } from './ui/badge';
-import { Avatar } from './ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Label } from './ui/label';
-import { ImageWithFallback } from './figma/ImageWithFallback';
-import { 
-  MessageCircle, 
-  Heart, 
-  Share, 
-  Plus, 
-  Search, 
+import { useState, useRef, useEffect } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  MessageCircle,
+  Heart,
+  Share,
+  Plus,
+  Search,
   Clock,
   Users,
   Send,
-  Image as ImageIcon,
   X,
-  Camera
-} from 'lucide-react';
+  Camera,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 
 interface CommunityPageProps {
   onBack: () => void;
+  postsService: any;
 }
+// [X]TODO FIXED: Added optional properties to Post interface
+// [ ] add comments service into props 
+// [ ] TODO FIXED: Added error handling for image loading - there are no images in the current posts
+// [ ]  add token and autheticated for comunity. 
+// [ ]  fix the errors when we post the comments. 
+
 
 interface Post {
-  id: number;
-  author: string;
-  avatar: string;
+  id: string;
+  author?: {
+    id?: string;
+    name?: string;
+    avatar?: string;
+  };
   content: string;
-  images: string[];
-  likes: number;
-  comments: number;
-  shares: number;
-  timestamp: Date;
+  photoUrls?: string[];
+  likesCount: number;
+  commentsCount: number;
+  sharesCount: number;
+  createdAt: string;
   isLiked: boolean;
+  isBookmarked: boolean;
 }
 
-interface Comment {
-  id: number;
-  postId: number;
-  author: string;
-  avatar: string;
-  content: string;
-  likes: number;
-  timestamp: Date;
-  isLiked: boolean;
-}
-
-export function CommunityPage({ onBack }: CommunityPageProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+export default function CommunityPage({
+  onBack,
+  postsService,
+}: CommunityPageProps) {
+  const [searchQuery, setSearchQuery] = useState("");
   const [showNewPostDialog, setShowNewPostDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // New post form state
+
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
   const [newPost, setNewPost] = useState({
-    content: '',
-    images: [] as string[]
+    content: "",
+    photoFile: null as File | null,
+    previewUrl: null as string | null,
   });
 
-  const [posts, setPosts] = useState<Post[]>([
-    {
-      id: 1,
-      author: "Minh Châu",
-      avatar: "👩‍🦳",
-      content: "Hôm nay đi chùa cầu an cho gia đình, cảm thấy tâm hồn thật bình yên. Ai có kinh nghiệm về việc bày trí bàn thờ gia tiên cho đúng phong thủy không ạ? Gia đình mình sắp chuyển nhà mới.",
-      images: [],
-      likes: 24,
-      comments: 8,
-      shares: 5,
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-      isLiked: false
-    },
-    {
-      id: 2,
-      author: "Thanh Hương",
-      avatar: "🧑‍💼",
-      content: "Chia sẻ với mọi người về chuyến đi cầu duyên tại chùa Hà. Quy trình rất trang nghiêm và ý nghĩa. Mình đã chuẩn bị hoa quả, hương nến như hướng dẫn và thật sự cảm nhận được năng lượng tích cực.",
-      images: ["https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=500", "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500"],
-      likes: 67,
-      comments: 23,
-      shares: 12,
-      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
-      isLiked: true
-    },
-    {
-      id: 3,
-      author: "Đức Minh",
-      avatar: "👨‍🎓",
-      content: "Mọi người cho mình hỏi, tại sao khi thắp hương cầu nguyện thường thắp 3 nén? Có ý nghĩa tâm linh gì đặc biệt không ạ? Mình mới tìm hiểu về văn hóa tâm linh nên chưa rõ lắm.",
-      images: ["https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=500"],
-      likes: 18,
-      comments: 12,
-      shares: 3,
-      timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-      isLiked: false
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const fetchPosts = async (page = 1, append = false) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await postsService.getApiV1PostsFeed(page, 20);
+
+      if (response.data) {
+        const newPosts = response.data.items || [];
+
+        if (append) {
+          setPosts((prev) => [...prev, ...newPosts]);
+        } else {
+          setPosts(newPosts);
+        }
+
+        setHasMore(newPosts.length === 20);
+        setCurrentPage(page);
+      }
+    } catch (err: any) {
+      setError(err?.message || "Không thể tải bài viết. Vui lòng thử lại.");
+      console.error("Error fetching posts:", err);
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  };
 
-  const [comments] = useState<Comment[]>([
-    {
-      id: 1,
-      postId: 1,
-      author: "Bà Lan",
-      avatar: "👵",
-      content: "Bàn thờ nên đặt ở vị trí cao nhất trong nhà, hướng ra cửa chính nhé con.",
-      likes: 15,
-      timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
-      isLiked: false
-    },
-    {
-      id: 2,
-      postId: 2,
-      author: "Thầy Minh",
-      avatar: "🧙‍♂️",
-      content: "Cảm ơn bạn đã chia sẻ. Năng lượng tâm linh thật sự có thể cảm nhận được khi ta có tâm thành.",
-      likes: 12,
-      timestamp: new Date(Date.now() - 30 * 60 * 1000),
-      isLiked: true
+  const handleSearch = async (keyword: string) => {
+    if (!keyword.trim()) {
+      fetchPosts();
+      return;
     }
-  ]);
 
-  const filteredPosts = posts.filter(post => 
-    post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.author.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    try {
+      setIsLoading(true);
+      setError(null);
 
-  const handleLikePost = (postId: number) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
-        ? { ...post, likes: post.isLiked ? post.likes - 1 : post.likes + 1, isLiked: !post.isLiked }
-        : post
-    ));
+      const response = await postsService.getApiV1PostsSearch(
+        keyword,
+        undefined,
+        undefined,
+        1,
+        20
+      );
+
+      if (response.data) {
+        setPosts(response.data.items || []);
+      }
+    } catch (err: any) {
+      setError("Không thể tìm kiếm. Vui lòng thử lại.");
+      console.error("Error searching posts:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery) {
+        handleSearch(searchQuery);
+      } else {
+        fetchPosts();
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleLikePost = async (postId: string) => {
+    try {
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId
+            ? {
+                ...post,
+                likesCount: post.isLiked
+                  ? post.likesCount - 1
+                  : post.likesCount + 1,
+                isLiked: !post.isLiked,
+              }
+            : post
+        )
+      );
+
+      const response = await postsService.postApiV1PostsLike(postId);
+
+      if (response.data) {
+        setPosts((prev) =>
+          prev.map((post) =>
+            post.id === postId
+              ? {
+                  ...post,
+                  likesCount: response.data.totalLikes,
+                  isLiked: response.data.isLiked,
+                }
+              : post
+          )
+        );
+      }
+    } catch (err: any) {
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId
+            ? {
+                ...post,
+                likesCount: post.isLiked
+                  ? post.likesCount + 1
+                  : post.likesCount - 1,
+                isLiked: !post.isLiked,
+              }
+            : post
+        )
+      );
+      console.error("Error liking post:", err);
+    }
+  };
+
+  const handleBookmarkPost = async (postId: string) => {
+    try {
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId
+            ? { ...post, isBookmarked: !post.isBookmarked }
+            : post
+        )
+      );
+
+      await postsService.postApiV1PostsBookmark(postId);
+    } catch (err: any) {
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId
+            ? { ...post, isBookmarked: !post.isBookmarked }
+            : post
+        )
+      );
+      console.error("Error bookmarking post:", err);
+    }
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    Array.from(files).forEach(file => {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const result = e.target?.result as string;
-          setNewPost(prev => ({
-            ...prev,
-            images: [...prev.images, result]
-          }));
-        };
-        reader.readAsDataURL(file);
-      }
-    });
+    if (!file.type.startsWith("image/")) {
+      alert("Vui lòng chọn file hình ảnh");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setNewPost((prev) => ({
+        ...prev,
+        photoFile: file,
+        previewUrl: e.target?.result as string,
+      }));
+    };
+    reader.readAsDataURL(file);
   };
 
-  const removeImage = (index: number) => {
-    setNewPost(prev => ({
+  const removeImage = () => {
+    setNewPost((prev) => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      photoFile: null,
+      previewUrl: null,
     }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
-  const handleSubmitPost = () => {
+  const handleSubmitPost = async () => {
     if (!newPost.content.trim()) return;
 
-    const post: Post = {
-      id: Date.now(),
-      author: "Bạn",
-      avatar: "😊",
-      content: newPost.content,
-      images: newPost.images,
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      timestamp: new Date(),
-      isLiked: false
-    };
+    try {
+      setIsSubmitting(true);
+      setError(null);
 
-    // Add to top of feed (state update, no reload needed)
-    setPosts(prev => [post, ...prev]);
-    setNewPost({ content: '', images: [] });
-    setShowNewPostDialog(false);
+      const formData = {
+        Content: newPost.content,
+        PhotoFile: newPost.photoFile || undefined,
+        NotificationOn: "true",
+      };
+
+      const response = await postsService.postApiV1Posts(formData);
+
+      if (response.data) {
+        setPosts((prev) => [response.data, ...prev]);
+        setNewPost({ content: "", photoFile: null, previewUrl: null });
+        setShowNewPostDialog(false);
+        alert("Đã đăng bài viết thành công!");
+      }
+    } catch (err: any) {
+      setError(err?.message || "Không thể đăng bài. Vui lòng thử lại.");
+      console.error("Error creating post:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (!isLoading && hasMore) {
+      fetchPosts(currentPage + 1, true);
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+
+    if (hours < 1) return "Vừa xong";
+    if (hours < 24) return `${hours} giờ trước`;
+    if (days < 7) return `${days} ngày trước`;
+    return date.toLocaleDateString("vi-VN");
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
-      {/* Header */}
       <div className="bg-gradient-to-r from-amber-800 to-orange-800 text-white sticky top-0 z-40">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
@@ -196,12 +310,14 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
             >
               ← Quay lại
             </button>
-            <h1 className="text-xl">Cộng đồng Tâm Linh</h1>
-            <div className="w-6"></div>
+            <h1 className="text-xl font-semibold">Cộng đồng Tâm Linh</h1>
+            <div className="w-20"></div>
           </div>
-          
+
           <div className="text-center">
-            <p className="text-amber-100 text-sm mb-2">Chia sẻ - Kết nối - Học hỏi</p>
+            <p className="text-amber-100 text-sm mb-2">
+              Chia sẻ - Kết nối - Học hỏi
+            </p>
             <div className="flex items-center justify-center gap-6 text-sm">
               <span className="flex items-center gap-1">
                 <Users className="w-4 h-4" />
@@ -217,7 +333,6 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Search and New Post */}
         <div className="mb-6 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
@@ -248,11 +363,15 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
                     placeholder="Chia sẻ suy nghĩ, kinh nghiệm tâm linh của bạn..."
                     rows={4}
                     value={newPost.content}
-                    onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
+                    onChange={(e) =>
+                      setNewPost((prev) => ({
+                        ...prev,
+                        content: e.target.value,
+                      }))
+                    }
                   />
                 </div>
 
-                {/* Image Upload */}
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <Label>Hình ảnh</Label>
@@ -261,57 +380,69 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
                       variant="outline"
                       size="sm"
                       onClick={() => fileInputRef.current?.click()}
+                      disabled={!!newPost.photoFile}
                     >
                       <Camera className="w-4 h-4 mr-1" />
                       Thêm ảnh
                     </Button>
                   </div>
-                  
+
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
-                    multiple
                     onChange={handleImageUpload}
                     className="hidden"
                   />
 
-                  {/* Image Preview */}
-                  {newPost.images.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      {newPost.images.map((image, index) => (
-                        <div key={index} className="relative">
-                          <img
-                            src={image}
-                            alt={`Preview ${index + 1}`}
-                            className="w-full h-24 object-cover rounded-lg"
-                          />
-                          <button
-                            onClick={() => removeImage(index)}
-                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
+                  {newPost.previewUrl && (
+                    <div className="relative">
+                      <img
+                        src={newPost.previewUrl}
+                        alt="Preview"
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                      <button
+                        onClick={removeImage}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                     </div>
                   )}
                 </div>
 
+                {error && (
+                  <div className="flex items-center gap-2 text-red-600 text-sm">
+                    <AlertCircle className="w-4 h-4" />
+                    {error}
+                  </div>
+                )}
+
                 <div className="flex justify-end gap-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setShowNewPostDialog(false)}
+                    disabled={isSubmitting}
                   >
                     Hủy
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleSubmitPost}
-                    disabled={!newPost.content.trim()}
+                    disabled={!newPost.content.trim() || isSubmitting}
                     className="bg-amber-600 hover:bg-amber-700"
                   >
-                    <Send className="w-4 h-4 mr-1" />
-                    Đăng bài
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        Đang đăng...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-1" />
+                        Đăng bài
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -319,127 +450,133 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
           </Dialog>
         </div>
 
-        {/* Posts Feed */}
+        {error && !isSubmitting && (
+          <Card className="p-4 mb-6 bg-red-50 border-red-200">
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="w-5 h-5" />
+              <p>{error}</p>
+            </div>
+          </Card>
+        )}
+
+        {isLoading && posts.length === 0 && (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+          </div>
+        )}
+
+        {!isLoading && posts.length === 0 && (
+          <Card className="p-12 text-center">
+            <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              Chưa có bài viết nào
+            </h3>
+            <p className="text-gray-500">
+              Hãy là người đầu tiên chia sẻ câu chuyện của bạn!
+            </p>
+          </Card>
+        )}
+
         <div className="space-y-6">
-          {filteredPosts.map((post) => (
-            <Card key={post.id} className="p-6 bg-white shadow-md hover:shadow-lg transition-shadow">
-              {/* Post Header */}
+          {posts.map((post) => (
+            <Card
+              key={post.id}
+              className="p-6 bg-white shadow-md hover:shadow-lg transition-shadow"
+            >
+              {/* FIXED: Added optional chaining and default values */}
               <div className="flex items-start gap-3 mb-4">
                 <div className="w-12 h-12 bg-gradient-to-br from-amber-200 to-orange-300 rounded-full flex items-center justify-center text-xl">
-                  {post.avatar}
+                  {post.author?.avatar || "👤"}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-gray-800">{post.author}</span>
-                    {post.id === posts[0]?.id && (
+                    <span className="font-medium text-gray-800">
+                      {post.author?.name || "Người dùng ẩn danh"}
+                    </span>
+                    {posts.indexOf(post) === 0 && (
                       <Badge className="bg-green-100 text-green-800 text-xs">
-                        Mới đăng
+                        Mới nhất
                       </Badge>
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Clock className="w-3 h-3" />
-                    <span>{post.timestamp.toLocaleString('vi-VN')}</span>
+                    <span>{formatTime(post.createdAt)}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Post Content */}
               <div className="mb-4">
-                <p className="text-gray-700 leading-relaxed">{post.content}</p>
+                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {post.content}
+                </p>
               </div>
 
-              {/* Post Images */}
-              {post.images.length > 0 && (
-                <div className={`mb-4 ${
-                  post.images.length === 1 ? 'grid grid-cols-1' :
-                  post.images.length === 2 ? 'grid grid-cols-2 gap-2' :
-                  'grid grid-cols-2 gap-2'
-                }`}>
-                  {post.images.slice(0, 4).map((image, index) => (
-                    <div key={index} className="relative">
-                      <ImageWithFallback
-                        src={image}
-                        alt={`Post image ${index + 1}`}
-                        className={`w-full object-cover rounded-lg ${
-                          post.images.length === 1 ? 'h-64' : 'h-32'
-                        }`}
-                      />
-                      {index === 3 && post.images.length > 4 && (
-                        <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
-                          <span className="text-white">+{post.images.length - 4}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+              {/* FIXED: Added optional chaining for photoUrls */}
+              {post.photoUrls && post.photoUrls.length > 0 && (
+                <div className="mb-4">
+                  <img
+                    src={post.photoUrls[0]}
+                    alt="Post"
+                    className="w-full h-64 object-cover rounded-lg"
+                    onError={(e) => {
+                      e.currentTarget.src =
+                        "https://via.placeholder.com/500x300?text=Image+Not+Available";
+                    }}
+                  />
                 </div>
               )}
 
-              {/* Post Actions */}
               <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                 <div className="flex gap-6">
                   <button
                     onClick={() => handleLikePost(post.id)}
                     className={`flex items-center gap-2 text-sm transition-colors ${
-                      post.isLiked ? 'text-red-600' : 'text-gray-500 hover:text-red-600'
+                      post.isLiked
+                        ? "text-red-600"
+                        : "text-gray-500 hover:text-red-600"
                     }`}
                   >
-                    <Heart className={`w-5 h-5 ${post.isLiked ? 'fill-current' : ''}`} />
-                    {post.likes}
+                    <Heart
+                      className={`w-5 h-5 ${
+                        post.isLiked ? "fill-current" : ""
+                      }`}
+                    />
+                    {post.likesCount}
                   </button>
                   <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-amber-600">
                     <MessageCircle className="w-5 h-5" />
-                    {post.comments}
+                    {post.commentsCount}
                   </button>
                   <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600">
                     <Share className="w-5 h-5" />
-                    {post.shares}
+                    {post.sharesCount}
                   </button>
                 </div>
               </div>
-
-              {/* Comments Preview */}
-              {comments.filter(c => c.postId === post.id).length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <div className="space-y-3">
-                    {comments.filter(c => c.postId === post.id).slice(0, 2).map((comment) => (
-                      <div key={comment.id} className="flex gap-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center text-sm">
-                          {comment.avatar}
-                        </div>
-                        <div className="flex-1">
-                          <div className="bg-gray-50 rounded-lg p-3">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm text-gray-800">{comment.author}</span>
-                              <span className="text-xs text-gray-500">
-                                {comment.timestamp.toLocaleString('vi-VN')}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-600">{comment.content}</p>
-                          </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600">
-                              <Heart className="w-3 h-3" />
-                              {comment.likes}
-                            </button>
-                            <button className="text-xs text-gray-500 hover:text-amber-600">
-                              Trả lời
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {comments.filter(c => c.postId === post.id).length > 2 && (
-                      <button className="text-sm text-amber-600 hover:underline ml-11">
-                        Xem thêm bình luận...
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
             </Card>
           ))}
         </div>
+
+        {hasMore && posts.length > 0 && (
+          <div className="mt-6 text-center">
+            <Button
+              onClick={handleLoadMore}
+              disabled={isLoading}
+              variant="outline"
+              className="min-w-[200px]"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Đang tải...
+                </>
+              ) : (
+                "Xem thêm bài viết"
+              )}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
