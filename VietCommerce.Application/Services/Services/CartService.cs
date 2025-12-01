@@ -441,6 +441,7 @@ namespace VietCommerce.Application.Services.Services
 
         /// <summary>
         /// Get guest cart by session ID
+        /// Creates new empty cart if doesn't exist
         /// </summary>
         public async Task<ApiResponse<GetCartResponseDto>> GetGuestCartAsync(string sessionId)
         {
@@ -454,12 +455,19 @@ namespace VietCommerce.Application.Services.Services
                     async () =>
                     {
                         var cartRepository = _unitOfWork.Carts as ICartRepository;
-                        return await cartRepository.GetBySessionIdAsync(sessionId);
+                        var existingCart = await cartRepository.GetBySessionIdAsync(sessionId);
+
+                        // ✅ If cart doesn't exist, create a new empty one
+                        if (existingCart == null)
+                        {
+                            LogInfo($"📦 Creating new guest cart for session: {sessionId.Substring(0, 8)}...");
+                            existingCart = await cartRepository.GetOrCreateGuestCartAsync(sessionId);
+                        }
+
+                        return existingCart;
                     },
                     TimeSpan.FromMinutes(CACHE_DURATION_MINUTES)
                 );
-
-                ThrowIf(cart == null, "Guest cart not found");
 
                 var cartItems = cart.CartItems ?? new List<CartItem>();
                 var cartDto = MapCartToDto(cart, cartItems);
@@ -487,23 +495,15 @@ namespace VietCommerce.Application.Services.Services
                     async () =>
                     {
                         var cartRepository = _unitOfWork.Carts as ICartRepository;
-                        var cart = await cartRepository.GetBySessionIdAsync(sessionId);
 
-                        if (cart == null)
-                        {
-                            return new CartSummaryDto
-                            {
-                                ItemCount = 0,
-                                TotalAmount = 0,
-                                Status = "ACTIVE"
-                            };
-                        }
+                        // ✅ Get or create cart instead of just getting
+                        var cart = await cartRepository.GetOrCreateGuestCartAsync(sessionId);
 
                         return new CartSummaryDto
                         {
-                            ItemCount = cart.CartItems.Sum(ci => ci.Quantity),
-                            TotalAmount = cart.CartItems.Sum(ci =>
-                                ci.Quantity * GetCurrentProductPrice(ci.Product?.Prices)),
+                            ItemCount = cart.CartItems?.Sum(ci => ci.Quantity) ?? 0,
+                            TotalAmount = cart.CartItems?.Sum(ci =>
+                                ci.Quantity * GetCurrentProductPrice(ci.Product?.Prices)) ?? 0,
                             Status = cart.IsActive ? "ACTIVE" : "INACTIVE"
                         };
                     },

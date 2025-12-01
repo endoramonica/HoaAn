@@ -48,7 +48,7 @@ public class NotificationService : BaseService, INotificationService
 
                 Expression<Func<Notification, object>> orderBy = pagination.SortBy?.ToLower() switch
                 {
-                    "read" => n => n.Read,
+                    "read" => n => n.IsRead,
                     "type" => n => n.Type!,
                     "title" => n => n.Title!,
                     _ => n => n.CreatedAt
@@ -93,20 +93,26 @@ public class NotificationService : BaseService, INotificationService
             var notification = await _notificationRepo.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException($"Notification {id} not found");
 
-            // Optional: Check ownership (nếu cần permission chính xác hơn)
+            // Optional: Check ownership
             // if (notification.UserId != currentUserId) throw new UnauthorizedAccessException();
 
-            if (!notification.Read)
+            if (!notification.IsRead)
             {
-                notification.Read = true;
+                notification.IsRead = true;
                 _notificationRepo.Update(notification);
                 await _unitOfWork.SaveChangesAsync();
             }
 
-            await InvalidateUserNotificationCacheAsync(notification.UserId);
+            // Lấy userId an toàn
+            var userId = notification.UserId
+                ?? throw new InvalidOperationException("Notification does not have a UserId");
+
+            // Chỉ gọi 1 lần
+            await InvalidateUserNotificationCacheAsync(userId);
 
         }, $"MarkNotificationAsReadAsync - Id: {id}");
     }
+
 
     public async Task MarkAllNotificationsAsReadAsync(Guid userId)
     {
@@ -114,12 +120,12 @@ public class NotificationService : BaseService, INotificationService
         {
             ValidateId(userId);
 
-            var unread = await _notificationRepo.FindAsync(n => n.UserId == userId && !n.Read);
+            var unread = await _notificationRepo.FindAsync(n => n.UserId == userId && !n.IsRead);
             if (unread.Any())
             {
                 foreach (var n in unread)
                 {
-                    n.Read = true;
+                    n.IsRead = true;
                     _notificationRepo.Update(n);
                 }
                 await _unitOfWork.SaveChangesAsync();
@@ -141,8 +147,10 @@ public class NotificationService : BaseService, INotificationService
 
             _notificationRepo.Delete(notification);
             await _unitOfWork.SaveChangesAsync();
-
-            await InvalidateUserNotificationCacheAsync(notification.UserId);
+            // Lấy userId an toàn
+            var userId = notification.UserId
+                ?? throw new InvalidOperationException("Notification does not have a UserId");
+            await InvalidateUserNotificationCacheAsync(notification.UserId.Value);
 
         }, $"DeleteNotificationAsync - Id: {id}");
     }
@@ -157,7 +165,7 @@ public class NotificationService : BaseService, INotificationService
 
             return await GetFromCacheOrExecuteAsync(cacheKey, async () =>
             {
-                return await _notificationRepo.CountAsync(n => n.UserId == userId && !n.Read);
+                return await _notificationRepo.CountAsync(n => n.UserId == userId && !n.IsRead);
             }, TimeSpan.FromMinutes(2)); // cache 2 phút
 
         }, $"GetUnreadNotificationCountAsync - UserId: {userId}");

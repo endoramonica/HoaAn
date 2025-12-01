@@ -10,6 +10,10 @@ namespace VietCommerce.Application.Services.Services.Interfaces.Identities
         /// Current user's unique identifier
         /// </summary>
         Guid UserId { get; }
+        /// <summary>
+        /// Current customer ID (from JWT token)
+        /// </summary>
+        Guid CustomerId { get; }
 
         /// <summary>
         /// Current user's name

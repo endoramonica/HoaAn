@@ -44,7 +44,10 @@ public class UnitOfWork : IUnitOfWork
     public INotificationRepository? _notifications;
     public INotificationTemplateRepository? _notificationTemplates;
     public ITaskRepository? _tasks;
-
+    public IBookmarkRepository? _bookmark;
+    public ILikeRepository? _like;
+    public IPostRepository? _posts;
+    public ICommentRepository? _comments;
 
 
     private IDbContextTransaction? _transaction;
@@ -109,9 +112,16 @@ public class UnitOfWork : IUnitOfWork
         _notificationTemplates ??= new NotificationTemplateRepository(_context);
     public ITaskRepository Tasks =>
         _tasks ??= new TaskRepository(_context);
+    public IPostRepository Posts =>
+        _posts ??= new PostRepository(_context);
+
+    public ICommentRepository Comments => _comments ??= new CommentRepository(_context);
 
 
+    public ILikeRepository Likes => _like ??= new LikeRepository(_context);
 
+
+    public IBookmarkRepository Bookmarks => _bookmark ??= new BookmarkRepository(_context);
 
     public async Task<int> SaveChangesAsync()
     {

@@ -1,7 +1,6 @@
 ﻿using VietCommerce.Core.Common;
 using VietCommerce.Core.Entities.Customers;
 using VietCommerce.Core.Entities.Users;
-using VietCommerce.Core.Entities.SocialCommunity;
 using VietCommerce.Core.Entities.Orders;
 using VietCommerce.Core.Enums.Notifications;
 using System.ComponentModel.DataAnnotations.Schema;

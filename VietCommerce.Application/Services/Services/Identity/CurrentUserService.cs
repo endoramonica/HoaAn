@@ -32,7 +32,13 @@ namespace VietCommerce.Application.Services.Services.Identity
             Guid.TryParse(_httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier), out var id)
                 ? id
                 : Guid.Empty;
-
+        /// <summary>
+        /// ✅ CustomerId từ JWT token claim
+        /// </summary>
+        public Guid CustomerId =>
+            Guid.TryParse(_httpContextAccessor.HttpContext?.User?.FindFirstValue("customerId"), out var id)
+                ? id
+                : Guid.Empty;
         public string UserName =>
             _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
 

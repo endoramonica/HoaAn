@@ -1,6 +1,7 @@
 ﻿// File: VietCommerce.Data/Repositories/NotificationTemplateRepository.cs
 using Microsoft.EntityFrameworkCore;
 using VietCommerce.Core.Entities.Notifications;
+using VietCommerce.Core.Enums.Notifications;
 using VietCommerce.Data.Context;
 using VietCommerce.Data.Repositories.Interfaces;
 
@@ -18,9 +19,12 @@ public class NotificationTemplateRepository : GenericRepository<NotificationTemp
             .FirstOrDefaultAsync(t => t.Name == name && t.IsActive && !t.IsDeleted);
     }
 
-    public async Task<NotificationTemplate?> GetActiveByTypeAsync(string type)
+    public async Task<NotificationTemplate?> GetActiveByTypeAsync(NotificationType type)
     {
         return await _dbSet
-            .FirstOrDefaultAsync(t => t.Type == type && t.IsActive && !t.IsDeleted);
+            .FirstOrDefaultAsync(t => t.Type == type
+                                   && t.IsActive
+                                   && !t.IsDeleted);
     }
+
 }

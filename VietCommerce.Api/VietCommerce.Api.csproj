@@ -24,6 +24,10 @@
 		<ProjectReference Include="..\VietCommerce.Data\VietCommerce.Data.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="wwwroot\" />
+	</ItemGroup>
+
 
 
 </Project>

@@ -3,6 +3,7 @@ using AutoMapper;
 using VietCommerce.Core.DTOs;
 using VietCommerce.Core.DTOs.Notifications;
 using VietCommerce.Core.Entities.Notifications;
+using VietCommerce.Core.Enums.Notifications;
 
 namespace VietCommerce.Application.Mappings;
 
@@ -12,17 +13,28 @@ public class NotificationMappingProfile : Profile
     {
         // Notification → NotificationDto
         CreateMap<Notification, NotificationDto>()
-            .ForMember(dest => dest.TemplateName,
-                opt => opt.MapFrom(src => src.Template != null ? src.Template.Name : null))
-            .ForMember(dest => dest.TemplateType,
-                opt => opt.MapFrom(src => src.Template != null ? src.Template.Type : null));
+                .ForMember(dest => dest.Type,
+                    opt => opt.MapFrom(src => src.Template != null
+                        ? (NotificationType?)src.Template.Type
+                        : src.Type))
+                .ForMember(dest => dest.TemplateName,
+                    opt => opt.MapFrom(src => src.Template != null
+                        ? src.Template.Name
+                        : null))
+            .ForMember(dest => dest.Read,
+                opt => opt.MapFrom(src => src.IsRead))
+            .ForMember(dest => dest.CreatedAt,
+                opt => opt.MapFrom(src => src.NotifiedOn));
+
+
+
 
         // NotificationTemplate → NotificationTemplateDto
         CreateMap<NotificationTemplate, NotificationTemplateDto>()
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
             .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type))
-            .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
+            .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.ContentTemplate))
             .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive))
             .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
             .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt));

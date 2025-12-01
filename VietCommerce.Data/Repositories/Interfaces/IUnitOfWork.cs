@@ -57,7 +57,11 @@ public interface IUnitOfWork : IDisposable
     // Notifications
     INotificationRepository Notifications { get; }
     INotificationTemplateRepository NotificationTemplates { get; }
-
+    // Social Community 
+    IPostRepository Posts { get; }
+    ICommentRepository Comments { get; }
+    ILikeRepository Likes { get; }           // ✅ Custom repository
+    IBookmarkRepository Bookmarks { get; }   // ✅ Custom repository
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task<IDbContextTransaction> BeginTransactionAsync();
     Task CommitTransactionAsync();

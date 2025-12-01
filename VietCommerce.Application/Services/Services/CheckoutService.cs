@@ -1,9 +1,10 @@
-﻿// File: VietCommerce.Api/Services/CheckoutService.cs (FIXED VERSION)
+﻿// File: VietCommerce.Application.Services/Services/CheckoutService.cs
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using VietCommerce.Application.Services.Payments;
 using VietCommerce.Application.Services.Services.Interfaces;
+using VietCommerce.Application.Services.Services.Interfaces.Identities;
 using VietCommerce.Core.DTOs.Orders;
 using VietCommerce.Core.Entities.Orders;
 using VietCommerce.Core.Entities.Payments;
@@ -15,55 +16,197 @@ using VietCommerce.Data.Repositories.Interfaces;
 
 namespace VietCommerce.Application.Services.Services
 {
-    public class CheckoutService : ICheckoutService
+    public class CheckoutService : BaseService, ICheckoutService
     {
         private readonly IOrderRepository _orderRepository;
         private readonly IOrderItemRepository _orderItemRepository;
+        private readonly ICustomerRepository _customerRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        private readonly ILogger<CheckoutService> _logger;
         private readonly IVnpayService _vnpayService;
         private readonly IHttpContextAccessor _httpContext;
+        private readonly ICurrentUser _currentUser;
 
         public CheckoutService(
             IOrderRepository orderRepository,
             IOrderItemRepository orderItemRepository,
+            ICustomerRepository customerRepository,
             IUnitOfWork unitOfWork,
             IVnpayService vnpayService,
             IHttpContextAccessor httpContext,
+            ICurrentUser currentUser,
             IMapper mapper,
-            ILogger<CheckoutService> logger)
+            ILogger<CheckoutService> logger,
+            ICacheService cacheService)
+            : base(logger, cacheService)
         {
             _orderRepository = orderRepository;
             _orderItemRepository = orderItemRepository;
+            _customerRepository = customerRepository;
             _unitOfWork = unitOfWork;
             _mapper = mapper;
-            _logger = logger;
             _vnpayService = vnpayService;
             _httpContext = httpContext;
+            _currentUser = currentUser;
         }
 
-        /// <summary>
-        /// Process checkout and create order from cart
-        /// </summary>
+        // ========================================
+        // HELPER METHOD: Unified CustomerId Retrieval
+        // ========================================
+        private async Task<Guid> GetCustomerIdAsync()
+        {
+            // Step 1: Check if CustomerId is available in JWT claims
+            if (_currentUser.CustomerId != Guid.Empty)
+            {
+                LogInfo("✅ Using CustomerId from JWT: {CustomerId}", _currentUser.CustomerId);
+                return _currentUser.CustomerId;
+            }
+
+            // Step 2: Retrieve CustomerId from database using UserId
+            var userId = _currentUser.UserId;
+            LogInfo("🔍 CustomerId not in JWT, looking up by UserId: {UserId}", userId);
+
+            var customer = await _customerRepository.GetByUserIdAsync(userId);
+
+            if (customer == null)
+            {
+                LogWarning("⚠️ Customer not found for UserId: {UserId}", userId);
+                throw new UnauthorizedAccessException("Customer not found for user");
+            }
+
+            LogInfo("✅ Found CustomerId from database: {CustomerId}", customer.Id);
+            return customer.Id;
+        }
+
+        // ========================================
+        // GetOrderByIdAsync - Using Helper Method
+        // ========================================
+        public async Task<ApiResponse<OrderDetailDto>> GetOrderByIdAsync(Guid userId, Guid orderId)
+        {
+            return await ExecuteAsApiResponseAsync(async () =>
+            {
+                LogInfo("📦 Getting order {OrderId} for user {UserId}", orderId, userId);
+
+                var order = await _orderRepository.GetByIdWithDetailsAsync(orderId);
+
+                if (order == null)
+                {
+                    LogWarning("⚠️ Order {OrderId} not found", orderId);
+                    throw new KeyNotFoundException("Order not found");
+                }
+
+                // ✅ Use helper method for consistent CustomerId retrieval
+                var customerId = await GetCustomerIdAsync();
+
+                if (order.CustomerId != customerId)
+                {
+                    LogWarning("🚫 Unauthorized access to order {OrderId} by user {UserId}. Order.CustomerId={OrderCustomerId}, CurrentCustomerId={CurrentCustomerId}",
+                        orderId, userId, order.CustomerId, customerId);
+                    throw new UnauthorizedAccessException("Unauthorized access to order");
+                }
+
+                var orderDto = MapOrderToDetailDto(order);
+                LogInfo("✅ Order {OrderId} retrieved successfully", orderId);
+
+                return orderDto;
+            }, nameof(GetOrderByIdAsync), "Order retrieved successfully");
+        }
+
+        // ========================================
+        // GetOrdersAsync - Complete Implementation
+        // ========================================
+        public async Task<ApiResponse<List<OrderDetailDto>>> GetOrdersAsync(Guid userId, OrderFilterDTO filter)
+        {
+            return await ExecuteAsApiResponseAsync(async () =>
+            {
+                LogInfo("📋 Getting orders for user {UserId}", userId);
+
+                // ✅ Use helper method for consistent CustomerId retrieval
+                var customerId = await GetCustomerIdAsync();
+
+                // Query orders by CustomerId with filters
+                var result = await _orderRepository.GetOrdersByCustomerIdAsync(customerId, filter);
+
+                // Map to DTOs
+                var dtoList = result.Items.Select(MapOrderToDetailDto).ToList();
+
+                LogInfo("✅ Retrieved {Count} orders for customer {CustomerId}",
+                    dtoList.Count, customerId);
+
+                return dtoList;
+            }, nameof(GetOrdersAsync), "Orders retrieved successfully");
+        }
+
+        // ========================================
+        // CancelOrderAsync - Using Helper Method
+        // ========================================
+        public async Task<ApiResponse<bool>> CancelOrderAsync(Guid userId, Guid orderId, string reason)
+        {
+            return await ExecuteAsApiResponseAsync(async () =>
+            {
+                LogInfo("🚫 Cancelling order {OrderId} for user {UserId}", orderId, userId);
+
+                var order = await _orderRepository.GetByIdWithDetailsAsync(orderId);
+
+                if (order == null)
+                    throw new KeyNotFoundException("Order not found");
+
+                // ✅ Use helper method for consistent CustomerId retrieval
+                var customerId = await GetCustomerIdAsync();
+
+                if (order.CustomerId != customerId)
+                {
+                    LogWarning("🚫 Unauthorized cancel attempt for order {OrderId} by user {UserId}. Order.CustomerId={OrderCustomerId}, CurrentCustomerId={CurrentCustomerId}",
+                        orderId, userId, order.CustomerId, customerId);
+                    throw new UnauthorizedAccessException("Unauthorized access to order");
+                }
+
+                var canCancel = await _orderRepository.CanChangeStatusAsync(orderId, OrderStatus.Cancelled);
+                if (!canCancel)
+                    throw new InvalidOperationException("Cannot cancel order at current status");
+
+                var result = await _orderRepository.CancelOrderAsync(orderId, reason, userId);
+
+                if (!result)
+                    throw new InvalidOperationException("Failed to cancel order");
+
+                LogInfo("✅ Order {OrderId} cancelled by user {UserId}", orderId, userId);
+                return true;
+            }, nameof(CancelOrderAsync), "Order cancelled successfully");
+        }
+
+        // ========================================
+        // CheckoutAsync - Using Helper Method
+        // ========================================
         public async Task<ApiResponse<CheckoutResponseDto>> CheckoutAsync(Guid userId, CheckoutDto dto)
         {
             await using var transaction = await _unitOfWork.BeginTransactionAsync();
 
             try
             {
-                _logger.LogInformation("🛒 Checkout started for user {UserId}, cart {CartId}", userId, dto.CartId);
+                LogInfo("🛒 Checkout started for user {UserId}, cart {CartId}", userId, dto.CartId);
 
-                // [1] Validate request
                 var validation = ValidateCheckoutRequest(dto);
                 if (!validation.Success)
                     return validation;
 
-                // [2] Get or create customer
                 var storeId = Guid.Parse("47AA5519-C503-4CFA-8101-2EDB36FD9D8C");
-                var customer = await _unitOfWork.Customers.EnsureCustomerExistsAsync(userId, storeId);
 
-                // [3] Validate cart
+                // ✅ Use helper method - it will handle both JWT CustomerId and database lookup
+                Guid customerId;
+                try
+                {
+                    customerId = await GetCustomerIdAsync();
+                    LogInfo("✅ Using CustomerId: {CustomerId}", customerId);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // If customer doesn't exist, create one
+                    var customer = await _unitOfWork.Customers.EnsureCustomerExistsAsync(userId, storeId);
+                    customerId = customer.Id;
+                    LogInfo("✅ Created new Customer: {CustomerId}", customerId);
+                }
+
                 var cart = await _unitOfWork.Carts.GetCartWithItemsAsync(dto.CartId);
                 if (cart == null)
                     return ApiResponse<CheckoutResponseDto>.FailureResponse("Cart not found CART_NOT_FOUND");
@@ -74,13 +217,12 @@ namespace VietCommerce.Application.Services.Services
                 if (cartItems == null || !cartItems.Any())
                     return ApiResponse<CheckoutResponseDto>.FailureResponse("Cart is empty EMPTY_CART");
 
-                // [4] Create order
                 var order = new Order
                 {
                     Id = Guid.NewGuid(),
                     OrderNumber = GenerateOrderNumber(),
                     StoreId = storeId,
-                    CustomerId = customer.Id,
+                    CustomerId = customerId, // ✅ Using customerId from helper
                     Status = OrderStatus.Pending,
                     ShippingFee = CalculateShippingFee(dto.ShippingInfo),
                     CreatedById = userId,
@@ -89,21 +231,20 @@ namespace VietCommerce.Application.Services.Services
                     IsActive = true
                 };
 
-                // [5] Map order items
                 var orderItems = new List<OrderItem>();
                 foreach (var ci in cartItems)
                 {
                     var product = await _unitOfWork.Products.GetByIdAsync(ci.ProductId);
                     if (product == null)
                     {
-                        _logger.LogWarning("Product {ProductId} not found in cart", ci.ProductId);
+                        LogWarning("Product {ProductId} not found in cart", ci.ProductId);
                         continue;
                     }
 
                     var currentPrice = GetCurrentProductPrice(product);
                     if (currentPrice == null)
                     {
-                        _logger.LogWarning("No active price found for product {ProductId}", ci.ProductId);
+                        LogWarning("No active price found for product {ProductId}", ci.ProductId);
                         continue;
                     }
 
@@ -131,14 +272,12 @@ namespace VietCommerce.Application.Services.Services
                 if (!orderItems.Any())
                     return ApiResponse<CheckoutResponseDto>.FailureResponse("No valid items in cart INVALID_ITEMS");
 
-                // [6] Calculate totals
                 order.SubTotal = orderItems.Sum(i => i.TotalPrice);
                 order.TaxAmount = CalculateTax(order.SubTotal);
                 order.DiscountAmount = await CalculateDiscountAsync(dto.CouponCode) ?? 0m;
                 order.TotalAmount = order.SubTotal + order.ShippingFee + order.TaxAmount - order.DiscountAmount;
                 order.Notes = dto.Notes ?? string.Empty;
 
-                // [7] Create shipping
                 var orderShipping = _mapper.Map<OrderShipping>(dto.ShippingInfo);
                 orderShipping.Id = Guid.NewGuid();
                 orderShipping.OrderId = order.Id;
@@ -147,7 +286,6 @@ namespace VietCommerce.Application.Services.Services
                 orderShipping.CreatedAt = DateTime.UtcNow;
                 orderShipping.UpdatedAt = DateTime.UtcNow;
 
-                // [8] Create status history
                 var statusHistory = new OrderStatusHistory
                 {
                     Id = Guid.NewGuid(),
@@ -159,209 +297,84 @@ namespace VietCommerce.Application.Services.Services
                     ChangedAt = DateTime.UtcNow
                 };
 
-                // [9] Save all
+                var paymentMethodId = await GetPaymentMethodIdAsync(dto.PaymentMethod);
+                var payment = new Payment
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = order.Id,
+                    MethodId = paymentMethodId,
+                    Amount = order.TotalAmount,
+                    Status = PaymentMethodType.PENDING,
+                    CreatedAt = DateTime.UtcNow
+                };
+
                 await _unitOfWork.Orders.AddAsync(order);
                 await _unitOfWork.OrderItems.AddRangeAsync(orderItems);
                 await _unitOfWork.OrderShipping.AddAsync(orderShipping);
                 await _unitOfWork.OrderStatusHistories.AddAsync(statusHistory);
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.Payments.AddAsync(payment);
 
-                // [10] Clear cart
+                await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.Carts.ClearCartItemsAsync(dto.CartId);
                 await _unitOfWork.SaveChangesAsync();
-
                 await transaction.CommitAsync();
 
-                _logger.LogInformation("✅ Order {OrderNumber} created successfully for user {UserId}",
-                    order.OrderNumber, userId);
+                LogInfo("✅ Transaction committed. Order {OrderNumber} created for user {UserId}, CustomerId={CustomerId}",
+                    order.OrderNumber, userId, customerId);
 
-                // === SAU KHI COMMIT TRANSACTION, TRƯỚC return ===
-                // [11] Handle Payment
+                var responseDto = new CheckoutResponseDto
+                {
+                    OrderId = order.Id,
+                    OrderNumber = order.OrderNumber,
+                    Status = order.Status,
+                    TotalAmount = order.TotalAmount,
+                    CreatedAt = order.CreatedAt,
+                    StoreId = order.StoreId,
+                    CustomerId = customerId,
+                    CustomerName = _currentUser.UserName,
+                    Items = orderItems.Select(oi => new OrderItemDTO
+                    {
+                        Id = oi.Id,
+                        OrderId = oi.OrderId,
+                        ProductId = oi.ProductId,
+                        ProductName = oi.ProductName,
+                        ProductSKU = oi.ProductCode,
+                        UnitPrice = oi.UnitPrice,
+                        Quantity = oi.Quantity,
+                        TotalPrice = oi.TotalPrice
+                    }).ToList(),
+                    Shipping = _mapper.Map<OrderShippingDto>(orderShipping),
+                    PaymentMethodUsed = dto.PaymentMethod.ToString()
+                };
+
                 if (dto.PaymentMethod != PaymentMethodType.COD)
                 {
-                    // Online payment: Tạo Payment record và generate VNPay URL
-                    var payment = new Payment
-                    {
-                        Id = Guid.NewGuid(),
-                        OrderId = order.Id,
-                        MethodId = await GetPaymentMethodIdAsync(dto.PaymentMethod),
-                        Amount = order.TotalAmount,
-                        Status = PaymentMethodType.PENDING,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    await _unitOfWork.Payments.AddAsync(payment);
-                    await _unitOfWork.SaveChangesAsync();
-
                     var ip = _httpContext.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
-                    var paymentUrl = _vnpayService.CreatePaymentUrl(order.OrderNumber, order.TotalAmount, ip);
+                    responseDto.PaymentUrl = _vnpayService.CreatePaymentUrl(
+                        order.OrderNumber,
+                        order.TotalAmount,
+                        ip
+                    );
 
-                    // [12] Return response with payment URL
-                    var response = new CheckoutResponseDto
-                    {
-                        OrderId = order.Id,
-                        OrderNumber = order.OrderNumber,
-                        Status = order.Status,
-                        TotalAmount = order.TotalAmount,
-                        CreatedAt = order.CreatedAt,
-                        StoreId = order.StoreId,
-                        StoreName = order.Store?.Name,
-                        CustomerId = customer.Id,
-                        CustomerName = customer.Name,
-                        Items = orderItems.Select(oi => new OrderItemDTO
-                        {
-                            Id = oi.Id,
-                            OrderId = oi.OrderId,
-                            ProductId = oi.ProductId,
-                            ProductName = oi.ProductName,
-                            ProductSKU = oi.ProductCode,
-                            UnitPrice = oi.UnitPrice,
-                            Quantity = oi.Quantity,
-                            TotalPrice = oi.TotalPrice
-                        }).ToList(),
-                        Shipping = _mapper.Map<OrderShippingDto>(orderShipping),
-                        PaymentUrl = paymentUrl,
-                        PaymentMethodUsed = dto.PaymentMethod.ToString()
-                    };
-
-                    return ApiResponse<CheckoutResponseDto>.SuccessResponse(response, "Order created successfully. Redirect to payment.");
+                    LogInfo("💳 Payment URL generated for order {OrderNumber}", order.OrderNumber);
+                    return ApiResponse<CheckoutResponseDto>.SuccessResponse(
+                        responseDto,
+                        "Order created successfully. Redirect to payment."
+                    );
                 }
-                else
-                {
-                    // COD: Tạo Payment record với status PENDING
-                    var payment = new Payment
-                    {
-                        Id = Guid.NewGuid(),
-                        OrderId = order.Id,
-                        MethodId = await GetPaymentMethodIdAsync(dto.PaymentMethod),
-                        Amount = order.TotalAmount,
-                        Status = PaymentMethodType.PENDING,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    await _unitOfWork.Payments.AddAsync(payment);
-                    await _unitOfWork.SaveChangesAsync();
 
-                    // [12] Return response for COD
-                    var response = new CheckoutResponseDto
-                    {
-                        OrderId = order.Id,
-                        OrderNumber = order.OrderNumber,
-                        Status = order.Status,
-                        TotalAmount = order.TotalAmount,
-                        CreatedAt = order.CreatedAt,
-                        StoreId = order.StoreId,
-                        StoreName = order.Store?.Name,
-                        CustomerId = customer.Id,
-                        CustomerName = customer.Name,
-                        Items = orderItems.Select(oi => new OrderItemDTO
-                        {
-                            Id = oi.Id,
-                            OrderId = oi.OrderId,
-                            ProductId = oi.ProductId,
-                            ProductName = oi.ProductName,
-                            ProductSKU = oi.ProductCode,
-                            UnitPrice = oi.UnitPrice,
-                            Quantity = oi.Quantity,
-                            TotalPrice = oi.TotalPrice
-                        }).ToList(),
-                        Shipping = _mapper.Map<OrderShippingDto>(orderShipping),
-                        PaymentMethodUsed = "COD"
-                    };
-
-                    return ApiResponse<CheckoutResponseDto>.SuccessResponse(response, "Order created successfully. Payment on delivery.");
-                }
+                LogInfo("💵 COD payment selected for order {OrderNumber}", order.OrderNumber);
+                return ApiResponse<CheckoutResponseDto>.SuccessResponse(
+                    responseDto,
+                    "Order created successfully. Payment on delivery."
+                );
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "❌ Checkout failed for user {UserId}", userId);
+                LogError("❌ Checkout failed for user {UserId}, cart {CartId}", ex, userId, dto.CartId);
                 return ApiResponse<CheckoutResponseDto>.FailureResponse(
                     "Checkout failed. Please try again. CHECKOUT_ERROR");
-            }
-        }
-
-
-        /// <summary>
-        /// Get order by ID
-        /// </summary>
-        public async Task<ApiResponse<OrderDetailDto>> GetOrderByIdAsync(Guid userId, Guid orderId)
-        {
-            try
-            {
-                var order = await _orderRepository.GetByIdWithDetailsAsync(orderId);
-
-                if (order == null)
-                    return ApiResponse<OrderDetailDto>.FailureResponse("Order not found ORDER_NOT_FOUND");
-
-                // Security: Verify user owns this order
-                if (order.CustomerId != userId)
-                {
-                    _logger.LogWarning("Unauthorized access to order {OrderId} by user {UserId}", orderId, userId);
-                    return ApiResponse<OrderDetailDto>.FailureResponse("Unauthorized UNAUTHORIZED");
-                }
-
-                var orderDto = MapOrderToDetailDto(order);
-                return ApiResponse<OrderDetailDto>.SuccessResponse(orderDto);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting order {OrderId}", orderId);
-                return ApiResponse<OrderDetailDto>.FailureResponse("Failed to retrieve order ORDER_ERROR");
-            }
-        }
-
-        /// <summary>
-        /// Get user's orders
-        /// </summary>
-        public async Task<ApiResponse<List<OrderDetailDto>>> GetOrdersAsync(Guid userId, OrderFilterDTO filter)
-        {
-            try
-            {
-                var result = await _orderRepository.GetUserOrdersAsync(userId, filter);
-                var dtoList = result.Items.Select(MapOrderToDetailDto).ToList();
-
-                return ApiResponse<List<OrderDetailDto>>.SuccessResponse(dtoList);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting orders for user {UserId}", userId);
-                return ApiResponse<List<OrderDetailDto>>.FailureResponse("Failed to retrieve orders ORDER_ERROR");
-            }
-        }
-
-        /// <summary>
-        /// Cancel order
-        /// </summary>
-        public async Task<ApiResponse<bool>> CancelOrderAsync(Guid userId, Guid orderId, string reason)
-        {
-            try
-            {
-                var order = await _orderRepository.GetByIdWithDetailsAsync(orderId);
-
-                if (order == null)
-                    return ApiResponse<bool>.FailureResponse("Order not found ORDER_NOT_FOUND");
-
-                // Security check
-                if (order.CustomerId != userId)
-                    return ApiResponse<bool>.FailureResponse("Unauthorized UNAUTHORIZED");
-
-                // Check if can cancel
-                var canCancel = await _orderRepository.CanChangeStatusAsync(orderId, OrderStatus.Cancelled);
-                if (!canCancel)
-                    return ApiResponse<bool>.FailureResponse("Cannot cancel order at current status CANNOT_CANCEL");
-
-                // Cancel order
-                var result = await _orderRepository.CancelOrderAsync(orderId, reason, userId);
-
-                if (!result)
-                    return ApiResponse<bool>.FailureResponse("Failed to cancel order CANCEL_ERROR");
-
-                _logger.LogInformation("Order {OrderId} cancelled by user {UserId}", orderId, userId);
-                return ApiResponse<bool>.SuccessResponse(true, "Order cancelled successfully");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error cancelling order {OrderId}", orderId);
-                return ApiResponse<bool>.FailureResponse("Failed to cancel order CANCEL_ERROR");
             }
         }
 
@@ -369,9 +382,6 @@ namespace VietCommerce.Application.Services.Services
         // PRIVATE HELPERS
         // ========================================
 
-        /// <summary>
-        /// Get current active price for a product
-        /// </summary>
         private ProductPrice? GetCurrentProductPrice(Product product)
         {
             if (product.Prices == null || !product.Prices.Any())
@@ -379,7 +389,6 @@ namespace VietCommerce.Application.Services.Services
 
             var now = DateTime.UtcNow;
 
-            // Get active prices within date range
             return product.Prices
                 .Where(p => p.IsActive && p.EffectiveFrom <= now &&
                            (p.EffectiveTo == null || p.EffectiveTo >= now))
@@ -422,13 +431,11 @@ namespace VietCommerce.Application.Services.Services
 
         private decimal CalculateShippingFee(OrderShippingInputDto shippingInfo)
         {
-            // TODO: Implement shipping fee calculation based on method, location, etc.
-            return 30000m; // Default: 30,000 VND
+            return 30000m;
         }
 
         private decimal CalculateTax(decimal subTotal)
         {
-            // TODO: Implement tax calculation (usually 10% in Vietnam)
             return subTotal * 0.1m;
         }
 
@@ -436,14 +443,12 @@ namespace VietCommerce.Application.Services.Services
         {
             if (string.IsNullOrWhiteSpace(couponCode))
                 return null;
-
-            // TODO: Implement coupon validation and discount calculation
             return null;
         }
 
         private OrderDetailDto MapOrderToDetailDto(Order order)
         {
-            var dto = new OrderDetailDto
+            return new OrderDetailDto
             {
                 OrderId = order.Id,
                 OrderNumber = order.OrderNumber,
@@ -489,16 +494,12 @@ namespace VietCommerce.Application.Services.Services
                     })
                     .ToList() ?? new List<OrderStatusHistoryDTO>()
             };
-
-            return dto;
         }
 
-        // helpers  
         private async Task<Guid?> GetPaymentMethodIdAsync(PaymentMethodType type)
         {
             var method = await _unitOfWork.PaymentMethods.GetByCodeAsync(type.ToString());
             return method?.Id;
         }
-
     }
 }

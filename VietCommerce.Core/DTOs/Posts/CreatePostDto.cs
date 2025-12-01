@@ -13,7 +13,8 @@ namespace VietCommerce.Core.DTOs.Posts
 {
     public class CreatePostDto
     {
-        public Guid CustomerId { get; set; }
+        
+        
 
         [MaxLength(5000)]
         public string? Content { get; set; }
@@ -35,7 +36,7 @@ namespace VietCommerce.Core.DTOs.Posts
     }
     public class PostResponseDto
     {
-        public Guid Id { get; set; }
+        public Guid PostId { get; set; }
         public Guid CustomerId { get; set; }
         public string? CustomerName { get; set; }
         public string? CustomerAvatar { get; set; }

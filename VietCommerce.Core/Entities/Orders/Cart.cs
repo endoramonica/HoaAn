@@ -8,7 +8,7 @@ namespace VietCommerce.Core.Entities.Orders;
 public class Cart : BaseEntity , ISoftDelete
 {
     public Guid UserId { get; set; }
-    public Guid CustomerId { get; set; }
+    public Guid? CustomerId { get; set; }
     public string? SessionId { get; set; }
     // Navigation properties
     public virtual User User { get; set; } = null!;

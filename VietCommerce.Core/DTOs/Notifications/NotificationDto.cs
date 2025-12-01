@@ -20,6 +20,6 @@ namespace VietCommerce.Core.DTOs.Notifications
 
         // Extra info từ Template (rất hay dùng ở FE)
         public string? TemplateName { get; set; }
-        public string? TemplateType { get; set; }
+        
     }
 }

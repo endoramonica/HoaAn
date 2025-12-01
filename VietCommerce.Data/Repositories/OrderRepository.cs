@@ -421,6 +421,13 @@ namespace VietCommerce.Data.Repositories
             // Restrict to user's orders
             return await GetPaginatedAsync(filter, restrictToCustomerId: userId);
         }
+
+        public async Task<PaginatedResult<Order>> GetOrdersByCustomerIdAsync(Guid customerId,
+            OrderFilterDTO filter)
+        {
+            // Restrict to specified customer
+            return await GetPaginatedAsync(filter, restrictToCustomerId: customerId);
+        }
         /// <summary>
         /// Get all orders (admin view - no restriction)
         /// </summary>

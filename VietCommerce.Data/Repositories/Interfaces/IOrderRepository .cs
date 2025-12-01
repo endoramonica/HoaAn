@@ -10,6 +10,7 @@ public interface IOrderRepository : IGenericRepository<Order>
 {
     // Custom query methods
     Task<IEnumerable<Order>> GetByCustomerIdAsync(Guid customerId);
+
     Task<IEnumerable<Order>> GetByStoreIdAsync(Guid storeId);
     Task<IEnumerable<Order>> GetByStatusAsync(OrderStatus status);
     Task<IEnumerable<Order>> GetRecentOrdersAsync(int count = 10, Guid? storeId = null);
@@ -19,6 +20,7 @@ public interface IOrderRepository : IGenericRepository<Order>
     Task<List<Order>> GetOrdersByStatusAsync(OrderStatus status);
 
     // Methods from IOrderService (mapped to repository)
+    Task<PaginatedResult<Order>> GetOrdersByCustomerIdAsync(Guid customerId, OrderFilterDTO filter);
     Task<PaginatedResult<Order>> GetUserOrdersAsync(Guid userId, OrderFilterDTO filter); // For user-specific orders
     Task<bool> UpdateOrderStatusAsync(Guid orderId, OrderStatus newStatus, Guid changedBy, string? notes ); // Status update
     Task<bool> CancelOrderAsync(Guid orderId, string reason, Guid changedBy); // Cancel order

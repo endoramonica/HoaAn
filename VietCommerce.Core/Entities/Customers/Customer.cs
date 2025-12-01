@@ -34,6 +34,7 @@ public class Customer : BaseEntity, ISoftDelete
 
     [ForeignKey(nameof(UserId))]
     public virtual User? User { get; set; }
+    public string? CustomerAvatar { get; set; }
 
     // Collections
     public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();

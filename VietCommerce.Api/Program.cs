@@ -37,6 +37,9 @@ using VietCommerce.Data.Seeds.Seeders;
 //Redis Distributed Cache: Caching layer v?i health check
 // </summary>
 var builder = WebApplication.CreateBuilder(args);
+// Nếu chưa set WebRoot, thêm dòng này:
+builder.WebHost.UseWebRoot("wwwroot");
+
 // ============================================
 // CONTROLLERS & API BEHAVIOR
 // ============================================
@@ -314,6 +317,8 @@ app.UsePermissionMiddleware();
 app.MapControllers();
 app.MapGet("/health", () => new { Status = "Healthy", Timestamp = DateTime.UtcNow });
 app.MapHealthChecks("/health/redis");
+// images middleware
+app.UseStaticFiles();
 // ============================================
 // DATABASE MIGRATION & SEEDING
 // ============================================

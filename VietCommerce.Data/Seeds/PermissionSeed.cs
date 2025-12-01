@@ -123,6 +123,12 @@ namespace VietCommerce.Data.Seeders
                 new Permission { Id = Guid.NewGuid(), Name = "admin.manage_stores", Description = "Quản lý cửa hàng (Admin)" },
                 new Permission { Id = Guid.NewGuid(), Name = "admin.view_all_analytics", Description = "Xem toàn bộ báo cáo (Admin)" },
                 new Permission { Id = Guid.NewGuid(), Name = "admin.super_admin", Description = "Siêu quản trị viên (Admin)" },
+                //Post
+                new Permission { Id = Guid.NewGuid(), Name = "post:create", Description = "Tạo bài viết" },
+                new Permission { Id = Guid.NewGuid(), Name = "post:view", Description = "Xem bài viết" },
+                new Permission { Id = Guid.NewGuid(), Name = "post:update", Description = "Cập nhật bài viết" },
+                new Permission { Id = Guid.NewGuid(), Name = "post:delete", Description = "Xóa bài viết" },
+
 
 
             };

@@ -29,32 +29,52 @@ namespace VietCommerce.Application.Services.Services
         }
 
         public async Task<ApiResponse<List<UploadedFileResult>>> SaveFilesAsync(
-            IEnumerable<IFormFile> files,
-            string[] allowedExtensions,
-            long maxFileSize,
-            params string[] baseFolderPaths)
+    IEnumerable<IFormFile>? files,
+    string[] allowedExtensions,
+    long maxFileSize,
+    params string[]? baseFolderPaths)
         {
             return await ExecuteAsApiResponseAsync(async () =>
             {
+                // 1. Init & validate
+                baseFolderPaths ??= Array.Empty<string>();
+
                 if (files == null || !files.Any())
-                    throw new ArgumentException("No files provided.");
+                {
+                    LogWarning("No files provided to upload");
+                    return new List<UploadedFileResult>();
+                }
 
                 var result = new List<UploadedFileResult>();
 
-                // Folder theo ngày/tháng/năm
-                string dateFolder = Path.Combine(DateTime.UtcNow.Year.ToString(),
-                                                 DateTime.UtcNow.Month.ToString("D2"),
-                                                 DateTime.UtcNow.Day.ToString("D2"));
-                var targetFolderPath = Path.Combine(new[] { _webHostEnvironment.WebRootPath }
-                                                   .Concat(baseFolderPaths)
-                                                   .Concat(new[] { dateFolder })
-                                                   .ToArray());
+                // ✅ FIX: Tạo dateFolder cho file system (dùng Path.Combine)
+                string dateFolderPath = Path.Combine(
+                    DateTime.UtcNow.Year.ToString(),
+                    DateTime.UtcNow.Month.ToString("D2"),
+                    DateTime.UtcNow.Day.ToString("D2")
+                );
+
+                // ✅ FIX: Tạo dateFolder cho URL (dùng forward slash)
+                string dateFolderUrl = string.Join("/", new[]
+                {
+            DateTime.UtcNow.Year.ToString(),
+            DateTime.UtcNow.Month.ToString("D2"),
+            DateTime.UtcNow.Day.ToString("D2")
+        });
+
+                var targetFolderPath = Path.Combine(
+                    new[] { _webHostEnvironment.WebRootPath }
+                        .Concat(baseFolderPaths)
+                        .Concat(new[] { dateFolderPath })  // ✅ Dùng Path version
+                        .ToArray()
+                );
 
                 if (!Directory.Exists(targetFolderPath))
                     Directory.CreateDirectory(targetFolderPath);
 
                 var domainUrl = _configuration.GetValue<string>("Domain")?.TrimEnd('/');
 
+                // 2. Upload từng file
                 foreach (var file in files)
                 {
                     var extension = Path.GetExtension(file.FileName).ToLower();
@@ -71,34 +91,33 @@ namespace VietCommerce.Application.Services.Services
 
                     try
                     {
-                        if (extension == ".jpg" || extension == ".jpeg" || extension == ".png")
+                        if (extension is ".jpg" or ".jpeg" or ".png")
                         {
-                            // Ảnh: nén + resize
                             await ImageHelper.CompressResizeAndSaveAsync(file.OpenReadStream(), fullFilePath);
 
                             // Tạo thumbnail
                             var thumbFileName = $"thumb_{newFileName}";
                             var thumbPath = Path.Combine(targetFolderPath, thumbFileName);
-                            file.OpenReadStream().Position = 0; // reset stream
+                            file.OpenReadStream().Position = 0;
                             await ImageHelper.CreateThumbnailAsync(file.OpenReadStream(), thumbPath);
 
-                            thumbnailUrl = $"{domainUrl}/{string.Join('/', baseFolderPaths)}/{dateFolder}/{thumbFileName}";
+                            // ✅ FIX: Dùng dateFolderUrl thay vì dateFolder
+                            thumbnailUrl = $"{domainUrl}/{string.Join('/', baseFolderPaths)}/{dateFolderUrl}/{thumbFileName}";
                         }
-                        else if (extension == ".mp4" || extension == ".mov" || extension == ".avi")
+                        else if (extension is ".mp4" or ".mov" or ".avi")
                         {
-                            // Video: lưu file
                             using var fs = new FileStream(fullFilePath, FileMode.Create);
                             await file.CopyToAsync(fs);
 
-                            // Tạo thumbnail video bằng FFmpeg
                             var thumbFileName = $"thumb_{Path.GetFileNameWithoutExtension(newFileName)}.jpg";
                             var thumbPath = Path.Combine(targetFolderPath, thumbFileName);
                             await GenerateVideoThumbnailAsync(fullFilePath, thumbPath);
-                            thumbnailUrl = $"{domainUrl}/{string.Join('/', baseFolderPaths)}/{dateFolder}/{thumbFileName}";
+
+                            // ✅ FIX: Dùng dateFolderUrl thay vì dateFolder
+                            thumbnailUrl = $"{domainUrl}/{string.Join('/', baseFolderPaths)}/{dateFolderUrl}/{thumbFileName}";
                         }
                         else
                         {
-                            // File khác -> lưu bình thường
                             using var fs = new FileStream(fullFilePath, FileMode.Create);
                             await file.CopyToAsync(fs);
                         }
@@ -108,7 +127,9 @@ namespace VietCommerce.Application.Services.Services
                         throw new IOException($"Error saving file {file.FileName}.", ex);
                     }
 
-                    var fileUrl = $"{domainUrl}/{string.Join('/', baseFolderPaths)}/{dateFolder}/{newFileName}";
+                    // ✅ FIX: Dùng dateFolderUrl thay vì dateFolder
+                    var fileUrl = $"{domainUrl}/{string.Join('/', baseFolderPaths)}/{dateFolderUrl}/{newFileName}";
+
                     result.Add(new UploadedFileResult
                     {
                         FilePath = fullFilePath,
@@ -117,10 +138,10 @@ namespace VietCommerce.Application.Services.Services
                     });
                 }
 
-                // Cache metadata file
+                // Cache metadata
                 if (_cacheService != null)
                 {
-                    string cacheKey = CreateCacheKey("uploaded_files", string.Join("-", baseFolderPaths), dateFolder);
+                    string cacheKey = CreateCacheKey("uploaded_files", string.Join("-", baseFolderPaths), dateFolderUrl);
                     await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(10));
                     LogInfo($"📦 Metadata files cached: {cacheKey}");
                 }
@@ -128,6 +149,7 @@ namespace VietCommerce.Application.Services.Services
                 return result;
             }, "FileUpload", "Files uploaded successfully");
         }
+
 
         /// <summary>
         /// Xóa file vật lý khỏi server (bao gồm cả thumbnail nếu có)

@@ -80,7 +80,13 @@ namespace VietCommerce.Application.Extension
             services.AddScoped<IEmployeeService, EmployeeService>();
             services.AddScoped<ILeaveRequestService, LeaveRequestService>();
             services.AddScoped<IWorkScheduleService, WorkScheduleService>();
+            services.AddScoped<IShiftService, ShiftService>();
+            services.AddScoped<IPostService, PostService>();
+            services.AddScoped<ICommentService, CommentService>();  
+            services.AddScoped<IFileUploadService, FileUploadService>();  
+
             
+
             // RBAC / Auth
             services.AddScoped<IPermissionService, PermissionService>();
             services.AddScoped<ICurrentUser, CurrentUserService>();
@@ -125,6 +131,12 @@ namespace VietCommerce.Application.Extension
             services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
             services.AddScoped<IWorkScheduleRepository, WorkScheduleRepository>();
             services.AddScoped<IShiftRepository, ShiftRepository>();
+            services.AddScoped<IPostRepository, PostRepository>();
+            services.AddScoped<ILikeRepository, LikeRepository>();
+            services.AddScoped<IBookmarkRepository, BookmarkRepository>();  
+            services.AddScoped<ICommentRepository, CommentRepository>();  
+
+
 
             services.AddScoped<IOrderItemRepository, OrderItemRepository>();
 

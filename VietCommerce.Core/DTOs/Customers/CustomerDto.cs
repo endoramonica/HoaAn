@@ -9,6 +9,7 @@ namespace VietCommerce.Core.DTOs.Customers
     public class CustomerDto
     {
         public Guid CustomerId { get; set; }
+        public string? CustomerAvatar { get; set; }
         public string? Name { get; set; }
         public string? Phone { get; set; }
         public int LoyaltyPoints { get; set; }
