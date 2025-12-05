@@ -111,9 +111,21 @@ export function useCart(): UseCartReturn {
     }
 
     try {
+      // ✅ ADD THIS: Log before API call
+      console.log('[useCart] 🔍 Fetching cart...');
+      console.log('[useCart] 📋 Auth Token:', localStorage.getItem('auth_token')?.substring(0, 20) + '...');
+      console.log('[useCart] 👤 Is Guest:', isGuest);
+
       const cartResponse = isGuest
         ? await CartService.getApiV1CartGuest()
         : await CartService.getApiV1Cart();
+
+      // ✅ ADD THIS: Log response
+      console.log('[useCart] ✅ Cart Response:', {
+        cartId: cartResponse?.data?.cartId,
+        userId: cartResponse?.data?.userId,
+        itemCount: cartResponse?.data?.totalItems
+      });
 
       const summaryResponse = isGuest
         ? await CartService.getApiV1CartGuestSummary()

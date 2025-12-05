@@ -1,12 +1,21 @@
 /**
  * Cart Service Layer - Quản lý giỏ hàng (cả user và guest)
- * Tích hợp với ASP.NET Core Cart API endpoints
+ * ✅ UPDATED: Uses Orval generated API
  */
 
-import { apiRequest } from '../api/client';
+import { getVietCommerceAPI } from '../../../Api/generated-orval';
+import type {
+  AddToCartDto,
+  UpdateCartItemDto,
+  ApplyCouponDto,
+  MergeCartDto,
+  OrderShippingDto,
+} from '../../../Api/generated-orval/schemas';
+
+const api = getVietCommerceAPI();
 
 // ============================================================================
-// Cart Types (dựa trên OpenAPI spec)
+// Cart Types (for backward compatibility)
 // ============================================================================
 
 export interface CartItemDto {
@@ -66,18 +75,7 @@ export interface MergeCartRequest {
   sessionId: string;
 }
 
-export interface OrderShippingDto {
-  recipientName: string;
-  phoneNumber: string;
-  address: string;
-  ward: string;
-  district: string;
-  city: string;
-  postalCode?: string;
-  shippingMethod: 'standard' | 'express' | 'sameDay' | 'overnight';
-  shippingFee?: number;
-  deliveryNote?: string;
-}
+export { OrderShippingDto };
 
 // ============================================================================
 // Cart Service - Authenticated User
@@ -87,92 +85,106 @@ export const cartService = {
   /**
    * Lấy giỏ hàng của user hiện tại
    */
-  getCart: async (): Promise<CartDto> => {
-    return apiRequest.get<CartDto>('/Cart');
+  getCart: async (): Promise<any> => {
+    return api.getApiV1Cart();
   },
 
   /**
    * Lấy tóm tắt giỏ hàng
    */
-  getSummary: async (): Promise<CartSummaryDto> => {
-    return apiRequest.get<CartSummaryDto>('/Cart/summary');
+  getSummary: async (): Promise<any> => {
+    return api.getApiV1CartSummary();
   },
 
   /**
    * Thêm sản phẩm vào giỏ hàng
    */
-  addItem: async (request: AddToCartRequest): Promise<CartDto> => {
-    return apiRequest.post<CartDto>('/Cart/add', request);
+  addItem: async (request: AddToCartRequest): Promise<any> => {
+    const dto: AddToCartDto = {
+      productId: request.productId,
+      quantity: request.quantity,
+    };
+    return api.postApiV1CartAdd(dto);
   },
 
   /**
    * Cập nhật số lượng item trong giỏ
    */
-  updateItem: async (request: UpdateCartItemRequest): Promise<CartDto> => {
-    return apiRequest.put<CartDto>('/Cart/update-item', request);
+  updateItem: async (request: UpdateCartItemRequest): Promise<any> => {
+    const dto: UpdateCartItemDto = {
+      cartItemId: request.cartItemId,
+      quantity: request.quantity,
+    };
+    return api.putApiV1CartUpdateItem(dto);
   },
 
   /**
    * Xóa item khỏi giỏ hàng
    */
-  removeItem: async (cartItemId: string): Promise<CartDto> => {
-    return apiRequest.delete<CartDto>(`/Cart/items/${cartItemId}`);
+  removeItem: async (cartItemId: string): Promise<any> => {
+    return api.deleteApiV1CartItemsCartItemId(cartItemId);
   },
 
   /**
    * Lấy thông tin một cart item cụ thể
    */
-  getCartItem: async (cartItemId: string): Promise<CartItemDto> => {
-    return apiRequest.get<CartItemDto>(`/Cart/items/${cartItemId}`);
+  getCartItem: async (cartItemId: string): Promise<any> => {
+    return api.getApiV1CartItemsCartItemId(cartItemId);
   },
 
   /**
    * Xóa toàn bộ giỏ hàng
    */
-  clearCart: async (): Promise<void> => {
-    return apiRequest.delete<void>('/Cart/clear');
+  clearCart: async (): Promise<any> => {
+    return api.deleteApiV1CartClear();
   },
 
   /**
    * Validate giỏ hàng (kiểm tra tồn kho, giá...)
    */
-  validateCart: async (): Promise<CartDto> => {
-    return apiRequest.post<CartDto>('/Cart/validate');
+  validateCart: async (): Promise<any> => {
+    return api.postApiV1CartValidate();
   },
 
   /**
    * Lấy số lượng items trong giỏ
    */
-  getItemCount: async (): Promise<number> => {
-    return apiRequest.get<number>('/Cart/item-count');
+  getItemCount: async (): Promise<any> => {
+    return api.getApiV1CartItemCount();
   },
 
   /**
    * Áp dụng mã giảm giá
    */
-  applyCoupon: async (request: ApplyCouponRequest): Promise<CartDto> => {
-    return apiRequest.post<CartDto>('/Cart/coupon/apply', request);
+  applyCoupon: async (request: ApplyCouponRequest): Promise<any> => {
+    const dto: ApplyCouponDto = {
+      couponCode: request.couponCode,
+    };
+    return api.postApiV1CartCouponApply(dto);
   },
 
   /**
    * Xóa mã giảm giá
    */
-  removeCoupon: async (): Promise<CartDto> => {
-    return apiRequest.post<CartDto>('/Cart/coupon/remove');
+  removeCoupon: async (): Promise<any> => {
+    return api.postApiV1CartCouponRemove();
   },
 
   /**
    * Cập nhật thông tin giao hàng
    */
-  updateShipping: async (shipping: OrderShippingDto): Promise<CartDto> => {
-    return apiRequest.put<CartDto>('/Cart/shipping', shipping);
+  updateShipping: async (shipping: OrderShippingDto): Promise<any> => {
+    return api.putApiV1CartShipping(shipping);
   },
 
   /**
    * Merge guest cart với user cart sau khi login
    */
-  mergeCart: async (request: MergeCartRequest): Promise<CartDto> => {
-    return apiRequest.post<CartDto>('/Cart/merge', request);
+  mergeCart: async (request: MergeCartRequest): Promise<any> => {
+    const dto: MergeCartDto = {
+      sessionId: request.sessionId,
+    };
+    return api.postApiV1CartMerge(dto);
   },
 };
 
@@ -184,57 +196,65 @@ export const guestCartService = {
   /**
    * Lấy giỏ hàng guest (dùng sessionId trong localStorage)
    */
-  getCart: async (): Promise<CartDto> => {
-    return apiRequest.get<CartDto>('/Cart/guest');
+  getCart: async (): Promise<any> => {
+    return api.getApiV1CartGuest();
   },
 
   /**
    * Lấy tóm tắt giỏ hàng guest
    */
-  getSummary: async (): Promise<CartSummaryDto> => {
-    return apiRequest.get<CartSummaryDto>('/Cart/guest/summary');
+  getSummary: async (): Promise<any> => {
+    return api.getApiV1CartGuestSummary();
   },
 
   /**
    * Thêm sản phẩm vào giỏ hàng guest
    */
-  addItem: async (request: AddToCartRequest): Promise<CartDto> => {
-    return apiRequest.post<CartDto>('/Cart/guest/add', request);
+  addItem: async (request: AddToCartRequest): Promise<any> => {
+    const dto: AddToCartDto = {
+      productId: request.productId,
+      quantity: request.quantity,
+    };
+    return api.postApiV1CartGuestAdd(dto);
   },
 
   /**
    * Cập nhật item trong giỏ guest
    */
-  updateItem: async (cartItemId: string, request: UpdateCartItemRequest): Promise<CartDto> => {
-    return apiRequest.put<CartDto>(`/Cart/guest/items/${cartItemId}`, request);
+  updateItem: async (cartItemId: string, request: UpdateCartItemRequest): Promise<any> => {
+    const dto: UpdateCartItemDto = {
+      cartItemId: request.cartItemId,
+      quantity: request.quantity,
+    };
+    return api.putApiV1CartGuestItemsCartItemId(cartItemId, dto);
   },
 
   /**
    * Xóa item khỏi giỏ guest
    */
-  removeItem: async (cartItemId: string): Promise<CartDto> => {
-    return apiRequest.delete<CartDto>(`/Cart/guest/items/${cartItemId}`);
+  removeItem: async (cartItemId: string): Promise<any> => {
+    return api.deleteApiV1CartGuestItemsCartItemId(cartItemId);
   },
 
   /**
    * Xóa toàn bộ giỏ hàng guest
    */
-  clearCart: async (): Promise<void> => {
-    return apiRequest.delete<void>('/Cart/guest/clear');
+  clearCart: async (): Promise<any> => {
+    return api.deleteApiV1CartGuestClear();
   },
 
   /**
    * Validate giỏ hàng guest
    */
-  validateCart: async (): Promise<CartDto> => {
-    return apiRequest.post<CartDto>('/Cart/guest/validate');
+  validateCart: async (): Promise<any> => {
+    return api.postApiV1CartGuestValidate();
   },
 
   /**
    * Lấy số lượng items trong giỏ guest
    */
-  getItemCount: async (): Promise<number> => {
-    return apiRequest.get<number>('/Cart/guest/item-count');
+  getItemCount: async (): Promise<any> => {
+    return api.getApiV1CartGuestItemCount();
   },
 };
 
@@ -247,13 +267,13 @@ export const unifiedCartService = {
    * Kiểm tra user có đang đăng nhập không
    */
   isAuthenticated: (): boolean => {
-    return !!localStorage.getItem('access_token');
+    return !!localStorage.getItem('authToken') || !!sessionStorage.getItem('authToken');
   },
 
   /**
    * Lấy giỏ hàng (tự động chọn user/guest)
    */
-  getCart: async (): Promise<CartDto> => {
+  getCart: async (): Promise<any> => {
     return unifiedCartService.isAuthenticated()
       ? cartService.getCart()
       : guestCartService.getCart();
@@ -262,7 +282,7 @@ export const unifiedCartService = {
   /**
    * Thêm sản phẩm vào giỏ
    */
-  addItem: async (request: AddToCartRequest): Promise<CartDto> => {
+  addItem: async (request: AddToCartRequest): Promise<any> => {
     return unifiedCartService.isAuthenticated()
       ? cartService.addItem(request)
       : guestCartService.addItem(request);
@@ -271,7 +291,7 @@ export const unifiedCartService = {
   /**
    * Xóa item
    */
-  removeItem: async (cartItemId: string): Promise<CartDto> => {
+  removeItem: async (cartItemId: string): Promise<any> => {
     return unifiedCartService.isAuthenticated()
       ? cartService.removeItem(cartItemId)
       : guestCartService.removeItem(cartItemId);
@@ -280,7 +300,7 @@ export const unifiedCartService = {
   /**
    * Lấy số lượng items
    */
-  getItemCount: async (): Promise<number> => {
+  getItemCount: async (): Promise<any> => {
     return unifiedCartService.isAuthenticated()
       ? cartService.getItemCount()
       : guestCartService.getItemCount();
@@ -289,7 +309,7 @@ export const unifiedCartService = {
   /**
    * Clear cart
    */
-  clearCart: async (): Promise<void> => {
+  clearCart: async (): Promise<any> => {
     return unifiedCartService.isAuthenticated()
       ? cartService.clearCart()
       : guestCartService.clearCart();

@@ -12,6 +12,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useWishlist } from '../lib/hooks/useWishlist';
 import { useCart } from '../lib/hooks/useCart';
 import { useAuth } from '../lib/hooks/useAuth';
+import { useActiveCategories } from '../lib/hooks/useCategories';
 import { getVietCommerceAPI } from '../../Api/generated-orval';
 import type { AddToCartDto } from '../../Api/generated-orval/schemas';
 import { vietCommerceProductService } from '../lib/services/vietCommerceProductService';
@@ -67,16 +68,20 @@ export function ProductsPage({}: ProductsPageProps) {
   const { toggleWishlist, isInWishlist, loading: wishlistHookLoading } = useWishlist();
   const { refreshCart } = useCart();
   const { isAuthenticated } = useAuth();
+  
+  // Fetch categories from API
+  const { data: apiCategories, isLoading: categoriesLoading } = useActiveCategories();
 
-  // Categories - có thể fetch từ API sau
+  // Build categories list with "All" option
+  // Note: API may return productsCount: 0, so we use it if available, otherwise don't show count
   const categories = [
     { id: 'all', name: 'Tất cả', count: totalCount },
-    { id: 'cat-1', name: 'Hương & Nến', count: 0 },
-    { id: 'cat-2', name: 'Đồ Thờ Cúng', count: 0 },
-    { id: 'cat-3', name: 'Vật Phẩm Phong Thủy', count: 0 },
-    { id: 'cat-4', name: 'Hoa quả', count: 0 },
-    { id: 'cat-5', name: 'Mâm cúng', count: 0 },
-    { id: 'cat-6', name: 'Dịch vụ', count: 0 }
+    ...(apiCategories || []).map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      // Use productsCount from API if > 0, otherwise undefined (won't show badge)
+      count: cat.productCount && cat.productCount > 0 ? cat.productCount : undefined,
+    })),
   ];
 
   /**
@@ -118,6 +123,14 @@ export function ProductsPage({}: ProductsPageProps) {
       }
 
       const result = await vietCommerceProductService.getProducts(filter);
+
+      // Debug log
+      console.log('[ProductsPage] Fetched result:', {
+        itemsCount: result.items?.length,
+        totalItems: result.totalItems,
+        totalPages: result.totalPages,
+        firstItem: result.items?.[0],
+      });
 
       setProducts(result.items);
       setTotalCount(result.totalItems);
@@ -298,22 +311,34 @@ export function ProductsPage({}: ProductsPageProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                      selectedCategory === category.id
-                        ? 'bg-amber-100 text-amber-900 border-2 border-amber-300'
-                        : 'hover:bg-amber-50 text-gray-700'
-                    }`}
-                  >
-                    <span>{category.name}</span>
-                    <Badge variant="secondary" className="bg-amber-200 text-amber-800">
-                      {category.id === 'all' ? totalCount : category.count}
-                    </Badge>
-                  </button>
-                ))}
+                {categoriesLoading ? (
+                  // Loading skeleton for categories
+                  <>
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <Skeleton key={i} className="h-12 w-full rounded-lg" />
+                    ))}
+                  </>
+                ) : (
+                  categories.map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => setSelectedCategory(category.id)}
+                      className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                        selectedCategory === category.id
+                          ? 'bg-amber-100 text-amber-900 border-2 border-amber-300'
+                          : 'hover:bg-amber-50 text-gray-700'
+                      }`}
+                    >
+                      <span>{category.name}</span>
+                      {/* Only show badge for "All" or if category has count > 0 */}
+                      {(category.id === 'all' || (category.count !== undefined && category.count > 0)) && (
+                        <Badge variant="secondary" className="bg-amber-200 text-amber-800">
+                          {category.id === 'all' ? totalCount : category.count}
+                        </Badge>
+                      )}
+                    </button>
+                  ))
+                )}
               </CardContent>
             </Card>
           </div>

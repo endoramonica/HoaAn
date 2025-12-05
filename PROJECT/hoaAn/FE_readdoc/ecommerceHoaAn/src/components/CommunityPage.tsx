@@ -38,21 +38,22 @@ interface CommunityPageProps {
 // [ ]  fix the errors when we post the comments. 
 
 
+// Updated Post interface to match MixedFeedDto structure
 interface Post {
   id: string;
-  author?: {
-    id?: string;
-    name?: string;
-    avatar?: string;
-  };
+  postType?: string;
+  customerId?: string;
+  customerName?: string;
+  customerAvatar?: string;
   content: string;
-  photoUrls?: string[];
+  imageUrl?: string;
+  imageUrls?: string[];
   likesCount: number;
   commentsCount: number;
   sharesCount: number;
   createdAt: string;
-  isLiked: boolean;
-  isBookmarked: boolean;
+  isLikedByCurrentUser: boolean;
+  isBookmarkedByCurrentUser: boolean;
 }
 
 export default function CommunityPage({
@@ -85,7 +86,8 @@ export default function CommunityPage({
       setIsLoading(true);
       setError(null);
 
-      const response = await postsService.getApiV1PostsFeed(page, 20);
+      // Use MixedFeed endpoint instead of PostsFeed
+      const response = await postsService.getApiV1MixedFeed({ PageNumber: page, PageSize: 20 });
 
       if (response.data) {
         const newPosts = response.data.items || [];
@@ -155,16 +157,16 @@ export default function CommunityPage({
           post.id === postId
             ? {
                 ...post,
-                likesCount: post.isLiked
+                likesCount: post.isLikedByCurrentUser
                   ? post.likesCount - 1
                   : post.likesCount + 1,
-                isLiked: !post.isLiked,
+                isLikedByCurrentUser: !post.isLikedByCurrentUser,
               }
             : post
         )
       );
 
-      const response = await postsService.postApiV1PostsLike(postId);
+      const response = await postsService.postApiV1PostsPostIdLike(postId);
 
       if (response.data) {
         setPosts((prev) =>
@@ -173,7 +175,7 @@ export default function CommunityPage({
               ? {
                   ...post,
                   likesCount: response.data.totalLikes,
-                  isLiked: response.data.isLiked,
+                  isLikedByCurrentUser: response.data.isLiked,
                 }
               : post
           )
@@ -185,10 +187,10 @@ export default function CommunityPage({
           post.id === postId
             ? {
                 ...post,
-                likesCount: post.isLiked
+                likesCount: post.isLikedByCurrentUser
                   ? post.likesCount + 1
                   : post.likesCount - 1,
-                isLiked: !post.isLiked,
+                isLikedByCurrentUser: !post.isLikedByCurrentUser,
               }
             : post
         )
@@ -202,17 +204,17 @@ export default function CommunityPage({
       setPosts((prev) =>
         prev.map((post) =>
           post.id === postId
-            ? { ...post, isBookmarked: !post.isBookmarked }
+            ? { ...post, isBookmarkedByCurrentUser: !post.isBookmarkedByCurrentUser }
             : post
         )
       );
 
-      await postsService.postApiV1PostsBookmark(postId);
+      await postsService.postApiV1PostsPostIdBookmark(postId);
     } catch (err: any) {
       setPosts((prev) =>
         prev.map((post) =>
           post.id === postId
-            ? { ...post, isBookmarked: !post.isBookmarked }
+            ? { ...post, isBookmarkedByCurrentUser: !post.isBookmarkedByCurrentUser }
             : post
         )
       );
@@ -478,20 +480,24 @@ export default function CommunityPage({
         )}
 
         <div className="space-y-6">
-          {posts.map((post) => (
+          {posts.map((post) => {
+            // Get photo URLs from MixedFeedDto structure
+            const photoUrls = post.imageUrls?.length ? post.imageUrls : (post.imageUrl ? [post.imageUrl] : []);
+            
+            return (
             <Card
               key={post.id}
               className="p-6 bg-white shadow-md hover:shadow-lg transition-shadow"
             >
-              {/* FIXED: Added optional chaining and default values */}
+              {/* Updated to use MixedFeedDto field names */}
               <div className="flex items-start gap-3 mb-4">
                 <div className="w-12 h-12 bg-gradient-to-br from-amber-200 to-orange-300 rounded-full flex items-center justify-center text-xl">
-                  {post.author?.avatar || "👤"}
+                  {post.customerAvatar || "👤"}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-medium text-gray-800">
-                      {post.author?.name || "Người dùng ẩn danh"}
+                      {post.customerName || "Người dùng ẩn danh"}
                     </span>
                     {posts.indexOf(post) === 0 && (
                       <Badge className="bg-green-100 text-green-800 text-xs">
@@ -512,11 +518,11 @@ export default function CommunityPage({
                 </p>
               </div>
 
-              {/* FIXED: Added optional chaining for photoUrls */}
-              {post.photoUrls && post.photoUrls.length > 0 && (
+              {/* Updated to use MixedFeedDto imageUrls/imageUrl */}
+              {photoUrls.length > 0 && (
                 <div className="mb-4">
                   <img
-                    src={post.photoUrls[0]}
+                    src={photoUrls[0]}
                     alt="Post"
                     className="w-full h-64 object-cover rounded-lg"
                     onError={(e) => {
@@ -532,14 +538,14 @@ export default function CommunityPage({
                   <button
                     onClick={() => handleLikePost(post.id)}
                     className={`flex items-center gap-2 text-sm transition-colors ${
-                      post.isLiked
+                      post.isLikedByCurrentUser
                         ? "text-red-600"
                         : "text-gray-500 hover:text-red-600"
                     }`}
                   >
                     <Heart
                       className={`w-5 h-5 ${
-                        post.isLiked ? "fill-current" : ""
+                        post.isLikedByCurrentUser ? "fill-current" : ""
                       }`}
                     />
                     {post.likesCount}
@@ -555,7 +561,8 @@ export default function CommunityPage({
                 </div>
               </div>
             </Card>
-          ))}
+          );
+          })}
         </div>
 
         {hasMore && posts.length > 0 && (

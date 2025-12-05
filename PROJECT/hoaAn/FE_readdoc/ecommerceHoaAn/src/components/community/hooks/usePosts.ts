@@ -1,11 +1,12 @@
 /**
  * React Query hooks for Posts API
+ * Updated to use MixedFeed endpoint for feed data
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getVietCommerceAPI } from '../../../../Api/generated-orval';
 import type {
-    GetApiV1PostsFeedParams,
+    GetApiV1MixedFeedParams,
     GetApiV1PostsSearchParams,
     PostApiV1PostsBody,
 } from '../../../../Api/generated-orval/schemas';
@@ -21,13 +22,13 @@ export const postsKeys = {
     search: (keyword: string, page: number) => [...postsKeys.searches(), keyword, page] as const,
 };
 
-// Fetch Posts Feed
+// Fetch Posts Feed using MixedFeed endpoint
 export const usePostsFeed = (page: number = 1, pageSize: number = 20) => {
     return useQuery({
         queryKey: postsKeys.feed(page),
         queryFn: async () => {
-            const params: GetApiV1PostsFeedParams = { pageNumber: page, pageSize };
-            const data = await api.getApiV1PostsFeed(params);
+            const params: GetApiV1MixedFeedParams = { PageNumber: page, PageSize: pageSize };
+            const data = await api.getApiV1MixedFeed(params);
             return data;
         },
         staleTime: 1000 * 60 * 5, // 5 minutes
@@ -68,6 +69,11 @@ export const useCreatePost = () => {
     });
 };
 
+// Helper to match post by id (supports both PostResponseDto.postId and MixedFeedDto.id)
+const matchPostId = (post: any, targetId: string): boolean => {
+    return post.postId === targetId || post.id === targetId;
+};
+
 // Like Post with Optimistic Updates
 export const useLikePost = () => {
     const queryClient = useQueryClient();
@@ -84,7 +90,7 @@ export const useLikePost = () => {
             // Snapshot previous values
             const previousData: any[] = [];
 
-            // Update all feed pages
+            // Update all feed pages (supports both PostResponseDto and MixedFeedDto)
             queryClient.setQueriesData(
                 { queryKey: postsKeys.feeds() },
                 (old: any) => {
@@ -97,7 +103,7 @@ export const useLikePost = () => {
                         data: {
                             ...old.data,
                             items: old.data.items.map((post: any) =>
-                                post.postId === postId
+                                matchPostId(post, postId)
                                     ? {
                                         ...post,
                                         isLikedByCurrentUser: !post.isLikedByCurrentUser,
@@ -125,7 +131,7 @@ export const useLikePost = () => {
                         data: {
                             ...old.data,
                             items: old.data.items.map((post: any) =>
-                                post.postId === postId
+                                matchPostId(post, postId)
                                     ? {
                                         ...post,
                                         isLikedByCurrentUser: !post.isLikedByCurrentUser,
@@ -173,7 +179,7 @@ export const useBookmarkPost = () => {
             // Snapshot previous values
             const previousData: any[] = [];
 
-            // Update all feed pages
+            // Update all feed pages (supports both PostResponseDto and MixedFeedDto)
             queryClient.setQueriesData(
                 { queryKey: postsKeys.feeds() },
                 (old: any) => {
@@ -186,7 +192,7 @@ export const useBookmarkPost = () => {
                         data: {
                             ...old.data,
                             items: old.data.items.map((post: any) =>
-                                post.postId === postId
+                                matchPostId(post, postId)
                                     ? {
                                         ...post,
                                         isBookmarkedByCurrentUser: !post.isBookmarkedByCurrentUser,
@@ -211,7 +217,7 @@ export const useBookmarkPost = () => {
                         data: {
                             ...old.data,
                             items: old.data.items.map((post: any) =>
-                                post.postId === postId
+                                matchPostId(post, postId)
                                     ? {
                                         ...post,
                                         isBookmarkedByCurrentUser: !post.isBookmarkedByCurrentUser,

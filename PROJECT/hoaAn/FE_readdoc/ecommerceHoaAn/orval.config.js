@@ -14,8 +14,9 @@ module.exports = {
         },
         fetch: {
           withCredentials: true
-        }
-      }
-    }
-  }
+        },
+        response: true, // ✅ Bắt buộc để Orval generate hàm trả về { data, success, message }
+      },
+    },
+  },
 };

@@ -1,12 +1,13 @@
 /**
  * OrderSuccessPage - Trang thông báo đặt hàng thành công
+ * ✅ MIGRATED: Sử dụng Orval-generated API
+ * ✅ Uses useCheckout hook for order details
  */
 
 import { useEffect, useState } from 'react';
-import { orderService } from '../../lib/services/orderService';
+import { useCheckout } from '../../lib/hooks/useCheckout';
 import { useHybridNavigate } from '../../lib/hooks/useHybridNavigate';
-import { paymentService } from '../../lib/services/paymentService';
-import { OrderDto } from '../../lib/api/types';
+import type { OrderDetailDto } from '../../../Api/generated-orval/schemas';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
@@ -16,13 +17,12 @@ import {
   Package,
   MapPin,
   CreditCard,
-  Truck,
   Copy,
   Home,
   Loader2,
   Flower2,
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface OrderSuccessPageProps {
   orderData?: { 
@@ -32,11 +32,21 @@ interface OrderSuccessPageProps {
   };
 }
 
+interface BankingInfo {
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+}
+
 export const OrderSuccessPage = ({ orderData }: OrderSuccessPageProps) => {
   const navigate = useHybridNavigate();
-  const [order, setOrder] = useState<OrderDto | null>(null);
-  const [bankingInfo, setBankingInfo] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { getOrderDetails, isProcessing } = useCheckout();
+  const [order, setOrder] = useState<OrderDetailDto | null>(null);
+  const [bankingInfo] = useState<BankingInfo | null>({
+    bankName: 'Vietcombank',
+    accountNumber: '1234567890',
+    accountName: 'CONG TY DO CUNG TRUYEN THONG',
+  });
 
   useEffect(() => {
     loadOrderDetails();
@@ -44,41 +54,80 @@ export const OrderSuccessPage = ({ orderData }: OrderSuccessPageProps) => {
 
   const loadOrderDetails = async () => {
     try {
-      setIsLoading(true);
+      console.log('[OrderSuccessPage] 📋 Loading order details...');
 
-      if (!orderData?.orderId) {
+      let orderId = orderData?.orderId;
+
+      // If no orderData, check sessionStorage
+      if (!orderId) {
         const pendingOrderId = sessionStorage.getItem('pendingOrderId');
         if (pendingOrderId) {
-          const orderDetails = await orderService.getOrderById(pendingOrderId);
-          setOrder(orderDetails);
-          sessionStorage.removeItem('pendingOrderId');
-          sessionStorage.removeItem('pendingOrderNumber');
-        }
-      } else {
-        const orderDetails = await orderService.getOrderById(orderData.orderId);
-        setOrder(orderDetails);
-
-        if (orderData.paymentMethod === 'BankTransfer') {
-          const banking = await paymentService.getBankingInfo();
-          setBankingInfo(banking);
+          orderId = pendingOrderId;
+          console.log('[OrderSuccessPage] 📦 Found pending order:', pendingOrderId);
         }
       }
+
+      if (!orderId) {
+        console.warn('[OrderSuccessPage] ⚠️ No orderId found');
+        toast.error('Không tìm thấy thông tin đơn hàng');
+        return;
+      }
+
+      console.log('[OrderSuccessPage] 🔍 Fetching order:', orderId);
+      const orderDetails = await getOrderDetails(orderId);
+
+      if (orderDetails) {
+        setOrder(orderDetails);
+        console.log('[OrderSuccessPage] ✅ Order loaded:', {
+          orderId: orderDetails.orderId,
+          orderNumber: orderDetails.orderNumber,
+          status: orderDetails.status
+        });
+
+        // Clear pending order from sessionStorage
+        sessionStorage.removeItem('pendingOrderId');
+        sessionStorage.removeItem('pendingOrderNumber');
+      } else {
+        console.error('[OrderSuccessPage] ❌ Failed to load order');
+        toast.error('Không thể tải thông tin đơn hàng');
+      }
     } catch (error) {
-      console.error('Load order details error:', error);
+      console.error('[OrderSuccessPage] ❌ Load order error:', error);
       toast.error('Không thể tải thông tin đơn hàng');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleCopyOrderNumber = () => {
-    if (order) {
+    if (order?.orderNumber) {
       navigator.clipboard.writeText(order.orderNumber);
       toast.success('Đã sao chép mã đơn hàng');
     }
   };
 
-  if (isLoading) {
+  const formatPrice = (price?: number) => {
+    return new Intl.NumberFormat('vi-VN').format(price || 0) + '₫';
+  };
+
+  const getStatusBadge = (status?: string) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return { label: 'Chờ xác nhận', className: 'bg-[#F59E0B] text-white' };
+      case 'confirmed':
+        return { label: 'Đã xác nhận', className: 'bg-blue-600 text-white' };
+      case 'processing':
+        return { label: 'Đang xử lý', className: 'bg-purple-600 text-white' };
+      case 'shipping':
+        return { label: 'Đang giao hàng', className: 'bg-indigo-600 text-white' };
+      case 'delivered':
+        return { label: 'Đã giao hàng', className: 'bg-green-600 text-white' };
+      case 'cancelled':
+        return { label: 'Đã hủy', className: 'bg-red-600 text-white' };
+      default:
+        return { label: status || 'Chờ xác nhận', className: 'bg-gray-600 text-white' };
+    }
+  };
+
+  if (isProcessing) {
     return (
       <div className="min-h-screen bg-[#FFFBEB] flex items-center justify-center">
         <div className="text-center">
@@ -103,6 +152,9 @@ export const OrderSuccessPage = ({ orderData }: OrderSuccessPageProps) => {
       </div>
     );
   }
+
+  const statusBadge = getStatusBadge(order.status);
+  const showBankingInfo = orderData?.paymentMethod === 'BankTransfer' && bankingInfo;
 
   return (
     <div className="min-h-screen bg-[#FFFBEB] px-4 py-12">
@@ -142,7 +194,7 @@ export const OrderSuccessPage = ({ orderData }: OrderSuccessPageProps) => {
         </Card>
 
         {/* Bank Transfer Info */}
-        {bankingInfo && (
+        {showBankingInfo && (
           <Card className="mb-6 border-2 border-[#F59E0B]">
             <CardHeader className="bg-[#F59E0B]/10">
               <CardTitle className="text-[#92400E] flex items-center">
@@ -167,15 +219,20 @@ export const OrderSuccessPage = ({ orderData }: OrderSuccessPageProps) => {
                 <div>
                   <p className="text-sm text-[#92400E]/70">Số tiền</p>
                   <p className="text-xl text-[#DC2626]">
-                    {order.total.toLocaleString('vi-VN')}₫
+                    {formatPrice(order.totalAmount)}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-[#92400E]/70">Nội dung chuyển khoản</p>
                   <p className="text-[#92400E] font-mono bg-[#FFFBEB] px-3 py-2 rounded border border-[#92400E]/20">
-                    {order.orderNumber} {order.shippingAddress.fullName}
+                    {order.orderNumber}
                   </p>
                 </div>
+              </div>
+              <div className="mt-4 p-3 bg-[#F59E0B]/10 rounded-lg">
+                <p className="text-sm text-[#92400E]">
+                  ⚠️ Vui lòng chuyển khoản trong vòng 24h để giữ đơn hàng
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -193,8 +250,8 @@ export const OrderSuccessPage = ({ orderData }: OrderSuccessPageProps) => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-[#92400E]/70">Trạng thái</span>
-                <Badge className="bg-[#F59E0B] text-white">
-                  {order.status === 'Pending' ? 'Chờ xác nhận' : order.status}
+                <Badge className={statusBadge.className}>
+                  {statusBadge.label}
                 </Badge>
               </div>
 
@@ -205,13 +262,17 @@ export const OrderSuccessPage = ({ orderData }: OrderSuccessPageProps) => {
                   <MapPin className="w-5 h-5 text-[#92400E] mt-0.5" />
                   <div className="flex-1">
                     <p className="text-sm text-[#92400E]/70 mb-1">Địa chỉ giao hàng</p>
-                    <p className="text-[#92400E]">{order.shippingAddress.fullName}</p>
-                    <p className="text-[#92400E]/80">{order.shippingAddress.phoneNumber}</p>
+                    <p className="text-[#92400E]">{order.shipping?.recipientName || 'N/A'}</p>
+                    <p className="text-[#92400E]/80">{order.shipping?.phoneNumber || 'N/A'}</p>
                     <p className="text-sm text-[#92400E]/70 mt-1">
-                      {order.shippingAddress.addressLine1}
+                      {order.shipping?.address || 'N/A'}
                     </p>
                     <p className="text-sm text-[#92400E]/70">
-                      {order.shippingAddress.ward}, {order.shippingAddress.district}, {order.shippingAddress.province}
+                      {[
+                        order.shipping?.ward,
+                        order.shipping?.district,
+                        order.shipping?.city
+                      ].filter(Boolean).join(', ')}
                     </p>
                   </div>
                 </div>
@@ -219,10 +280,29 @@ export const OrderSuccessPage = ({ orderData }: OrderSuccessPageProps) => {
 
               <Separator className="bg-[#92400E]/20" />
 
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[#92400E]/70">Tạm tính</span>
+                  <span className="text-[#92400E]">{formatPrice(order.subTotal)}</span>
+                </div>
+                {(order.discountAmount || 0) > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-[#92400E]/70">Giảm giá</span>
+                    <span className="text-[#F59E0B]">-{formatPrice(order.discountAmount)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[#92400E]/70">Phí vận chuyển</span>
+                  <span className="text-[#92400E]">{formatPrice(order.shippingFee)}</span>
+                </div>
+              </div>
+
+              <Separator className="bg-[#92400E]/20" />
+
               <div className="flex items-center justify-between">
-                <span className="text-[#92400E]/70">Tổng cộng</span>
-                <span className="text-xl text-[#DC2626]">
-                  {order.total.toLocaleString('vi-VN')}₫
+                <span className="text-lg text-[#92400E]">Tổng cộng</span>
+                <span className="text-2xl text-[#DC2626]">
+                  {formatPrice(order.totalAmount)}
                 </span>
               </div>
             </div>

@@ -36,8 +36,8 @@ export const getWishlist = async (): Promise<WishlistItemDto[]> => {
     return [...mockWishlistItems];
   }
 
-  // ✅ Fixed: Bỏ /api/v1 vì đã có trong baseURL
-  const response = await apiClient.get<ApiResponse<WishlistItemDto[]>>('/wishlist');
+  // ✅ Fixed: Thêm /api/v1 prefix vì baseURL không còn chứa nó
+  const response = await apiClient.get<ApiResponse<WishlistItemDto[]>>('/api/v1/Wishlist');
   return response.data.data;
 };
 
@@ -54,8 +54,8 @@ export const getWishlistSummary = async (): Promise<WishlistSummaryDto> => {
     };
   }
 
-  // ✅ Fixed
-  const response = await apiClient.get<ApiResponse<WishlistSummaryDto>>('/wishlist/summary');
+  // ✅ Fixed: Thêm /api/v1 prefix
+  const response = await apiClient.get<ApiResponse<WishlistSummaryDto>>('/api/v1/Wishlist/summary');
   return response.data.data;
 };
 
@@ -67,7 +67,7 @@ export const getWishlistSummary = async (): Promise<WishlistSummaryDto> => {
 export const addToWishlist = async (productId: string): Promise<WishlistItemDto> => {
   if (MOCK_MODE) {
     await new Promise(resolve => setTimeout(resolve, 400));
-    
+
     // Kiểm tra xem sản phẩm đã có trong wishlist chưa
     const existingItem = mockWishlistItems.find(item => item.productId === productId);
     if (existingItem) {
@@ -110,9 +110,9 @@ export const addToWishlist = async (productId: string): Promise<WishlistItemDto>
     return newItem;
   }
 
-  // ✅ Fixed
+  // ✅ Fixed: Thêm /api/v1 prefix
   const request: AddToWishlistRequest = { productId };
-  const response = await apiClient.post<ApiResponse<WishlistItemDto>>('/wishlist', request);
+  const response = await apiClient.post<ApiResponse<WishlistItemDto>>('/api/v1/Wishlist', request);
   return response.data.data;
 };
 
@@ -131,8 +131,8 @@ export const removeFromWishlist = async (wishlistItemId: string): Promise<void> 
     return;
   }
 
-  // ✅ Fixed
-  await apiClient.delete(`/wishlist/${wishlistItemId}`);
+  // ✅ Fixed: Thêm /api/v1 prefix
+  await apiClient.delete(`/api/v1/Wishlist/${wishlistItemId}`);
 };
 
 /**
@@ -150,8 +150,8 @@ export const removeFromWishlistByProductId = async (productId: string): Promise<
     return;
   }
 
-  // ✅ Fixed
-  await apiClient.delete(`/wishlist/product/${productId}`);
+  // ✅ Fixed: Thêm /api/v1 prefix
+  await apiClient.delete(`/api/v1/Wishlist/product/${productId}`);
 };
 
 /**
@@ -165,9 +165,9 @@ export const isInWishlist = async (productId: string): Promise<boolean> => {
     return mockWishlistItems.some(item => item.productId === productId);
   }
 
-  // ✅ Fixed
+  // ✅ Fixed: Thêm /api/v1 prefix
   const response = await apiClient.get<ApiResponse<{ isInWishlist: boolean }>>(
-    `/wishlist/check/${productId}`
+    `/api/v1/Wishlist/check/${productId}`
   );
   return response.data.data.isInWishlist;
 };
@@ -183,8 +183,8 @@ export const clearWishlist = async (): Promise<void> => {
     return;
   }
 
-  // ✅ Fixed
-  await apiClient.delete('/wishlist/clear');
+  // ✅ Fixed: Thêm /api/v1 prefix
+  await apiClient.delete('/api/v1/Wishlist/clear');
 };
 
 /**
@@ -199,8 +199,8 @@ export const moveAllToCart = async (): Promise<void> => {
     return;
   }
 
-  // ✅ Fixed
-  await apiClient.post('/wishlist/move-to-cart');
+  // ✅ Fixed: Thêm /api/v1 prefix
+  await apiClient.post('/api/v1/Wishlist/move-to-cart');
 };
 
 /**
@@ -212,7 +212,7 @@ export const toggleWishlist = async (productId: string): Promise<{ isInWishlist:
   if (MOCK_MODE) {
     await new Promise(resolve => setTimeout(resolve, 400));
     const index = mockWishlistItems.findIndex(item => item.productId === productId);
-    
+
     if (index > -1) {
       // Đã có trong wishlist -> xóa
       mockWishlistItems.splice(index, 1);
@@ -253,29 +253,30 @@ export const toggleWishlist = async (productId: string): Promise<{ isInWishlist:
       return { isInWishlist: true };
     }
   }
- 
 
-  // ✅ Fixed
+
+  // ✅ Fixed: Thêm /api/v1 prefix
   const response = await apiClient.post<ApiResponse<{ isInWishlist: boolean }>>(
-    '/wishlist/toggle',
+    '/api/v1/Wishlist/toggle',
     { productId }
   );
   return response.data.data;
 };
- /**
- * Lấy số lượng wishlist items (cho badge count)
- * GET /api/v1/wishlist/count
- */
- export const getWishlistCount = async (): Promise<number> => {
+/**
+* Lấy số lượng wishlist items (cho badge count)
+* GET /api/v1/wishlist/count
+*/
+export const getWishlistCount = async (): Promise<number> => {
   if (MOCK_MODE) {
     await new Promise(resolve => setTimeout(resolve, 200));
     return mockWishlistItems.length;
   }
 
-  const response = await apiClient.get<ApiResponse<number>>('/wishlist/count');
-  return response.data.data; // ✅ FIX: response.data.data
+  // ✅ Fixed: Thêm /api/v1 prefix
+  const response = await apiClient.get<ApiResponse<number>>('/api/v1/Wishlist/count');
+  return response.data.data;
 };
-  
+
 const wishlistService = {
   getWishlist,
   getWishlistSummary,

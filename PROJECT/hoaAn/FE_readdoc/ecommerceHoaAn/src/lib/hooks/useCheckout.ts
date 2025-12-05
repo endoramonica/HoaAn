@@ -4,6 +4,7 @@
  * ✅ Chỉ xử lý Checkout flow (process, get order, my orders, cancel)
  * ✅ Logging tối ưu cho debugging
  * ✅ Exception handling thống nhất
+ * ⚠️ Cart validation should be done in CheckoutPage before calling processCheckout
  */
 
 import { useState, useCallback } from 'react';
@@ -74,10 +75,17 @@ const logError = (context: string, err: any) => {
  * @example
  * ```tsx
  * const { processCheckout, isProcessing } = useCheckout();
+ * const { cart } = useCart();
  * 
  * const handleCheckout = async () => {
+ *   // ✅ Validate cart before checkout
+ *   if (!cart || cart.items.length === 0) {
+ *     toast.error('Giỏ hàng trống');
+ *     return;
+ *   }
+ *   
  *   const result = await processCheckout({
- *     cartId: '...',
+ *     cartId: cart.id,
  *     shippingInfo: { ... },
  *     paymentMethod: 'cod'
  *   });
@@ -94,7 +102,7 @@ export const useCheckout = (): UseCheckoutReturn => {
 
   /**
    * Process checkout - Create order from cart
-   * ✅ Validates cart before checkout to prevent EMPTY_CART error
+   * ⚠️ NOTE: Cart validation should be done in CheckoutPage before calling this
    */
   const processCheckout = useCallback(async (
     checkoutData: CheckoutDto
@@ -103,60 +111,7 @@ export const useCheckout = (): UseCheckoutReturn => {
       setIsProcessing(true);
       setError(null);
 
-      console.log('[useCheckout] � Proceassing checkout...');
-      console.log('[useCheckout] 📦 CartId:', checkoutData.cartId);
-
-      // ✅ STEP 1: Validate cart exists and has items
-      console.log('[useCheckout] 🔍 Validating cart before checkout...');
-
-      let cartData;
-      try {
-        const cartResponse = await api.getApiV1Cart();
-        cartData = cartResponse.data;
-
-        console.log('[useCheckout] 📋 Cart validation:', {
-          cartId: cartData?.cartId,
-          userId: cartData?.userId,
-          itemCount: cartData?.totalItems,
-          totalAmount: cartData?.totalAmount
-        });
-
-        // Check if cart exists
-        if (!cartData || !cartData.cartId) {
-          throw new Error('CART_NOT_FOUND: Không tìm thấy giỏ hàng');
-        }
-
-        // Check if cart has items
-        if (!cartData.items || cartData.items.length === 0) {
-          throw new Error('EMPTY_CART: Giỏ hàng trống');
-        }
-
-        // Check if cartId matches
-        if (cartData.cartId !== checkoutData.cartId) {
-          console.warn('[useCheckout] ⚠️ CartId mismatch:', {
-            expected: checkoutData.cartId,
-            actual: cartData.cartId
-          });
-          throw new Error('CART_MISMATCH: CartId không khớp');
-        }
-
-        console.log('[useCheckout] ✅ Cart validation passed');
-
-      } catch (validationErr: any) {
-        console.error('[useCheckout] ❌ Cart validation failed:', validationErr);
-
-        // If it's our custom error, throw it
-        if (validationErr.message?.startsWith('CART_') || validationErr.message?.startsWith('EMPTY_')) {
-          throw validationErr;
-        }
-
-        // If it's API error, log and throw custom error
-        logError('Cart validation API error', validationErr);
-        throw new Error('CART_VALIDATION_FAILED: Không thể xác thực giỏ hàng');
-      }
-
-      // ✅ STEP 2: Proceed with checkout
-      console.log('[useCheckout] 💳 Proceeding with checkout...');
+      console.log('[useCheckout] 🛒 Processing checkout...');
       console.log('[useCheckout] 📦 Checkout Payload:', {
         cartId: checkoutData.cartId,
         paymentMethod: checkoutData.paymentMethod,
@@ -164,11 +119,11 @@ export const useCheckout = (): UseCheckoutReturn => {
           recipientName: checkoutData.shippingInfo.recipientName,
           phoneNumber: checkoutData.shippingInfo.phoneNumber,
           address: checkoutData.shippingInfo.address,
+          ward: checkoutData.shippingInfo.ward,
+          district: checkoutData.shippingInfo.district,
           city: checkoutData.shippingInfo.city
         },
-        couponCode: checkoutData.couponCode,
-        itemCount: cartData.totalItems,
-        totalAmount: cartData.totalAmount
+        couponCode: checkoutData.couponCode
       });
 
       const response = await api.postApiV1CheckoutProcess(checkoutData);
@@ -192,15 +147,13 @@ export const useCheckout = (): UseCheckoutReturn => {
       const errorMessage = extractErrorMessage(err);
       setError(errorMessage);
 
-      // Show user-friendly error messages
-      if (errorMessage.includes('EMPTY_CART')) {
+      // Show user-friendly error messages based on error type
+      if (errorMessage.includes('EMPTY_CART') || errorMessage.toLowerCase().includes('empty cart')) {
         toast.error('Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi thanh toán.');
-      } else if (errorMessage.includes('CART_NOT_FOUND')) {
+      } else if (errorMessage.includes('CART_NOT_FOUND') || errorMessage.toLowerCase().includes('cart not found')) {
         toast.error('Không tìm thấy giỏ hàng. Vui lòng thử lại.');
-      } else if (errorMessage.includes('CART_MISMATCH')) {
-        toast.error('Giỏ hàng không hợp lệ. Vui lòng tải lại trang.');
-      } else if (errorMessage.includes('CART_VALIDATION_FAILED')) {
-        toast.error('Không thể xác thực giỏ hàng. Vui lòng đăng nhập lại.');
+      } else if (errorMessage.includes('INVALID') || errorMessage.toLowerCase().includes('invalid')) {
+        toast.error('Thông tin không hợp lệ. Vui lòng kiểm tra lại.');
       } else {
         toast.error(errorMessage);
       }

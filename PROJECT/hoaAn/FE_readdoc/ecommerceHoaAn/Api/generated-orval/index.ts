@@ -6,6 +6,7 @@
  * OpenAPI spec version: v1
  */
 import type {
+  AddPointsRequest,
   AddToCartDto,
   AddToWishlistRequest,
   AddressResponseDtoApiResponse,
@@ -13,6 +14,9 @@ import type {
   ApplyCouponDto,
   BooleanApiResponse,
   BulkUpdateStatusRequest,
+  CRMInteractionDtoApiResponse,
+  CRMInteractionListDtoListApiResponse,
+  CRMInteractionListDtoPaginatedResponseApiResponse,
   CancelOrderRequest,
   CategoryDetailDtoApiResponse,
   CategoryDtoApiResponse,
@@ -28,18 +32,37 @@ import type {
   CreateAddressDto,
   CreateCategoryDto,
   CreateCommentDto,
+  CreateCustomerAddressRequest,
+  CreateCustomerRequest,
+  CreateInteractionRequest,
+  CustomerAddressDtoApiResponse,
+  CustomerAddressDtoListApiResponse,
+  CustomerDetailDtoApiResponse,
+  CustomerListDtoListApiResponse,
+  CustomerListDtoPaginatedResponseApiResponse,
+  CustomerOrderSummaryDtoApiResponse,
+  CustomerStatisticsDtoApiResponse,
   DecimalApiResponse,
+  DeductPointsRequest,
+  FeaturedPostsDtoApiResponse,
   ForgotPasswordRequestDTO,
-  GetApiCategoryExistsParams,
-  GetApiCategoryPagedListParams,
   GetApiV1AuthVerifyEmailParams,
+  GetApiV1CategoryExistsParams,
+  GetApiV1CategoryPagedListParams,
   GetApiV1CheckoutMyOrdersParams,
   GetApiV1CommentsPostPostIdParams,
+  GetApiV1CustomerAdminIdInteractionsParams,
+  GetApiV1CustomerAdminIdOrdersParams,
+  GetApiV1CustomerAdminInteractionsUpcomingParams,
+  GetApiV1CustomerAdminParams,
+  GetApiV1CustomerAdminSearchParams,
+  GetApiV1MixedFeedFeaturedParams,
+  GetApiV1MixedFeedLocationLocationParams,
+  GetApiV1MixedFeedParams,
+  GetApiV1MixedFeedProductProductIdParams,
   GetApiV1OrderMyOrdersParams,
   GetApiV1OrderOrderIdCanChangeStatusParams,
   GetApiV1OrderParams,
-  GetApiV1OrderRecentParams,
-  GetApiV1OrderSearchParams,
   GetApiV1OrderStatsCountParams,
   GetApiV1OrderStatsRevenueParams,
   GetApiV1PostsCustomerCustomerIdParams,
@@ -49,20 +72,27 @@ import type {
   GetApiV1UsersParams,
   Int32ApiResponse,
   IsInWishlistResponseApiResponse,
+  LocationPostsDtoApiResponse,
   LoginDTO,
+  LoyaltyHistoryDtoListApiResponse,
   MergeCartDto,
+  MixedFeedDtoPaginatedResultApiResponse,
   OrderDetailDtoApiResponse,
   OrderDetailDtoListApiResponse,
+  OrderDetailDtoPaginatedResponseApiResponse,
   OrderDetailDtoPaginatedResultApiResponse,
   OrderShippingDto,
   OrderStatus,
   OrderStatusHistoryDTOListApiResponse,
   OrderStatusUpdateDTO,
-  PatchApiCategoryIdStatusParams,
+  PatchApiV1CategoryIdStatusParams,
+  PostApiV1MixedFeedPostIdTrackParams,
   PostApiV1PostsBody,
   PostBookmarkResultApiResponse,
   PostDetailDtoApiResponse,
   PostFeedDtoPaginatedResultApiResponse,
+  PostInteractionDto,
+  PostInteractionResultApiResponse,
   PostLikeResultApiResponse,
   PostResponseDtoApiResponse,
   PostResponseDtoPaginatedResultApiResponse,
@@ -73,6 +103,7 @@ import type {
   ProductUpdateDto,
   RefreshTokenRequestDTO,
   RegisterRequestDTO,
+  RelatedPostsDtoApiResponse,
   ResetPasswordRequestDTO,
   SaveCommentDto,
   SocialLoginRequestDTO,
@@ -82,7 +113,11 @@ import type {
   UpdateCartItemDto,
   UpdateCategoryDto,
   UpdateCommentDto,
+  UpdateCustomerAddressRequest,
+  UpdateCustomerRequest,
+  UpdateInteractionRequest,
   UpdatePostDto,
+  UpdateTierRequest,
   UserUpdateDTO,
   WeatherForecast,
   WishlistItemDtoApiResponse,
@@ -96,7 +131,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Auth/register`, method: 'POST',
+        url: `/api/v1/Auth/register`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: registerRequestDTO
       },
@@ -108,7 +143,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Auth/verify-email`, method: 'GET',
+        url: `/api/v1/Auth/verify-email`, method: 'GET',
         params
       },
     );
@@ -119,7 +154,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Auth/login`, method: 'POST',
+        url: `/api/v1/Auth/login`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: loginDTO
       },
@@ -131,7 +166,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Auth/login/google`, method: 'POST',
+        url: `/api/v1/Auth/login/google`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: socialLoginRequestDTO
       },
@@ -143,7 +178,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Auth/refresh-token`, method: 'POST',
+        url: `/api/v1/Auth/refresh-token`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: refreshTokenRequestDTO
       },
@@ -155,7 +190,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Auth/logout`, method: 'POST'
+        url: `/api/v1/Auth/logout`, method: 'POST'
       },
     );
   }
@@ -165,7 +200,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Auth/change-password`, method: 'POST',
+        url: `/api/v1/Auth/change-password`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: changePasswordRequestDTO
       },
@@ -177,7 +212,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Auth/forgot-password`, method: 'POST',
+        url: `/api/v1/Auth/forgot-password`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: forgotPasswordRequestDTO
       },
@@ -189,7 +224,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Auth/reset-password`, method: 'POST',
+        url: `/api/v1/Auth/reset-password`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: resetPasswordRequestDTO
       },
@@ -201,7 +236,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart`, method: 'GET'
+        url: `/api/v1/Cart`, method: 'GET'
       },
     );
   }
@@ -211,7 +246,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/summary`, method: 'GET'
+        url: `/api/v1/Cart/summary`, method: 'GET'
       },
     );
   }
@@ -221,7 +256,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/add`, method: 'POST',
+        url: `/api/v1/Cart/add`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: addToCartDto
       },
@@ -233,7 +268,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/update-item`, method: 'PUT',
+        url: `/api/v1/Cart/update-item`, method: 'PUT',
         headers: { 'Content-Type': 'application/json', },
         data: updateCartItemDto
       },
@@ -245,7 +280,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/items/${cartItemId}`, method: 'DELETE'
+        url: `/api/v1/Cart/items/${cartItemId}`, method: 'DELETE'
       },
     );
   }
@@ -255,7 +290,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/items/${cartItemId}`, method: 'GET'
+        url: `/api/v1/Cart/items/${cartItemId}`, method: 'GET'
       },
     );
   }
@@ -265,7 +300,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/clear`, method: 'DELETE'
+        url: `/api/v1/Cart/clear`, method: 'DELETE'
       },
     );
   }
@@ -275,7 +310,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/validate`, method: 'POST'
+        url: `/api/v1/Cart/validate`, method: 'POST'
       },
     );
   }
@@ -285,7 +320,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/item-count`, method: 'GET'
+        url: `/api/v1/Cart/item-count`, method: 'GET'
       },
     );
   }
@@ -295,7 +330,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/guest`, method: 'GET'
+        url: `/api/v1/Cart/guest`, method: 'GET'
       },
     );
   }
@@ -305,7 +340,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/guest/summary`, method: 'GET'
+        url: `/api/v1/Cart/guest/summary`, method: 'GET'
       },
     );
   }
@@ -315,7 +350,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/guest/add`, method: 'POST',
+        url: `/api/v1/Cart/guest/add`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: addToCartDto
       },
@@ -328,7 +363,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/guest/items/${cartItemId}`, method: 'PUT',
+        url: `/api/v1/Cart/guest/items/${cartItemId}`, method: 'PUT',
         headers: { 'Content-Type': 'application/json', },
         data: updateCartItemDto
       },
@@ -340,7 +375,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/guest/items/${cartItemId}`, method: 'DELETE'
+        url: `/api/v1/Cart/guest/items/${cartItemId}`, method: 'DELETE'
       },
     );
   }
@@ -350,7 +385,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/guest/clear`, method: 'DELETE'
+        url: `/api/v1/Cart/guest/clear`, method: 'DELETE'
       },
     );
   }
@@ -360,7 +395,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/guest/validate`, method: 'POST'
+        url: `/api/v1/Cart/guest/validate`, method: 'POST'
       },
     );
   }
@@ -370,7 +405,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/guest/item-count`, method: 'GET'
+        url: `/api/v1/Cart/guest/item-count`, method: 'GET'
       },
     );
   }
@@ -380,7 +415,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/merge`, method: 'POST',
+        url: `/api/v1/Cart/merge`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: mergeCartDto
       },
@@ -392,7 +427,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/coupon/apply`, method: 'POST',
+        url: `/api/v1/Cart/coupon/apply`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: applyCouponDto
       },
@@ -404,7 +439,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/coupon/remove`, method: 'POST'
+        url: `/api/v1/Cart/coupon/remove`, method: 'POST'
       },
     );
   }
@@ -414,167 +449,167 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Cart/shipping`, method: 'PUT',
+        url: `/api/v1/Cart/shipping`, method: 'PUT',
         headers: { 'Content-Type': 'application/json', },
         data: orderShippingDto
       },
     );
   }
 
-  const getApiCategoryId = (
+  const getApiV1CategoryId = (
     id: string,
   ) => {
     return apiClient<CategoryDtoApiResponse>(
       {
-        url: `/api/Category/${id}`, method: 'GET'
+        url: `/api/v1/Category/${id}`, method: 'GET'
       },
     );
   }
 
-  const putApiCategoryId = (
+  const putApiV1CategoryId = (
     id: string,
     updateCategoryDto: UpdateCategoryDto,
   ) => {
     return apiClient<CategoryDtoApiResponse>(
       {
-        url: `/api/Category/${id}`, method: 'PUT',
+        url: `/api/v1/Category/${id}`, method: 'PUT',
         headers: { 'Content-Type': 'application/json', },
         data: updateCategoryDto
       },
     );
   }
 
-  const deleteApiCategoryId = (
+  const deleteApiV1CategoryId = (
     id: string,
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/api/Category/${id}`, method: 'DELETE'
+        url: `/api/v1/Category/${id}`, method: 'DELETE'
       },
     );
   }
 
-  const getApiCategory = (
+  const getApiV1Category = (
 
   ) => {
     return apiClient<CategoryDtoIEnumerableApiResponse>(
       {
-        url: `/api/Category`, method: 'GET'
+        url: `/api/v1/Category`, method: 'GET'
       },
     );
   }
 
-  const postApiCategory = (
+  const postApiV1Category = (
     createCategoryDto: CreateCategoryDto,
   ) => {
     return apiClient<CategoryDtoApiResponse>(
       {
-        url: `/api/Category`, method: 'POST',
+        url: `/api/v1/Category`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: createCategoryDto
       },
     );
   }
 
-  const patchApiCategoryIdSoftDelete = (
+  const patchApiV1CategoryIdSoftDelete = (
     id: string,
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/api/Category/${id}/soft-delete`, method: 'PATCH'
+        url: `/api/v1/Category/${id}/soft-delete`, method: 'PATCH'
       },
     );
   }
 
-  const getApiCategoryStoreStoreId = (
+  const getApiV1CategoryStoreStoreId = (
     storeId: string,
   ) => {
     return apiClient<CategoryDtoIEnumerableApiResponse>(
       {
-        url: `/api/Category/store/${storeId}`, method: 'GET'
+        url: `/api/v1/Category/store/${storeId}`, method: 'GET'
       },
     );
   }
 
-  const getApiCategoryActiveList = (
+  const getApiV1CategoryActiveList = (
 
   ) => {
     return apiClient<CategoryDtoIEnumerableApiResponse>(
       {
-        url: `/api/Category/active/list`, method: 'GET'
+        url: `/api/v1/Category/active/list`, method: 'GET'
       },
     );
   }
 
-  const getApiCategoryParentIdSubcategories = (
+  const getApiV1CategoryParentIdSubcategories = (
     parentId: string,
   ) => {
     return apiClient<CategoryDtoIEnumerableApiResponse>(
       {
-        url: `/api/Category/${parentId}/subcategories`, method: 'GET'
+        url: `/api/v1/Category/${parentId}/subcategories`, method: 'GET'
       },
     );
   }
 
-  const getApiCategoryIdDetails = (
+  const getApiV1CategoryIdDetails = (
     id: string,
   ) => {
     return apiClient<CategoryDetailDtoApiResponse>(
       {
-        url: `/api/Category/${id}/details`, method: 'GET'
+        url: `/api/v1/Category/${id}/details`, method: 'GET'
       },
     );
   }
 
-  const getApiCategoryHierarchyStoreId = (
+  const getApiV1CategoryHierarchyStoreId = (
     storeId: string,
   ) => {
     return apiClient<CategoryDtoIEnumerableApiResponse>(
       {
-        url: `/api/Category/hierarchy/${storeId}`, method: 'GET'
+        url: `/api/v1/Category/hierarchy/${storeId}`, method: 'GET'
       },
     );
   }
 
-  const getApiCategoryPagedList = (
-    params?: GetApiCategoryPagedListParams,
+  const getApiV1CategoryPagedList = (
+    params?: GetApiV1CategoryPagedListParams,
   ) => {
     return apiClient<CategoryDtoPaginatedResultApiResponse>(
       {
-        url: `/api/Category/paged/list`, method: 'GET',
+        url: `/api/v1/Category/paged/list`, method: 'GET',
         params
       },
     );
   }
 
-  const getApiCategoryCountByStoreStoreId = (
+  const getApiV1CategoryCountByStoreStoreId = (
     storeId: string,
   ) => {
     return apiClient<Int32ApiResponse>(
       {
-        url: `/api/Category/count/by-store/${storeId}`, method: 'GET'
+        url: `/api/v1/Category/count/by-store/${storeId}`, method: 'GET'
       },
     );
   }
 
-  const getApiCategoryExists = (
-    params?: GetApiCategoryExistsParams,
+  const getApiV1CategoryExists = (
+    params?: GetApiV1CategoryExistsParams,
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/api/Category/exists`, method: 'GET',
+        url: `/api/v1/Category/exists`, method: 'GET',
         params
       },
     );
   }
 
-  const patchApiCategoryIdStatus = (
+  const patchApiV1CategoryIdStatus = (
     id: string,
-    params?: PatchApiCategoryIdStatusParams,
+    params?: PatchApiV1CategoryIdStatusParams,
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/api/Category/${id}/status`, method: 'PATCH',
+        url: `/api/v1/Category/${id}/status`, method: 'PATCH',
         params
       },
     );
@@ -585,7 +620,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<CheckoutResponseDtoApiResponse>(
       {
-        url: `/Checkout/process`, method: 'POST',
+        url: `/api/v1/Checkout/process`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: checkoutDto
       },
@@ -597,7 +632,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<OrderDetailDtoApiResponse>(
       {
-        url: `/Checkout/${orderId}`, method: 'GET'
+        url: `/api/v1/Checkout/${orderId}`, method: 'GET'
       },
     );
   }
@@ -607,7 +642,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<OrderDetailDtoListApiResponse>(
       {
-        url: `/Checkout/my-orders`, method: 'GET',
+        url: `/api/v1/Checkout/my-orders`, method: 'GET',
         params
       },
     );
@@ -619,7 +654,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Checkout/${orderId}/cancel`, method: 'POST',
+        url: `/api/v1/Checkout/${orderId}/cancel`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: cancelOrderRequest
       },
@@ -631,7 +666,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<CommentDtoApiResponse>(
       {
-        url: `/Comments`, method: 'POST',
+        url: `/api/v1/Comments`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: createCommentDto
       },
@@ -644,7 +679,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<CommentDtoApiResponse>(
       {
-        url: `/Comments/${commentId}`, method: 'PUT',
+        url: `/api/v1/Comments/${commentId}`, method: 'PUT',
         headers: { 'Content-Type': 'application/json', },
         data: updateCommentDto
       },
@@ -656,7 +691,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Comments/${commentId}`, method: 'DELETE'
+        url: `/api/v1/Comments/${commentId}`, method: 'DELETE'
       },
     );
   }
@@ -666,7 +701,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<CommentDetailDtoApiResponse>(
       {
-        url: `/Comments/${commentId}`, method: 'GET'
+        url: `/api/v1/Comments/${commentId}`, method: 'GET'
       },
     );
   }
@@ -677,7 +712,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<CommentDtoPaginatedResponseApiResponse>(
       {
-        url: `/Comments/post/${postId}`, method: 'GET',
+        url: `/api/v1/Comments/post/${postId}`, method: 'GET',
         params
       },
     );
@@ -688,7 +723,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<CommentDtoListApiResponse>(
       {
-        url: `/Comments/${commentId}/replies`, method: 'GET'
+        url: `/api/v1/Comments/${commentId}/replies`, method: 'GET'
       },
     );
   }
@@ -698,7 +733,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<CommentDtoApiResponse>(
       {
-        url: `/Comments/save`, method: 'POST',
+        url: `/api/v1/Comments/save`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: saveCommentDto
       },
@@ -710,7 +745,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<AddressResponseDtoListApiResponse>(
       {
-        url: `/customer/addresses`, method: 'GET'
+        url: `/api/v1/customer/addresses`, method: 'GET'
       },
     );
   }
@@ -720,7 +755,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<AddressResponseDtoApiResponse>(
       {
-        url: `/customer/addresses`, method: 'POST',
+        url: `/api/v1/customer/addresses`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: createAddressDto
       },
@@ -732,7 +767,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<AddressResponseDtoApiResponse>(
       {
-        url: `/customer/addresses/${id}`, method: 'GET'
+        url: `/api/v1/customer/addresses/${id}`, method: 'GET'
       },
     );
   }
@@ -743,7 +778,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<AddressResponseDtoApiResponse>(
       {
-        url: `/customer/addresses/${id}`, method: 'PUT',
+        url: `/api/v1/customer/addresses/${id}`, method: 'PUT',
         headers: { 'Content-Type': 'application/json', },
         data: updateAddressDto
       },
@@ -755,7 +790,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/customer/addresses/${id}`, method: 'DELETE'
+        url: `/api/v1/customer/addresses/${id}`, method: 'DELETE'
       },
     );
   }
@@ -765,7 +800,360 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/customer/addresses/${id}/set-default`, method: 'POST'
+        url: `/api/v1/customer/addresses/${id}/set-default`, method: 'POST'
+      },
+    );
+  }
+
+  const getApiV1CustomerAdmin = (
+    params?: GetApiV1CustomerAdminParams,
+  ) => {
+    return apiClient<CustomerListDtoPaginatedResponseApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin`, method: 'GET',
+        params
+      },
+    );
+  }
+
+  const postApiV1CustomerAdmin = (
+    createCustomerRequest: CreateCustomerRequest,
+  ) => {
+    return apiClient<CustomerDetailDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin`, method: 'POST',
+        headers: { 'Content-Type': 'application/json', },
+        data: createCustomerRequest
+      },
+    );
+  }
+
+  const getApiV1CustomerAdminId = (
+    id: string,
+  ) => {
+    return apiClient<CustomerDetailDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/${id}`, method: 'GET'
+      },
+    );
+  }
+
+  const putApiV1CustomerAdminId = (
+    id: string,
+    updateCustomerRequest: UpdateCustomerRequest,
+  ) => {
+    return apiClient<CustomerDetailDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/${id}`, method: 'PUT',
+        headers: { 'Content-Type': 'application/json', },
+        data: updateCustomerRequest
+      },
+    );
+  }
+
+  const deleteApiV1CustomerAdminId = (
+    id: string,
+  ) => {
+    return apiClient<BooleanApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/${id}`, method: 'DELETE'
+      },
+    );
+  }
+
+  const getApiV1CustomerAdminSearch = (
+    params?: GetApiV1CustomerAdminSearchParams,
+  ) => {
+    return apiClient<CustomerListDtoListApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/search`, method: 'GET',
+        params
+      },
+    );
+  }
+
+  const getApiV1CustomerAdminIdStatistics = (
+    id: string,
+  ) => {
+    return apiClient<CustomerStatisticsDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/${id}/statistics`, method: 'GET'
+      },
+    );
+  }
+
+  const getApiV1CustomerAdminIdOrders = (
+    id: string,
+    params?: GetApiV1CustomerAdminIdOrdersParams,
+  ) => {
+    return apiClient<OrderDetailDtoPaginatedResponseApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/${id}/orders`, method: 'GET',
+        params
+      },
+    );
+  }
+
+  const getApiV1CustomerAdminIdOrdersSummary = (
+    id: string,
+  ) => {
+    return apiClient<CustomerOrderSummaryDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/${id}/orders/summary`, method: 'GET'
+      },
+    );
+  }
+
+  const getApiV1CustomerAdminIdAddresses = (
+    id: string,
+  ) => {
+    return apiClient<CustomerAddressDtoListApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/${id}/addresses`, method: 'GET'
+      },
+    );
+  }
+
+  const getApiV1CustomerAdminAddressesAddressId = (
+    addressId: string,
+  ) => {
+    return apiClient<CustomerAddressDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/addresses/${addressId}`, method: 'GET'
+      },
+    );
+  }
+
+  const putApiV1CustomerAdminAddressesAddressId = (
+    addressId: string,
+    updateCustomerAddressRequest: UpdateCustomerAddressRequest,
+  ) => {
+    return apiClient<CustomerAddressDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/addresses/${addressId}`, method: 'PUT',
+        headers: { 'Content-Type': 'application/json', },
+        data: updateCustomerAddressRequest
+      },
+    );
+  }
+
+  const deleteApiV1CustomerAdminAddressesAddressId = (
+    addressId: string,
+  ) => {
+    return apiClient<BooleanApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/addresses/${addressId}`, method: 'DELETE'
+      },
+    );
+  }
+
+  const postApiV1CustomerAdminAddresses = (
+    createCustomerAddressRequest: CreateCustomerAddressRequest,
+  ) => {
+    return apiClient<CustomerAddressDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/addresses`, method: 'POST',
+        headers: { 'Content-Type': 'application/json', },
+        data: createCustomerAddressRequest
+      },
+    );
+  }
+
+  const putApiV1CustomerAdminIdAddressesAddressIdDefault = (
+    id: string,
+    addressId: string,
+  ) => {
+    return apiClient<BooleanApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/${id}/addresses/${addressId}/default`, method: 'PUT'
+      },
+    );
+  }
+
+  const getApiV1CustomerAdminIdInteractions = (
+    id: string,
+    params?: GetApiV1CustomerAdminIdInteractionsParams,
+  ) => {
+    return apiClient<CRMInteractionListDtoPaginatedResponseApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/${id}/interactions`, method: 'GET',
+        params
+      },
+    );
+  }
+
+  const getApiV1CustomerAdminInteractionsInteractionId = (
+    interactionId: string,
+  ) => {
+    return apiClient<CRMInteractionDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/interactions/${interactionId}`, method: 'GET'
+      },
+    );
+  }
+
+  const putApiV1CustomerAdminInteractionsInteractionId = (
+    interactionId: string,
+    updateInteractionRequest: UpdateInteractionRequest,
+  ) => {
+    return apiClient<CRMInteractionDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/interactions/${interactionId}`, method: 'PUT',
+        headers: { 'Content-Type': 'application/json', },
+        data: updateInteractionRequest
+      },
+    );
+  }
+
+  const deleteApiV1CustomerAdminInteractionsInteractionId = (
+    interactionId: string,
+  ) => {
+    return apiClient<BooleanApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/interactions/${interactionId}`, method: 'DELETE'
+      },
+    );
+  }
+
+  const postApiV1CustomerAdminInteractions = (
+    createInteractionRequest: CreateInteractionRequest,
+  ) => {
+    return apiClient<CRMInteractionDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/interactions`, method: 'POST',
+        headers: { 'Content-Type': 'application/json', },
+        data: createInteractionRequest
+      },
+    );
+  }
+
+  const putApiV1CustomerAdminInteractionsInteractionIdComplete = (
+    interactionId: string,
+  ) => {
+    return apiClient<CRMInteractionDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/interactions/${interactionId}/complete`, method: 'PUT'
+      },
+    );
+  }
+
+  const getApiV1CustomerAdminInteractionsUpcoming = (
+    params?: GetApiV1CustomerAdminInteractionsUpcomingParams,
+  ) => {
+    return apiClient<CRMInteractionListDtoListApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/interactions/upcoming`, method: 'GET',
+        params
+      },
+    );
+  }
+
+  const postApiV1CustomerAdminIdLoyaltyAdd = (
+    id: string,
+    addPointsRequest: AddPointsRequest,
+  ) => {
+    return apiClient<CustomerDetailDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/${id}/loyalty/add`, method: 'POST',
+        headers: { 'Content-Type': 'application/json', },
+        data: addPointsRequest
+      },
+    );
+  }
+
+  const postApiV1CustomerAdminIdLoyaltyDeduct = (
+    id: string,
+    deductPointsRequest: DeductPointsRequest,
+  ) => {
+    return apiClient<CustomerDetailDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/${id}/loyalty/deduct`, method: 'POST',
+        headers: { 'Content-Type': 'application/json', },
+        data: deductPointsRequest
+      },
+    );
+  }
+
+  const putApiV1CustomerAdminIdTier = (
+    id: string,
+    updateTierRequest: UpdateTierRequest,
+  ) => {
+    return apiClient<CustomerDetailDtoApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/${id}/tier`, method: 'PUT',
+        headers: { 'Content-Type': 'application/json', },
+        data: updateTierRequest
+      },
+    );
+  }
+
+  const getApiV1CustomerAdminIdLoyaltyHistory = (
+    id: string,
+  ) => {
+    return apiClient<LoyaltyHistoryDtoListApiResponse>(
+      {
+        url: `/api/v1/CustomerAdmin/${id}/loyalty-history`, method: 'GET'
+      },
+    );
+  }
+
+  const getApiV1MixedFeed = (
+    params?: GetApiV1MixedFeedParams,
+  ) => {
+    return apiClient<MixedFeedDtoPaginatedResultApiResponse>(
+      {
+        url: `/api/v1/MixedFeed`, method: 'GET',
+        params
+      },
+    );
+  }
+
+  const getApiV1MixedFeedLocationLocation = (
+    location: string,
+    params?: GetApiV1MixedFeedLocationLocationParams,
+  ) => {
+    return apiClient<LocationPostsDtoApiResponse>(
+      {
+        url: `/api/v1/MixedFeed/location/${location}`, method: 'GET',
+        params
+      },
+    );
+  }
+
+  const getApiV1MixedFeedFeatured = (
+    params?: GetApiV1MixedFeedFeaturedParams,
+  ) => {
+    return apiClient<FeaturedPostsDtoApiResponse>(
+      {
+        url: `/api/v1/MixedFeed/featured`, method: 'GET',
+        params
+      },
+    );
+  }
+
+  const getApiV1MixedFeedProductProductId = (
+    productId: string,
+    params?: GetApiV1MixedFeedProductProductIdParams,
+  ) => {
+    return apiClient<RelatedPostsDtoApiResponse>(
+      {
+        url: `/api/v1/MixedFeed/product/${productId}`, method: 'GET',
+        params
+      },
+    );
+  }
+
+  const postApiV1MixedFeedPostIdTrack = (
+    postId: string,
+    postInteractionDto: PostInteractionDto,
+    params?: PostApiV1MixedFeedPostIdTrackParams,
+  ) => {
+    return apiClient<PostInteractionResultApiResponse>(
+      {
+        url: `/api/v1/MixedFeed/${postId}/track`, method: 'POST',
+        headers: { 'Content-Type': 'application/json', },
+        data: postInteractionDto,
+        params
       },
     );
   }
@@ -775,7 +1163,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<OrderDetailDtoApiResponse>(
       {
-        url: `/Order/${id}`, method: 'GET'
+        url: `/api/v1/Order/${id}`, method: 'GET'
       },
     );
   }
@@ -785,7 +1173,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<OrderDetailDtoPaginatedResultApiResponse>(
       {
-        url: `/Order/my-orders`, method: 'GET',
+        url: `/api/v1/Order/my-orders`, method: 'GET',
         params
       },
     );
@@ -796,18 +1184,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<OrderDetailDtoPaginatedResultApiResponse>(
       {
-        url: `/Order`, method: 'GET',
-        params
-      },
-    );
-  }
-
-  const getApiV1OrderSearch = (
-    params?: GetApiV1OrderSearchParams,
-  ) => {
-    return apiClient<OrderDetailDtoListApiResponse>(
-      {
-        url: `/Order/search`, method: 'GET',
+        url: `/api/v1/Order`, method: 'GET',
         params
       },
     );
@@ -818,18 +1195,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<OrderDetailDtoListApiResponse>(
       {
-        url: `/Order/status/${status}`, method: 'GET'
-      },
-    );
-  }
-
-  const getApiV1OrderRecent = (
-    params?: GetApiV1OrderRecentParams,
-  ) => {
-    return apiClient<OrderDetailDtoListApiResponse>(
-      {
-        url: `/Order/recent`, method: 'GET',
-        params
+        url: `/api/v1/Order/status/${status}`, method: 'GET'
       },
     );
   }
@@ -839,7 +1205,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<OrderStatusHistoryDTOListApiResponse>(
       {
-        url: `/Order/${orderId}/status-history`, method: 'GET'
+        url: `/api/v1/Order/${orderId}/status-history`, method: 'GET'
       },
     );
   }
@@ -850,9 +1216,22 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Order/${orderId}/status`, method: 'PUT',
+        url: `/api/v1/Order/${orderId}/status`, method: 'PUT',
         headers: { 'Content-Type': 'application/json', },
         data: orderStatusUpdateDTO
+      },
+    );
+  }
+
+  const postApiV1OrderOrderIdCancel = (
+    orderId: string,
+    cancelOrderRequest: CancelOrderRequest,
+  ) => {
+    return apiClient<BooleanApiResponse>(
+      {
+        url: `/api/v1/Order/${orderId}/cancel`, method: 'POST',
+        headers: { 'Content-Type': 'application/json', },
+        data: cancelOrderRequest
       },
     );
   }
@@ -863,7 +1242,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Order/${orderId}/can-change-status`, method: 'GET',
+        url: `/api/v1/Order/${orderId}/can-change-status`, method: 'GET',
         params
       },
     );
@@ -874,7 +1253,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<Int32ApiResponse>(
       {
-        url: `/Order/stats/count`, method: 'GET',
+        url: `/api/v1/Order/stats/count`, method: 'GET',
         params
       },
     );
@@ -885,7 +1264,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<DecimalApiResponse>(
       {
-        url: `/Order/stats/revenue`, method: 'GET',
+        url: `/api/v1/Order/stats/revenue`, method: 'GET',
         params
       },
     );
@@ -896,7 +1275,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<Int32ApiResponse>(
       {
-        url: `/Order/bulk-update-status`, method: 'POST',
+        url: `/api/v1/Order/bulk-update-status`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: bulkUpdateStatusRequest
       },
@@ -908,7 +1287,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/payment/vnpay/ipn`, method: 'GET'
+        url: `/api/v1/payment/vnpay/ipn`, method: 'GET'
       },
     );
   }
@@ -929,7 +1308,7 @@ export const getVietCommerceAPI = () => {
 
     return apiClient<PostResponseDtoApiResponse>(
       {
-        url: `/Posts`, method: 'POST',
+        url: `/api/v1/Posts`, method: 'POST',
         headers: { 'Content-Type': 'multipart/form-data', },
         data: formData
       },
@@ -942,7 +1321,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<PostResponseDtoApiResponse>(
       {
-        url: `/Posts/${postId}`, method: 'PUT',
+        url: `/api/v1/Posts/${postId}`, method: 'PUT',
         headers: { 'Content-Type': 'application/json', },
         data: updatePostDto
       },
@@ -954,7 +1333,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Posts/${postId}`, method: 'DELETE'
+        url: `/api/v1/Posts/${postId}`, method: 'DELETE'
       },
     );
   }
@@ -964,7 +1343,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<PostDetailDtoApiResponse>(
       {
-        url: `/Posts/${postId}`, method: 'GET'
+        url: `/api/v1/Posts/${postId}`, method: 'GET'
       },
     );
   }
@@ -974,7 +1353,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<PostFeedDtoPaginatedResultApiResponse>(
       {
-        url: `/Posts/feed`, method: 'GET',
+        url: `/api/v1/Posts/feed`, method: 'GET',
         params
       },
     );
@@ -986,7 +1365,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<PostResponseDtoPaginatedResultApiResponse>(
       {
-        url: `/Posts/customer/${customerId}`, method: 'GET',
+        url: `/api/v1/Posts/customer/${customerId}`, method: 'GET',
         params
       },
     );
@@ -997,7 +1376,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<PostResponseDtoPaginatedResultApiResponse>(
       {
-        url: `/Posts/search`, method: 'GET',
+        url: `/api/v1/Posts/search`, method: 'GET',
         params
       },
     );
@@ -1008,7 +1387,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<PostLikeResultApiResponse>(
       {
-        url: `/Posts/${postId}/like`, method: 'POST'
+        url: `/api/v1/Posts/${postId}/like`, method: 'POST'
       },
     );
   }
@@ -1018,7 +1397,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<PostBookmarkResultApiResponse>(
       {
-        url: `/Posts/${postId}/bookmark`, method: 'POST'
+        url: `/api/v1/Posts/${postId}/bookmark`, method: 'POST'
       },
     );
   }
@@ -1028,7 +1407,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<ProductDetailDtoApiResponse>(
       {
-        url: `/Product`, method: 'POST',
+        url: `/api/v1/Product`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: productCreateDto
       },
@@ -1040,7 +1419,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<ProductListDtoPaginatedResultApiResponse>(
       {
-        url: `/Product`, method: 'GET',
+        url: `/api/v1/Product`, method: 'GET',
         params
       },
     );
@@ -1052,7 +1431,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<ProductDetailDtoApiResponse>(
       {
-        url: `/Product/${id}`, method: 'PUT',
+        url: `/api/v1/Product/${id}`, method: 'PUT',
         headers: { 'Content-Type': 'application/json', },
         data: productUpdateDto
       },
@@ -1064,7 +1443,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Product/${id}`, method: 'DELETE'
+        url: `/api/v1/Product/${id}`, method: 'DELETE'
       },
     );
   }
@@ -1074,7 +1453,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<ProductDetailDtoApiResponse>(
       {
-        url: `/Product/${id}`, method: 'GET'
+        url: `/api/v1/Product/${id}`, method: 'GET'
       },
     );
   }
@@ -1084,7 +1463,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<ProductDetailDtoApiResponse>(
       {
-        url: `/Product/slug/${slug}`, method: 'GET'
+        url: `/api/v1/Product/slug/${slug}`, method: 'GET'
       },
     );
   }
@@ -1094,7 +1473,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<ProductListDtoListApiResponse>(
       {
-        url: `/Product/store/${storeId}`, method: 'GET'
+        url: `/api/v1/Product/store/${storeId}`, method: 'GET'
       },
     );
   }
@@ -1104,7 +1483,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<ProductListDtoListApiResponse>(
       {
-        url: `/Product/category/${categoryId}`, method: 'GET'
+        url: `/api/v1/Product/category/${categoryId}`, method: 'GET'
       },
     );
   }
@@ -1115,7 +1494,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Product/${id}/stock`, method: 'PATCH',
+        url: `/api/v1/Product/${id}/stock`, method: 'PATCH',
         headers: { 'Content-Type': 'application/json', },
         data: patchApiV1ProductIdStockBody
       },
@@ -1127,7 +1506,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<Int32ApiResponse>(
       {
-        url: `/Product/${id}/stock`, method: 'GET'
+        url: `/api/v1/Product/${id}/stock`, method: 'GET'
       },
     );
   }
@@ -1138,7 +1517,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Product/${id}/active`, method: 'PATCH',
+        url: `/api/v1/Product/${id}/active`, method: 'PATCH',
         headers: { 'Content-Type': 'application/json', },
         data: boolean
       },
@@ -1151,7 +1530,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Product/${id}/featured`, method: 'PATCH',
+        url: `/api/v1/Product/${id}/featured`, method: 'PATCH',
         headers: { 'Content-Type': 'application/json', },
         data: boolean
       },
@@ -1163,7 +1542,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Product/${id}/view`, method: 'POST'
+        url: `/api/v1/Product/${id}/view`, method: 'POST'
       },
     );
   }
@@ -1173,7 +1552,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Product/${id}/favorite`, method: 'POST'
+        url: `/api/v1/Product/${id}/favorite`, method: 'POST'
       },
     );
   }
@@ -1183,7 +1562,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<ProductListDtoListApiResponse>(
       {
-        url: `/Product/favorites`, method: 'GET'
+        url: `/api/v1/Product/favorites`, method: 'GET'
       },
     );
   }
@@ -1193,7 +1572,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Users`, method: 'GET',
+        url: `/api/v1/Users`, method: 'GET',
         params
       },
     );
@@ -1204,7 +1583,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Users/${id}`, method: 'GET'
+        url: `/api/v1/Users/${id}`, method: 'GET'
       },
     );
   }
@@ -1215,7 +1594,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Users/${id}`, method: 'PUT',
+        url: `/api/v1/Users/${id}`, method: 'PUT',
         headers: { 'Content-Type': 'application/json', },
         data: userUpdateDTO
       },
@@ -1227,7 +1606,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Users/${id}/deactivate`, method: 'POST'
+        url: `/api/v1/Users/${id}/deactivate`, method: 'POST'
       },
     );
   }
@@ -1237,7 +1616,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<void>(
       {
-        url: `/Users/${id}/activate`, method: 'POST'
+        url: `/api/v1/Users/${id}/activate`, method: 'POST'
       },
     );
   }
@@ -1267,7 +1646,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<WishlistItemDtoListApiResponse>(
       {
-        url: `/Wishlist`, method: 'GET'
+        url: `/api/v1/Wishlist`, method: 'GET'
       },
     );
   }
@@ -1277,7 +1656,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<WishlistItemDtoApiResponse>(
       {
-        url: `/Wishlist`, method: 'POST',
+        url: `/api/v1/Wishlist`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: addToWishlistRequest
       },
@@ -1289,7 +1668,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Wishlist/${id}`, method: 'DELETE'
+        url: `/api/v1/Wishlist/${id}`, method: 'DELETE'
       },
     );
   }
@@ -1299,7 +1678,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Wishlist/product/${productId}`, method: 'DELETE'
+        url: `/api/v1/Wishlist/product/${productId}`, method: 'DELETE'
       },
     );
   }
@@ -1309,7 +1688,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<IsInWishlistResponseApiResponse>(
       {
-        url: `/Wishlist/check/${productId}`, method: 'GET'
+        url: `/api/v1/Wishlist/check/${productId}`, method: 'GET'
       },
     );
   }
@@ -1319,7 +1698,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<ToggleWishlistResponseApiResponse>(
       {
-        url: `/Wishlist/toggle`, method: 'POST',
+        url: `/api/v1/Wishlist/toggle`, method: 'POST',
         headers: { 'Content-Type': 'application/json', },
         data: addToWishlistRequest
       },
@@ -1331,7 +1710,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Wishlist/clear`, method: 'DELETE'
+        url: `/api/v1/Wishlist/clear`, method: 'DELETE'
       },
     );
   }
@@ -1341,7 +1720,7 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<BooleanApiResponse>(
       {
-        url: `/Wishlist/move-to-cart`, method: 'POST'
+        url: `/api/v1/Wishlist/move-to-cart`, method: 'POST'
       },
     );
   }
@@ -1351,12 +1730,12 @@ export const getVietCommerceAPI = () => {
   ) => {
     return apiClient<Int32ApiResponse>(
       {
-        url: `/Wishlist/count`, method: 'GET'
+        url: `/api/v1/Wishlist/count`, method: 'GET'
       },
     );
   }
 
-  return { postApiV1AuthRegister, getApiV1AuthVerifyEmail, postApiV1AuthLogin, postApiV1AuthLoginGoogle, postApiV1AuthRefreshToken, postApiV1AuthLogout, postApiV1AuthChangePassword, postApiV1AuthForgotPassword, postApiV1AuthResetPassword, getApiV1Cart, getApiV1CartSummary, postApiV1CartAdd, putApiV1CartUpdateItem, deleteApiV1CartItemsCartItemId, getApiV1CartItemsCartItemId, deleteApiV1CartClear, postApiV1CartValidate, getApiV1CartItemCount, getApiV1CartGuest, getApiV1CartGuestSummary, postApiV1CartGuestAdd, putApiV1CartGuestItemsCartItemId, deleteApiV1CartGuestItemsCartItemId, deleteApiV1CartGuestClear, postApiV1CartGuestValidate, getApiV1CartGuestItemCount, postApiV1CartMerge, postApiV1CartCouponApply, postApiV1CartCouponRemove, putApiV1CartShipping, getApiCategoryId, putApiCategoryId, deleteApiCategoryId, getApiCategory, postApiCategory, patchApiCategoryIdSoftDelete, getApiCategoryStoreStoreId, getApiCategoryActiveList, getApiCategoryParentIdSubcategories, getApiCategoryIdDetails, getApiCategoryHierarchyStoreId, getApiCategoryPagedList, getApiCategoryCountByStoreStoreId, getApiCategoryExists, patchApiCategoryIdStatus, postApiV1CheckoutProcess, getApiV1CheckoutOrderId, getApiV1CheckoutMyOrders, postApiV1CheckoutOrderIdCancel, postApiV1Comments, putApiV1CommentsCommentId, deleteApiV1CommentsCommentId, getApiV1CommentsCommentId, getApiV1CommentsPostPostId, getApiV1CommentsCommentIdReplies, postApiV1CommentsSave, getApiV1CustomerAddresses, postApiV1CustomerAddresses, getApiV1CustomerAddressesId, putApiV1CustomerAddressesId, deleteApiV1CustomerAddressesId, postApiV1CustomerAddressesIdSetDefault, getApiV1OrderId, getApiV1OrderMyOrders, getApiV1Order, getApiV1OrderSearch, getApiV1OrderStatusStatus, getApiV1OrderRecent, getApiV1OrderOrderIdStatusHistory, putApiV1OrderOrderIdStatus, getApiV1OrderOrderIdCanChangeStatus, getApiV1OrderStatsCount, getApiV1OrderStatsRevenue, postApiV1OrderBulkUpdateStatus, getApiV1PaymentVnpayIpn, postApiV1Posts, putApiV1PostsPostId, deleteApiV1PostsPostId, getApiV1PostsPostId, getApiV1PostsFeed, getApiV1PostsCustomerCustomerId, getApiV1PostsSearch, postApiV1PostsPostIdLike, postApiV1PostsPostIdBookmark, postApiV1Product, getApiV1Product, putApiV1ProductId, deleteApiV1ProductId, getApiV1ProductId, getApiV1ProductSlugSlug, getApiV1ProductStoreStoreId, getApiV1ProductCategoryCategoryId, patchApiV1ProductIdStock, getApiV1ProductIdStock, patchApiV1ProductIdActive, patchApiV1ProductIdFeatured, postApiV1ProductIdView, postApiV1ProductIdFavorite, getApiV1ProductFavorites, getApiV1Users, getApiV1UsersId, putApiV1UsersId, postApiV1UsersIdDeactivate, postApiV1UsersIdActivate, getHealth, getWeatherForecast, getApiV1Wishlist, postApiV1Wishlist, deleteApiV1WishlistId, deleteApiV1WishlistProductProductId, getApiV1WishlistCheckProductId, postApiV1WishlistToggle, deleteApiV1WishlistClear, postApiV1WishlistMoveToCart, getApiV1WishlistCount }
+  return { postApiV1AuthRegister, getApiV1AuthVerifyEmail, postApiV1AuthLogin, postApiV1AuthLoginGoogle, postApiV1AuthRefreshToken, postApiV1AuthLogout, postApiV1AuthChangePassword, postApiV1AuthForgotPassword, postApiV1AuthResetPassword, getApiV1Cart, getApiV1CartSummary, postApiV1CartAdd, putApiV1CartUpdateItem, deleteApiV1CartItemsCartItemId, getApiV1CartItemsCartItemId, deleteApiV1CartClear, postApiV1CartValidate, getApiV1CartItemCount, getApiV1CartGuest, getApiV1CartGuestSummary, postApiV1CartGuestAdd, putApiV1CartGuestItemsCartItemId, deleteApiV1CartGuestItemsCartItemId, deleteApiV1CartGuestClear, postApiV1CartGuestValidate, getApiV1CartGuestItemCount, postApiV1CartMerge, postApiV1CartCouponApply, postApiV1CartCouponRemove, putApiV1CartShipping, getApiV1CategoryId, putApiV1CategoryId, deleteApiV1CategoryId, getApiV1Category, postApiV1Category, patchApiV1CategoryIdSoftDelete, getApiV1CategoryStoreStoreId, getApiV1CategoryActiveList, getApiV1CategoryParentIdSubcategories, getApiV1CategoryIdDetails, getApiV1CategoryHierarchyStoreId, getApiV1CategoryPagedList, getApiV1CategoryCountByStoreStoreId, getApiV1CategoryExists, patchApiV1CategoryIdStatus, postApiV1CheckoutProcess, getApiV1CheckoutOrderId, getApiV1CheckoutMyOrders, postApiV1CheckoutOrderIdCancel, postApiV1Comments, putApiV1CommentsCommentId, deleteApiV1CommentsCommentId, getApiV1CommentsCommentId, getApiV1CommentsPostPostId, getApiV1CommentsCommentIdReplies, postApiV1CommentsSave, getApiV1CustomerAddresses, postApiV1CustomerAddresses, getApiV1CustomerAddressesId, putApiV1CustomerAddressesId, deleteApiV1CustomerAddressesId, postApiV1CustomerAddressesIdSetDefault, getApiV1CustomerAdmin, postApiV1CustomerAdmin, getApiV1CustomerAdminId, putApiV1CustomerAdminId, deleteApiV1CustomerAdminId, getApiV1CustomerAdminSearch, getApiV1CustomerAdminIdStatistics, getApiV1CustomerAdminIdOrders, getApiV1CustomerAdminIdOrdersSummary, getApiV1CustomerAdminIdAddresses, getApiV1CustomerAdminAddressesAddressId, putApiV1CustomerAdminAddressesAddressId, deleteApiV1CustomerAdminAddressesAddressId, postApiV1CustomerAdminAddresses, putApiV1CustomerAdminIdAddressesAddressIdDefault, getApiV1CustomerAdminIdInteractions, getApiV1CustomerAdminInteractionsInteractionId, putApiV1CustomerAdminInteractionsInteractionId, deleteApiV1CustomerAdminInteractionsInteractionId, postApiV1CustomerAdminInteractions, putApiV1CustomerAdminInteractionsInteractionIdComplete, getApiV1CustomerAdminInteractionsUpcoming, postApiV1CustomerAdminIdLoyaltyAdd, postApiV1CustomerAdminIdLoyaltyDeduct, putApiV1CustomerAdminIdTier, getApiV1CustomerAdminIdLoyaltyHistory, getApiV1MixedFeed, getApiV1MixedFeedLocationLocation, getApiV1MixedFeedFeatured, getApiV1MixedFeedProductProductId, postApiV1MixedFeedPostIdTrack, getApiV1OrderId, getApiV1OrderMyOrders, getApiV1Order, getApiV1OrderStatusStatus, getApiV1OrderOrderIdStatusHistory, putApiV1OrderOrderIdStatus, postApiV1OrderOrderIdCancel, getApiV1OrderOrderIdCanChangeStatus, getApiV1OrderStatsCount, getApiV1OrderStatsRevenue, postApiV1OrderBulkUpdateStatus, getApiV1PaymentVnpayIpn, postApiV1Posts, putApiV1PostsPostId, deleteApiV1PostsPostId, getApiV1PostsPostId, getApiV1PostsFeed, getApiV1PostsCustomerCustomerId, getApiV1PostsSearch, postApiV1PostsPostIdLike, postApiV1PostsPostIdBookmark, postApiV1Product, getApiV1Product, putApiV1ProductId, deleteApiV1ProductId, getApiV1ProductId, getApiV1ProductSlugSlug, getApiV1ProductStoreStoreId, getApiV1ProductCategoryCategoryId, patchApiV1ProductIdStock, getApiV1ProductIdStock, patchApiV1ProductIdActive, patchApiV1ProductIdFeatured, postApiV1ProductIdView, postApiV1ProductIdFavorite, getApiV1ProductFavorites, getApiV1Users, getApiV1UsersId, putApiV1UsersId, postApiV1UsersIdDeactivate, postApiV1UsersIdActivate, getHealth, getWeatherForecast, getApiV1Wishlist, postApiV1Wishlist, deleteApiV1WishlistId, deleteApiV1WishlistProductProductId, getApiV1WishlistCheckProductId, postApiV1WishlistToggle, deleteApiV1WishlistClear, postApiV1WishlistMoveToCart, getApiV1WishlistCount }
 };
 
 type AwaitedInput<T> = PromiseLike<T> | T;
@@ -1393,21 +1772,21 @@ export type PostApiV1CartMergeResult = NonNullable<Awaited<ReturnType<ReturnType
 export type PostApiV1CartCouponApplyResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1CartCouponApply']>>>
 export type PostApiV1CartCouponRemoveResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1CartCouponRemove']>>>
 export type PutApiV1CartShippingResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['putApiV1CartShipping']>>>
-export type GetApiCategoryIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiCategoryId']>>>
-export type PutApiCategoryIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['putApiCategoryId']>>>
-export type DeleteApiCategoryIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['deleteApiCategoryId']>>>
-export type GetApiCategoryResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiCategory']>>>
-export type PostApiCategoryResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiCategory']>>>
-export type PatchApiCategoryIdSoftDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['patchApiCategoryIdSoftDelete']>>>
-export type GetApiCategoryStoreStoreIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiCategoryStoreStoreId']>>>
-export type GetApiCategoryActiveListResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiCategoryActiveList']>>>
-export type GetApiCategoryParentIdSubcategoriesResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiCategoryParentIdSubcategories']>>>
-export type GetApiCategoryIdDetailsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiCategoryIdDetails']>>>
-export type GetApiCategoryHierarchyStoreIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiCategoryHierarchyStoreId']>>>
-export type GetApiCategoryPagedListResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiCategoryPagedList']>>>
-export type GetApiCategoryCountByStoreStoreIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiCategoryCountByStoreStoreId']>>>
-export type GetApiCategoryExistsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiCategoryExists']>>>
-export type PatchApiCategoryIdStatusResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['patchApiCategoryIdStatus']>>>
+export type GetApiV1CategoryIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CategoryId']>>>
+export type PutApiV1CategoryIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['putApiV1CategoryId']>>>
+export type DeleteApiV1CategoryIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['deleteApiV1CategoryId']>>>
+export type GetApiV1CategoryResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1Category']>>>
+export type PostApiV1CategoryResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1Category']>>>
+export type PatchApiV1CategoryIdSoftDeleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['patchApiV1CategoryIdSoftDelete']>>>
+export type GetApiV1CategoryStoreStoreIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CategoryStoreStoreId']>>>
+export type GetApiV1CategoryActiveListResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CategoryActiveList']>>>
+export type GetApiV1CategoryParentIdSubcategoriesResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CategoryParentIdSubcategories']>>>
+export type GetApiV1CategoryIdDetailsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CategoryIdDetails']>>>
+export type GetApiV1CategoryHierarchyStoreIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CategoryHierarchyStoreId']>>>
+export type GetApiV1CategoryPagedListResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CategoryPagedList']>>>
+export type GetApiV1CategoryCountByStoreStoreIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CategoryCountByStoreStoreId']>>>
+export type GetApiV1CategoryExistsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CategoryExists']>>>
+export type PatchApiV1CategoryIdStatusResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['patchApiV1CategoryIdStatus']>>>
 export type PostApiV1CheckoutProcessResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1CheckoutProcess']>>>
 export type GetApiV1CheckoutOrderIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CheckoutOrderId']>>>
 export type GetApiV1CheckoutMyOrdersResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CheckoutMyOrders']>>>
@@ -1425,14 +1804,44 @@ export type GetApiV1CustomerAddressesIdResult = NonNullable<Awaited<ReturnType<R
 export type PutApiV1CustomerAddressesIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['putApiV1CustomerAddressesId']>>>
 export type DeleteApiV1CustomerAddressesIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['deleteApiV1CustomerAddressesId']>>>
 export type PostApiV1CustomerAddressesIdSetDefaultResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1CustomerAddressesIdSetDefault']>>>
+export type GetApiV1CustomerAdminResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CustomerAdmin']>>>
+export type PostApiV1CustomerAdminResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1CustomerAdmin']>>>
+export type GetApiV1CustomerAdminIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CustomerAdminId']>>>
+export type PutApiV1CustomerAdminIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['putApiV1CustomerAdminId']>>>
+export type DeleteApiV1CustomerAdminIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['deleteApiV1CustomerAdminId']>>>
+export type GetApiV1CustomerAdminSearchResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CustomerAdminSearch']>>>
+export type GetApiV1CustomerAdminIdStatisticsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CustomerAdminIdStatistics']>>>
+export type GetApiV1CustomerAdminIdOrdersResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CustomerAdminIdOrders']>>>
+export type GetApiV1CustomerAdminIdOrdersSummaryResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CustomerAdminIdOrdersSummary']>>>
+export type GetApiV1CustomerAdminIdAddressesResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CustomerAdminIdAddresses']>>>
+export type GetApiV1CustomerAdminAddressesAddressIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CustomerAdminAddressesAddressId']>>>
+export type PutApiV1CustomerAdminAddressesAddressIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['putApiV1CustomerAdminAddressesAddressId']>>>
+export type DeleteApiV1CustomerAdminAddressesAddressIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['deleteApiV1CustomerAdminAddressesAddressId']>>>
+export type PostApiV1CustomerAdminAddressesResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1CustomerAdminAddresses']>>>
+export type PutApiV1CustomerAdminIdAddressesAddressIdDefaultResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['putApiV1CustomerAdminIdAddressesAddressIdDefault']>>>
+export type GetApiV1CustomerAdminIdInteractionsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CustomerAdminIdInteractions']>>>
+export type GetApiV1CustomerAdminInteractionsInteractionIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CustomerAdminInteractionsInteractionId']>>>
+export type PutApiV1CustomerAdminInteractionsInteractionIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['putApiV1CustomerAdminInteractionsInteractionId']>>>
+export type DeleteApiV1CustomerAdminInteractionsInteractionIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['deleteApiV1CustomerAdminInteractionsInteractionId']>>>
+export type PostApiV1CustomerAdminInteractionsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1CustomerAdminInteractions']>>>
+export type PutApiV1CustomerAdminInteractionsInteractionIdCompleteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['putApiV1CustomerAdminInteractionsInteractionIdComplete']>>>
+export type GetApiV1CustomerAdminInteractionsUpcomingResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CustomerAdminInteractionsUpcoming']>>>
+export type PostApiV1CustomerAdminIdLoyaltyAddResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1CustomerAdminIdLoyaltyAdd']>>>
+export type PostApiV1CustomerAdminIdLoyaltyDeductResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1CustomerAdminIdLoyaltyDeduct']>>>
+export type PutApiV1CustomerAdminIdTierResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['putApiV1CustomerAdminIdTier']>>>
+export type GetApiV1CustomerAdminIdLoyaltyHistoryResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CustomerAdminIdLoyaltyHistory']>>>
+export type GetApiV1MixedFeedResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1MixedFeed']>>>
+export type GetApiV1MixedFeedLocationLocationResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1MixedFeedLocationLocation']>>>
+export type GetApiV1MixedFeedFeaturedResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1MixedFeedFeatured']>>>
+export type GetApiV1MixedFeedProductProductIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1MixedFeedProductProductId']>>>
+export type PostApiV1MixedFeedPostIdTrackResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1MixedFeedPostIdTrack']>>>
 export type GetApiV1OrderIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1OrderId']>>>
 export type GetApiV1OrderMyOrdersResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1OrderMyOrders']>>>
 export type GetApiV1OrderResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1Order']>>>
-export type GetApiV1OrderSearchResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1OrderSearch']>>>
 export type GetApiV1OrderStatusStatusResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1OrderStatusStatus']>>>
-export type GetApiV1OrderRecentResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1OrderRecent']>>>
 export type GetApiV1OrderOrderIdStatusHistoryResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1OrderOrderIdStatusHistory']>>>
 export type PutApiV1OrderOrderIdStatusResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['putApiV1OrderOrderIdStatus']>>>
+export type PostApiV1OrderOrderIdCancelResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1OrderOrderIdCancel']>>>
 export type GetApiV1OrderOrderIdCanChangeStatusResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1OrderOrderIdCanChangeStatus']>>>
 export type GetApiV1OrderStatsCountResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1OrderStatsCount']>>>
 export type GetApiV1OrderStatsRevenueResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1OrderStatsRevenue']>>>

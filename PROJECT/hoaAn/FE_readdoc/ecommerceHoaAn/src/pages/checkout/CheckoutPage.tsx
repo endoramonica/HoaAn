@@ -144,13 +144,42 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
 
   const handlePlaceOrder = async () => {
     try {
-      if (!selectedAddressId) {
-        toast.error('Vui lòng chọn địa chỉ giao hàng');
+      // ============================================================================
+      // STEP 1: Validate Cart
+      // ============================================================================
+      console.log('[CheckoutPage] 🔍 Validating cart...');
+      
+      if (!cart) {
+        toast.error('Không tìm thấy giỏ hàng');
+        navigate('/cart');
         return;
       }
 
-      if (!cart || cart.items.length === 0) {
-        toast.error('Giỏ hàng trống');
+      if (!cart.id) {
+        toast.error('Giỏ hàng không hợp lệ. Vui lòng tải lại trang.');
+        navigate('/cart');
+        return;
+      }
+
+      if (!cart.items || cart.items.length === 0) {
+        toast.error('Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi thanh toán.');
+        navigate('/cart');
+        return;
+      }
+
+      console.log('[CheckoutPage] ✅ Cart valid:', {
+        cartId: cart.id,
+        itemCount: cart.items.length,
+        totalAmount: cart.totalAmount
+      });
+
+      // ============================================================================
+      // STEP 2: Validate Address
+      // ============================================================================
+      console.log('[CheckoutPage] 🔍 Validating address...');
+
+      if (!selectedAddressId) {
+        toast.error('Vui lòng chọn địa chỉ giao hàng');
         return;
       }
 
@@ -160,7 +189,6 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
         return;
       }
 
-      // ✅ Validate address has required fields
       if (!selectedAddress.streetAddress) {
         toast.error('Địa chỉ thiếu thông tin chi tiết');
         return;
@@ -178,7 +206,13 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
         return;
       }
 
-      // ✅ Create checkout request using correct OrderShippingInputDto structure
+      console.log('[CheckoutPage] ✅ Address valid');
+
+      // ============================================================================
+      // STEP 3: Create Checkout Data
+      // ============================================================================
+      console.log('[CheckoutPage] 📦 Preparing checkout data...');
+
       const checkoutData: CheckoutDto = {
         cartId: cart.id,
         shippingInfo: {
@@ -197,21 +231,66 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
         notes: orderNote || null,
       };
 
-      // 🔍 LOG PAYLOAD BEFORE API CALL
-      console.log('[CheckoutPage] 📦 Checkout Payload:', JSON.stringify(checkoutData, null, 2));
-      console.log('[CheckoutPage] 💳 Payment Method:', selectedPaymentMethod);
-      console.log('[CheckoutPage] 🚚 Shipping Info:', checkoutData.shippingInfo);
+      console.log('[CheckoutPage] ✅ Checkout data prepared:', {
+        cartId: checkoutData.cartId,
+        itemCount: cart.items.length,
+        totalAmount: cart.totalAmount,
+        paymentMethod: checkoutData.paymentMethod,
+        recipientName: checkoutData.shippingInfo.recipientName,
+        phoneNumber: checkoutData.shippingInfo.phoneNumber
+      });
 
-      // ✅ Process checkout (cast to any to bypass type mismatch between Orval and old generated types)
+      // ============================================================================
+      // STEP 4: Process Checkout
+      // ============================================================================
+      console.log('[CheckoutPage] 🛒 Processing checkout...');
+// ✅ ADD THIS: Log before checkout
+    console.log('[CheckoutPage] 🔍 Pre-checkout verification:');
+    console.log('[CheckoutPage] 📋 Auth Token:', localStorage.getItem('auth_token')?.substring(0, 20) + '...');
+    console.log('[CheckoutPage] 🛒 Cart from useCart:', {
+      cartId: cart?.id,
+      itemCount: cart?.items?.length,
+      totalAmount: cart?.totalAmount
+    });
+    
+    // ✅ ADD THIS: Verify cart one more time before checkout
+    console.log('[CheckoutPage] 🔄 Refreshing cart before checkout...');
+   // await refreshedCart();
+    
+    // Small delay to ensure state update
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Re-check cart after refresh
+    if (!cart || !cart.items || cart.items.length === 0) {
+      console.error('[CheckoutPage] ❌ Cart empty after refresh!');
+      toast.error('Giỏ hàng trống sau khi làm mới. Vui lòng thử lại.');
+      navigate('/cart');
+      return;
+    }
+    
+    console.log('[CheckoutPage] ✅ Cart verified after refresh:', {
+      cartId: cart.id,
+      itemCount: cart.items.length
+    });
       const result = await processCheckout(checkoutData as any);
 
       if (!result) {
+        console.error('[CheckoutPage] ❌ Checkout failed - No result returned');
         toast.error('Không thể đặt hàng');
         onNavigate('failed', { reason: 'Checkout failed' });
         return;
       }
 
-      console.log('[CheckoutPage] ✅ Checkout result:', result);
+      console.log('[CheckoutPage] ✅ Checkout successful:', {
+        orderId: result.orderId,
+        orderNumber: result.orderNumber,
+        totalAmount: result.totalAmount
+      });
+
+      // ============================================================================
+      // STEP 5: Handle Payment
+      // ============================================================================
+      console.log('[CheckoutPage] 💳 Handling payment method:', selectedPaymentMethod);
 
       // ✅ Handle payment based on method using enum
       if (selectedPaymentMethod === PaymentMethod.cod || selectedPaymentMethod === PaymentMethod.cash) {

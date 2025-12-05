@@ -1,557 +1,433 @@
 /**
  * VietCommerce Product Service
- * Tích hợp với VietCommerce .NET 8 Web API
- * Base route: /api/v1/product
+ * ✅ UPDATED: Uses Orval generated API
+ * Base route: /api/v1/Product
  */
 
-import { apiRequest, buildQueryString } from "../api/client";
+import { getVietCommerceAPI } from '../../../Api/generated-orval';
 import type {
-  ProductListDto,
-  ProductDetailDto,
+  GetApiV1ProductParams,
   ProductCreateDto,
   ProductUpdateDto,
-  ProductFilterDto,
-  PaginatedResult,
-  ApiResponse,
-} from "../api/types";
+  PatchApiV1ProductIdStockBody,
+  PatchApiV1ProductIdActiveBody,
+  PatchApiV1ProductIdFeaturedBody,
+} from '../../../Api/generated-orval/schemas';
 
-const getMockMode = () => {
-  if (typeof import.meta !== "undefined" && import.meta.env) {
-    return import.meta.env.VITE_USE_MOCK_DATA === "true";
-  }
-  return false; // Mặc định sử dụng API thật
-};
+// Types for backward compatibility
+export interface ProductListDto {
+  id?: string;
+  name?: string;
+  slug?: string;
+  price?: number;
+  stock?: number;
+  stockQuantity?: number;
+  thumbnailUrl?: string;
+  primaryImage?: string;
+  categoryName?: string;
+  storeName?: string;
+  inStock?: boolean;
+}
 
-const USE_MOCK = getMockMode();
+export interface ProductDetailDto extends ProductListDto {
+  code?: string;
+  categoryId?: string;
+  storeId?: string;
+  sku?: string;
+  isActive?: boolean;
+  description?: string;
+  images?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
 
-/**
- * Mock data cho development (fallback)
- */
-const generateMockProducts = (): ProductListDto[] => {
-  const products: ProductListDto[] = [];
-  const names = [
-    "Hương Trầm Cao Cấp",
-    "Nến Thờ Đỏ",
-    "Bộ Đồ Thờ Ngũ Sự",
-    "Tượng Phật Quan Âm",
-    "Chuỗi Hạt Gỗ Trầm",
-    "Bình Hương Đồng",
-    "Lọ Hoa Sen Gốm",
-    "Đèn Thờ LED",
-  ];
+export interface ProductFilterDto {
+  pageNumber?: number;
+  pageSize?: number;
+  searchTerm?: string;
+  categoryId?: string;
+  storeId?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  isActive?: boolean;
+  isFeatured?: boolean;
+  sortBy?: string;
+  isDescending?: boolean;
+}
 
-  for (let i = 1; i <= 50; i++) {
-    products.push({
-      id: `product-${i}`,
-      name: `${names[i % names.length]} ${i}`,
-      slug: `product-${i}`,
-      price: Math.floor(Math.random() * 500000) + 50000,
-      stock: Math.floor(Math.random() * 100) + 10,
-      thumbnailUrl: `https://images.unsplash.com/photo-${1600000000000 + i}?w=400`,
-      categoryName: [
-        "Hương & Nến",
-        "Đồ Thờ Cúng",
-        "Vật Phẩm Phong Thủy",
-      ][i % 3],
-      storeName: "VietCommerce Store",
-    });
-  }
+export interface PaginatedResult<T> {
+  items: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
 
-  return products;
-};
-
-const MOCK_PRODUCTS = generateMockProducts();
+const api = getVietCommerceAPI();
 
 class VietCommerceProductService {
   /**
-   * GET /api/v1/product
+   * GET /api/v1/Product
    * Lấy danh sách sản phẩm với filter/pagination
    */
-  async getProducts(
-    filter?: ProductFilterDto,
-  ): Promise<PaginatedResult<ProductListDto>> {
+  async getProducts(filter?: ProductFilterDto): Promise<PaginatedResult<ProductListDto>> {
     try {
-      if (USE_MOCK) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 800),
-        );
+      // Map filter to Orval params
+      const params: GetApiV1ProductParams = {
+        pageNumber: filter?.pageNumber,
+        pageSize: filter?.pageSize,
+        searchTerm: filter?.searchTerm,
+        categoryId: filter?.categoryId,
+        storeId: filter?.storeId,
+        minPrice: filter?.minPrice,
+        maxPrice: filter?.maxPrice,
+        isActive: filter?.isActive,
+        isFeatured: filter?.isFeatured,
+        sortBy: filter?.sortBy,
+        isDescending: filter?.isDescending,
+      };
 
-        let filtered = [...MOCK_PRODUCTS];
+      const response = await api.getApiV1Product(params);
 
-        // Apply filters
-        if (filter?.searchTerm) {
-          const search = filter.searchTerm.toLowerCase();
-          filtered = filtered.filter((p) =>
-            p.name.toLowerCase().includes(search),
-          );
-        }
+      // Debug log
+      console.log('[vietCommerceProductService] Raw response:', JSON.stringify(response, null, 2));
 
-        if (filter?.categoryId) {
-          filtered = filtered.filter(
-            (p) => p.categoryName === filter.categoryId,
-          );
-        }
+      // Handle nested response structure: response.data.data (backend wraps twice)
+      // Structure: { success, data: { success, data: { items, pageNumber, ... } } }
+      const outerData = response.data;
+      const innerData = (outerData as any)?.data || outerData;
 
-        if (filter?.minPrice !== undefined) {
-          filtered = filtered.filter(
-            (p) => p.price >= filter.minPrice!,
-          );
-        }
+      console.log('[vietCommerceProductService] Parsed data:', {
+        hasOuterData: !!outerData,
+        hasInnerData: !!innerData,
+        itemsCount: innerData?.items?.length,
+      });
 
-        if (filter?.maxPrice !== undefined) {
-          filtered = filtered.filter(
-            (p) => p.price <= filter.maxPrice!,
-          );
-        }
-
-        // Apply sorting
-        if (filter?.sortBy) {
-          filtered.sort((a, b) => {
-            let comparison = 0;
-            switch (filter.sortBy) {
-              case "name":
-                comparison = a.name.localeCompare(b.name);
-                break;
-              case "price":
-                comparison = a.price - b.price;
-                break;
-              default:
-                comparison = 0;
-            }
-            return filter.isDescending
-              ? -comparison
-              : comparison;
-          });
-        }
-
-        // Apply pagination
-        const page = filter?.pageNumber || 1;
-        const pageSize = filter?.pageSize || 12;
-        const totalCount = filtered.length;
-        const totalPages = Math.ceil(totalCount / pageSize);
-        const startIndex = (page - 1) * pageSize;
-        const items = filtered.slice(
-          startIndex,
-          startIndex + pageSize,
-        );
-
-        return {
-          items,
-          pageNumber: page,
-          pageSize,
-          totalItems: totalCount,
-          totalPages,
-        };
-      }
-      const queryString = buildQueryString(filter || {});
-      // ✅ Xác định type response đúng: ApiResponse wrapper
-      const response = await apiRequest.get<
-        ApiResponse<PaginatedResult<ProductListDto>>
-      >(`/product${queryString}`);
-
-      // ✅ Extract data từ ApiResponse wrapper
-      // response.data là object ApiResponse<PaginatedResult<ProductListDto>>
-      // response.data.data là PaginatedResult<ProductListDto>
-      return response.data.data;
+      return {
+        items: (innerData?.items || []).map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          slug: item.slug,
+          price: item.price || item.displayPrice?.discountedPrice || 0,
+          stock: item.stockQuantity,
+          stockQuantity: item.stockQuantity,
+          thumbnailUrl: item.primaryImage,
+          primaryImage: item.primaryImage,
+          categoryName: item.categoryName,
+          storeName: item.storeName,
+          inStock: item.inStock ?? (item.stockQuantity || 0) > 0,
+        })),
+        pageNumber: innerData?.pageNumber || 1,
+        pageSize: innerData?.pageSize || 12,
+        totalItems: innerData?.totalItems || 0,
+        totalPages: innerData?.totalPages || 0,
+      };
     } catch (error) {
-      console.error("Get products error:", error);
+      console.error('Get products error:', error);
       throw error;
     }
   }
 
   /**
-   * GET /api/v1/product/{id}
+   * GET /api/v1/Product/{id}
    * Lấy chi tiết sản phẩm theo ID
    */
   async getProductById(id: string): Promise<ProductDetailDto> {
     try {
-      if (USE_MOCK) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        );
+      const response = await api.getApiV1ProductId(id);
+      const data = response.data;
 
-        const product = MOCK_PRODUCTS.find((p) => p.id === id);
-        if (!product) {
-          throw new Error("Không tìm thấy sản phẩm");
-        }
-
-        return {
-          ...product,
-          code: `CODE-${id}`,
-          categoryId: "cat-1",
-          storeId: "store-1",
-          sku: `SKU-${id}`,
-          isActive: true,
-          description: `Mô tả chi tiết cho ${product.name}`,
-          images: [product.thumbnailUrl || ""],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-      }
-
-      const response = await apiRequest.get<
-        ApiResponse<ProductDetailDto>
-      >(`/product/${id}`);
-      return response.data;
+      return {
+        id: data?.id,
+        name: data?.name,
+        slug: data?.slug,
+        code: data?.code,
+        categoryId: data?.categoryId,
+        storeId: data?.storeId,
+        sku: data?.sku,
+        price: data?.price,
+        stock: data?.stockQuantity,
+        stockQuantity: data?.stockQuantity,
+        isActive: data?.isActive,
+        description: data?.description,
+        thumbnailUrl: data?.primaryImage,
+        primaryImage: data?.primaryImage,
+        images: data?.images?.map(img => img.imageUrl || '') || [],
+        categoryName: data?.categoryName,
+        storeName: data?.storeName,
+        createdAt: data?.createdAt,
+        updatedAt: data?.updatedAt,
+        inStock: (data?.stockQuantity || 0) > 0,
+      };
     } catch (error) {
-      console.error("Get product by id error:", error);
+      console.error('Get product by id error:', error);
       throw error;
     }
   }
 
   /**
-   * GET /api/v1/product/slug/{slug}
+   * GET /api/v1/Product/slug/{slug}
    * Lấy sản phẩm theo slug
    */
-  async getProductBySlug(
-    slug: string,
-  ): Promise<ProductDetailDto> {
+  async getProductBySlug(slug: string): Promise<ProductDetailDto> {
     try {
-      if (USE_MOCK) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        );
+      const response = await api.getApiV1ProductSlugSlug(slug);
+      const data = response.data;
 
-        const product = MOCK_PRODUCTS.find(
-          (p) => p.slug === slug,
-        );
-        if (!product) {
-          throw new Error("Không tìm thấy sản phẩm");
-        }
-
-        return {
-          ...product,
-          code: `CODE-${product.id}`,
-          categoryId: "cat-1",
-          storeId: "store-1",
-          sku: `SKU-${product.id}`,
-          isActive: true,
-          description: `Mô tả chi tiết cho ${product.name}`,
-          images: [product.thumbnailUrl || ""],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-      }
-
-      const response = await apiRequest.get<
-        ApiResponse<ProductDetailDto>
-      >(`/product/slug/${slug}`);
-      return response.data;
+      return {
+        id: data?.id,
+        name: data?.name,
+        slug: data?.slug,
+        code: data?.code,
+        categoryId: data?.categoryId,
+        storeId: data?.storeId,
+        sku: data?.sku,
+        price: data?.price,
+        stock: data?.stockQuantity,
+        stockQuantity: data?.stockQuantity,
+        isActive: data?.isActive,
+        description: data?.description,
+        thumbnailUrl: data?.primaryImage,
+        primaryImage: data?.primaryImage,
+        images: data?.images?.map(img => img.imageUrl || '') || [],
+        categoryName: data?.categoryName,
+        storeName: data?.storeName,
+        createdAt: data?.createdAt,
+        updatedAt: data?.updatedAt,
+        inStock: (data?.stockQuantity || 0) > 0,
+      };
     } catch (error) {
-      console.error("Get product by slug error:", error);
+      console.error('Get product by slug error:', error);
       throw error;
     }
   }
 
   /**
-   * GET /api/v1/product/category/{categoryId}
+   * GET /api/v1/Product/category/{categoryId}
    * Lọc sản phẩm theo danh mục
    */
-  async getProductsByCategory(
-    categoryId: string,
-  ): Promise<ProductListDto[]> {
+  async getProductsByCategory(categoryId: string): Promise<ProductListDto[]> {
     try {
-      if (USE_MOCK) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        );
-        return MOCK_PRODUCTS.filter((p) =>
-          p.categoryName?.includes(categoryId),
-        );
-      }
+      const response = await api.getApiV1ProductCategoryCategoryId(categoryId);
+      const items = response.data || [];
 
-      const response = await apiRequest.get<
-        ApiResponse<ProductListDto[]>
-      >(`/product/category/${categoryId}`);
-      return response.data;
+      return items.map(item => ({
+        id: item.id,
+        name: item.name,
+        slug: item.slug,
+        price: item.price,
+        stock: item.stockQuantity,
+        stockQuantity: item.stockQuantity,
+        thumbnailUrl: item.primaryImage,
+        primaryImage: item.primaryImage,
+        categoryName: item.categoryName,
+        storeName: item.storeName,
+        inStock: (item.stockQuantity || 0) > 0,
+      }));
     } catch (error) {
-      console.error("Get products by category error:", error);
+      console.error('Get products by category error:', error);
       throw error;
     }
   }
 
   /**
-   * GET /api/v1/product/store/{storeId}
+   * GET /api/v1/Product/store/{storeId}
    * Lọc sản phẩm theo cửa hàng
    */
-  async getProductsByStore(
-    storeId: string,
-  ): Promise<ProductListDto[]> {
+  async getProductsByStore(storeId: string): Promise<ProductListDto[]> {
     try {
-      if (USE_MOCK) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        );
-        return MOCK_PRODUCTS;
-      }
+      const response = await api.getApiV1ProductStoreStoreId(storeId);
+      const items = response.data || [];
 
-      const response = await apiRequest.get<
-        ApiResponse<ProductListDto[]>
-      >(`/product/store/${storeId}`);
-      return response.data;
+      return items.map(item => ({
+        id: item.id,
+        name: item.name,
+        slug: item.slug,
+        price: item.price,
+        stock: item.stockQuantity,
+        stockQuantity: item.stockQuantity,
+        thumbnailUrl: item.primaryImage,
+        primaryImage: item.primaryImage,
+        categoryName: item.categoryName,
+        storeName: item.storeName,
+        inStock: (item.stockQuantity || 0) > 0,
+      }));
     } catch (error) {
-      console.error("Get products by store error:", error);
+      console.error('Get products by store error:', error);
       throw error;
     }
   }
 
   /**
-   * POST /api/v1/product
+   * POST /api/v1/Product
    * Tạo sản phẩm mới (Requires Auth: product.create)
    */
-  async createProduct(
-    data: ProductCreateDto,
-  ): Promise<ProductDetailDto> {
+  async createProduct(data: ProductCreateDto): Promise<ProductDetailDto> {
     try {
-      if (USE_MOCK) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 1000),
-        );
+      const response = await api.postApiV1Product(data);
+      const result = response.data;
 
-        const newProduct: ProductDetailDto = {
-          id: `product-new-${Date.now()}`,
-          name: data.name,
-          slug: data.name.toLowerCase().replace(/\s+/g, "-"),
-          code: data.code,
-          categoryId: data.categoryId || "cat-1",
-          storeId: "store-1",
-          sku: data.sku || `SKU-${Date.now()}`,
-          price: data.price || 0,
-          stock: data.stockQuantity || 0,
-          isActive: data.isActive ?? true,
-          description: data.description,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-        return newProduct;
-      }
-
-      const response = await apiRequest.post<
-        ApiResponse<ProductDetailDto>
-      >("/product", data);
-      return response.data;
+      return {
+        id: result?.id,
+        name: result?.name,
+        slug: result?.slug,
+        code: result?.code,
+        categoryId: result?.categoryId,
+        storeId: result?.storeId,
+        sku: result?.sku,
+        price: result?.price,
+        stock: result?.stockQuantity,
+        stockQuantity: result?.stockQuantity,
+        isActive: result?.isActive,
+        description: result?.description,
+        thumbnailUrl: result?.primaryImage,
+        primaryImage: result?.primaryImage,
+        images: result?.images?.map(img => img.imageUrl || '') || [],
+        createdAt: result?.createdAt,
+        updatedAt: result?.updatedAt,
+      };
     } catch (error) {
-      console.error("Create product error:", error);
+      console.error('Create product error:', error);
       throw error;
     }
   }
 
   /**
-   * PUT /api/v1/product/{id}
+   * PUT /api/v1/Product/{id}
    * Cập nhật sản phẩm (Requires Auth: product.update)
    */
-  async updateProduct(
-    id: string,
-    data: ProductUpdateDto,
-  ): Promise<ProductDetailDto> {
+  async updateProduct(id: string, data: ProductUpdateDto): Promise<ProductDetailDto> {
     try {
-      if (USE_MOCK) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 1000),
-        );
+      const response = await api.putApiV1ProductId(id, data);
+      const result = response.data;
 
-        const product = MOCK_PRODUCTS.find((p) => p.id === id);
-        if (!product) {
-          throw new Error("Không tìm thấy sản phẩm");
-        }
-
-        return {
-          ...product,
-          ...data,
-          code: `CODE-${id}`,
-          categoryId: data.categoryId || "cat-1",
-          storeId: "store-1",
-          sku: data.sku || `SKU-${id}`,
-          stock: data.stockQuantity || product.stock,
-          isActive: data.isActive ?? true,
-          description: data.description,
-          images: [product.thumbnailUrl || ""],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-      }
-
-      const response = await apiRequest.put<
-        ApiResponse<ProductDetailDto>
-      >(`/product/${id}`, data);
-      return response.data;
+      return {
+        id: result?.id,
+        name: result?.name,
+        slug: result?.slug,
+        code: result?.code,
+        categoryId: result?.categoryId,
+        storeId: result?.storeId,
+        sku: result?.sku,
+        price: result?.price,
+        stock: result?.stockQuantity,
+        stockQuantity: result?.stockQuantity,
+        isActive: result?.isActive,
+        description: result?.description,
+        thumbnailUrl: result?.primaryImage,
+        primaryImage: result?.primaryImage,
+        images: result?.images?.map(img => img.imageUrl || '') || [],
+        createdAt: result?.createdAt,
+        updatedAt: result?.updatedAt,
+      };
     } catch (error) {
-      console.error("Update product error:", error);
+      console.error('Update product error:', error);
       throw error;
     }
   }
 
   /**
-   * DELETE /api/v1/product/{id}
+   * DELETE /api/v1/Product/{id}
    * Xóa mềm sản phẩm (Requires Auth: product.delete)
    */
   async deleteProduct(id: string): Promise<boolean> {
     try {
-      if (USE_MOCK) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        );
-        return true;
-      }
-
-      const response = await apiRequest.delete<
-        ApiResponse<boolean>
-      >(`/product/${id}`);
-      return response.data;
+      const response = await api.deleteApiV1ProductId(id);
+      return response.success || false;
     } catch (error) {
-      console.error("Delete product error:", error);
+      console.error('Delete product error:', error);
       throw error;
     }
   }
 
   /**
-   * PATCH /api/v1/product/{id}/stock
+   * PATCH /api/v1/Product/{id}/stock
    * Cập nhật tồn kho (Requires Auth: product.update_stock)
    */
-  async updateStock(
-    id: string,
-    quantity: number,
-  ): Promise<boolean> {
+  async updateStock(id: string, quantity: number): Promise<boolean> {
     try {
-      if (USE_MOCK) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        );
-        return true;
-      }
-
-      const response = await apiRequest.patch<
-        ApiResponse<boolean>
-      >(`/product/${id}/stock`, { quantity });
-      return response.data;
+      const body: PatchApiV1ProductIdStockBody = { quantity };
+      const response = await api.patchApiV1ProductIdStock(id, body);
+      return response.success || false;
     } catch (error) {
-      console.error("Update stock error:", error);
+      console.error('Update stock error:', error);
       throw error;
     }
   }
 
   /**
-   * GET /api/v1/product/{id}/stock
+   * GET /api/v1/Product/{id}/stock
    * Lấy tồn kho hiện tại
    */
   async getStock(id: string): Promise<number> {
     try {
-      if (USE_MOCK) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 300),
-        );
-        const product = MOCK_PRODUCTS.find((p) => p.id === id);
-        return product?.stock || 0;
-      }
-
-      const response = await apiRequest.get<
-        ApiResponse<number>
-      >(`/product/${id}/stock`);
-      return response.data;
+      const response = await api.getApiV1ProductIdStock(id);
+      return response.data || 0;
     } catch (error) {
-      console.error("Get stock error:", error);
+      console.error('Get stock error:', error);
       throw error;
     }
   }
 
   /**
-   * PATCH /api/v1/product/{id}/active
+   * PATCH /api/v1/Product/{id}/active
    * Kích hoạt/vô hiệu hóa sản phẩm (Requires Auth)
    */
-  async toggleActive(
-    id: string,
-    isActive: boolean,
-  ): Promise<boolean> {
+  async toggleActive(id: string, isActive: boolean): Promise<boolean> {
     try {
-      if (USE_MOCK) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        );
-        return true;
-      }
-
-      const response = await apiRequest.patch<
-        ApiResponse<boolean>
-      >(`/product/${id}/active`, { isActive });
-      return response.data;
+      const body: PatchApiV1ProductIdActiveBody = { isActive };
+      const response = await api.patchApiV1ProductIdActive(id, body);
+      return response.success || false;
     } catch (error) {
-      console.error("Toggle active error:", error);
+      console.error('Toggle active error:', error);
       throw error;
     }
   }
 
   /**
-   * PATCH /api/v1/product/{id}/featured
+   * PATCH /api/v1/Product/{id}/featured
    * Đặt sản phẩm nổi bật (Requires Auth)
    */
-  async toggleFeatured(
-    id: string,
-    isFeatured: boolean,
-  ): Promise<boolean> {
+  async toggleFeatured(id: string, isFeatured: boolean): Promise<boolean> {
     try {
-      if (USE_MOCK) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        );
-        return true;
-      }
-
-      const response = await apiRequest.patch<
-        ApiResponse<boolean>
-      >(`/product/${id}/featured`, { isFeatured });
-      return response.data;
+      const body: PatchApiV1ProductIdFeaturedBody = { isFeatured };
+      const response = await api.patchApiV1ProductIdFeatured(id, body);
+      return response.success || false;
     } catch (error) {
-      console.error("Toggle featured error:", error);
+      console.error('Toggle featured error:', error);
       throw error;
     }
   }
 
   /**
-   * POST /api/v1/product/{id}/view
+   * POST /api/v1/Product/{id}/view
    * Tăng lượt xem sản phẩm
    */
   async incrementView(id: string): Promise<boolean> {
     try {
-      if (USE_MOCK) {
-        return true; // No delay for view tracking
-      }
-
-      const response = await apiRequest.post<
-        ApiResponse<boolean>
-      >(`/product/${id}/view`);
-      return response.data;
+      const response = await api.postApiV1ProductIdView(id);
+      return response.success || false;
     } catch (error) {
-      console.error("Increment view error:", error);
+      console.error('Increment view error:', error);
       // Don't throw error for view tracking
       return false;
     }
   }
 
   /**
-   * POST /api/v1/product/{id}/favorite
+   * POST /api/v1/Product/{id}/favorite
    * Thêm/gỡ yêu thích (Requires Auth)
    */
   async toggleFavorite(id: string): Promise<boolean> {
     try {
-      if (USE_MOCK) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        );
-        return true;
-      }
-
-      const response = await apiRequest.post<
-        ApiResponse<boolean>
-      >(`/product/${id}/favorite`);
-      return response.data;
+      const response = await api.postApiV1ProductIdFavorite(id);
+      return response.success || false;
     } catch (error) {
-      console.error("Toggle favorite error:", error);
+      console.error('Toggle favorite error:', error);
       throw error;
     }
   }
 }
 
-export const vietCommerceProductService =
-  new VietCommerceProductService();
+export const vietCommerceProductService = new VietCommerceProductService();
 export default vietCommerceProductService;
