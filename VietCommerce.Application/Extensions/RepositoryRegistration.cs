@@ -43,6 +43,9 @@ namespace VietCommerce.Application.Extensions
             services.AddScoped<IOrderRepository, OrderRepository>();
             services.AddScoped<ICartRepository, CartRepository>();
 
+            // Marketing
+            services.AddScoped<IMarketingPostRepository, MarketingPostRepository>();
+
             return services;
         }
     }

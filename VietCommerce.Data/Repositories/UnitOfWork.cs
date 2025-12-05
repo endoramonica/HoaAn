@@ -48,10 +48,11 @@ public class UnitOfWork : IUnitOfWork
     public ILikeRepository? _like;
     public IPostRepository? _posts;
     public ICommentRepository? _comments;
+    private IMarketingPostRepository? _marketingPosts;
 
 
     private IDbContextTransaction? _transaction;
-    public UnitOfWork(AppDbContext context , ILogger<OrderRepository> logger)
+    public UnitOfWork(AppDbContext context, ILogger<OrderRepository> logger)
     {
         _context = context;
         _logger = logger;
@@ -73,7 +74,7 @@ public class UnitOfWork : IUnitOfWork
     }
 
     public IGenericRepository<CartItem> CartItems => throw new NotImplementedException();
-    public IOrderRepository Orders => _orders ??= new OrderRepository(_context , _logger);
+    public IOrderRepository Orders => _orders ??= new OrderRepository(_context, _logger);
     public IOrderItemRepository OrderItems => _orderItems ??= new OrderItemRepository(_context);
     private IOrderShippingRepository _orderShipping;
     public IOrderShippingRepository OrderShipping => _orderShippings ??= new OrderShippingRepository(_context, null!);
@@ -89,21 +90,21 @@ public class UnitOfWork : IUnitOfWork
     public IPaymentMethodRepository PaymentMethods =>
         _paymentMethods ??= new PaymentMethodRepository(_context);
 
-    public ICRMInteractionRepository CRMInteractions => 
+    public ICRMInteractionRepository CRMInteractions =>
     _crmInteractionRepository ??= new CRMInteractionRepository(_context);
-    public ISupplierRepository Suppliers => 
+    public ISupplierRepository Suppliers =>
     _supplierRepository ??= new SupplierRepository(_context);
-    public IStockTransferRepository StockTransfers => 
-    _stockTransfers ??= new StockTransferRepository (_context);
-    public ITransferItemRepository TransferItems => 
+    public IStockTransferRepository StockTransfers =>
+    _stockTransfers ??= new StockTransferRepository(_context);
+    public ITransferItemRepository TransferItems =>
     _transferItems ??= new TransferItemRepository(_context);
-    public IEmployeeRepository Employees => 
+    public IEmployeeRepository Employees =>
     _employee ??= new EmployeeRepository(_context);
-    public IWorkScheduleRepository WorkSchedules => 
+    public IWorkScheduleRepository WorkSchedules =>
     _workSchedule ??= new WorkScheduleRepository(_context);
-    public IShiftRepository Shifts => 
+    public IShiftRepository Shifts =>
     _shift ??= new ShiftRepository(_context);
-    public ILeaveRequestRepository LeaveRequests => 
+    public ILeaveRequestRepository LeaveRequests =>
     _leaveRequests ??= new LeaveRequestRepository(_context);
 
     public INotificationRepository Notifications =>
@@ -122,6 +123,8 @@ public class UnitOfWork : IUnitOfWork
 
 
     public IBookmarkRepository Bookmarks => _bookmark ??= new BookmarkRepository(_context);
+
+    public IMarketingPostRepository MarketingPosts => _marketingPosts ??= new MarketingPostRepository(_context);
 
     public async Task<int> SaveChangesAsync()
     {

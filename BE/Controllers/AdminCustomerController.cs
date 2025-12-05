@@ -13,11 +13,11 @@ namespace VietCommerce.AdminAPI.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize] // ✅ yêu cầu đăng nhập
-    public class CustomerController : ControllerBase
+    public class AdminCustomerController : ControllerBase
     {
         private readonly ICustomerService _customerService;
 
-        public CustomerController(ICustomerService customerService)
+        public AdminCustomerController(ICustomerService customerService)
         {
             _customerService = customerService;
         }
@@ -283,21 +283,5 @@ namespace VietCommerce.AdminAPI.Controllers
         #endregion
     }
 
-    // Helper Request Classes cho Controller (nếu chưa có trong Core.DTOs)
-    public class AddPointsRequest
-    {
-        public int Points { get; set; }
-        public string Reason { get; set; } = string.Empty;
-    }
-
-    public class DeductPointsRequest
-    {
-        public int Points { get; set; }
-        public string Reason { get; set; } = string.Empty;
-    }
-
-    public class UpdateTierRequest
-    {
-        public string Tier { get; set; } = string.Empty;
-    }
+    
 }

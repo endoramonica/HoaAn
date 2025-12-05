@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VietCommerce.Data.Context;
 
@@ -11,9 +12,11 @@ using VietCommerce.Data.Context;
 namespace VietCommerce.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251203134527_AddMarketingPostEntity")]
+    partial class AddMarketingPostEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1001,10 +1004,6 @@ namespace VietCommerce.Data.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasComment("User who deleted the post");
 
-                    b.Property<string>("DisplayLocation")
-                        .HasColumnType("nvarchar(max)")
-                        .HasComment("JSON array of display locations (homepage_banner, product_section, featured_section, sidebar)");
-
                     b.Property<string>("FacebookPost")
                         .HasColumnType("nvarchar(max)")
                         .HasComment("Facebook-optimized content");
@@ -1038,12 +1037,6 @@ namespace VietCommerce.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
-                    b.Property<bool>("IsFeatured")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false)
-                        .HasComment("Auto-set to true when PriorityScore > 80");
-
                     b.Property<string>("LinkedInPost")
                         .HasColumnType("nvarchar(max)")
                         .HasComment("LinkedIn-optimized content");
@@ -1066,12 +1059,6 @@ namespace VietCommerce.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
                         .HasComment("Target platform (e.g., Facebook, Instagram)");
-
-                    b.Property<int>("PriorityScore")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(50)
-                        .HasComment("Priority score (1-100) for display ranking");
 
                     b.Property<Guid?>("ProductId")
                         .HasColumnType("uniqueidentifier");
@@ -1152,13 +1139,6 @@ namespace VietCommerce.Data.Migrations
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("IX_MarketingPosts_IsDeleted");
 
-                    b.HasIndex("IsFeatured")
-                        .HasDatabaseName("IX_MarketingPosts_IsFeatured")
-                        .HasFilter("[IsFeatured] = 1");
-
-                    b.HasIndex("PriorityScore")
-                        .HasDatabaseName("IX_MarketingPosts_PriorityScore");
-
                     b.HasIndex("ProductId")
                         .HasDatabaseName("IX_MarketingPosts_ProductId")
                         .HasFilter("[ProductId] IS NOT NULL");
@@ -1174,10 +1154,6 @@ namespace VietCommerce.Data.Migrations
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_MarketingPosts_Status");
 
-                    b.HasIndex("PriorityScore", "PublishedDate")
-                        .HasDatabaseName("IX_MarketingPosts_PriorityScore_PublishedDate")
-                        .HasFilter("[PublishedDate] IS NOT NULL");
-
                     b.HasIndex("ProductId", "IsDeleted")
                         .HasDatabaseName("IX_MarketingPosts_ProductId_IsDeleted")
                         .HasFilter("[ProductId] IS NOT NULL");
@@ -1188,9 +1164,6 @@ namespace VietCommerce.Data.Migrations
                     b.HasIndex("Status", "ScheduledDate")
                         .HasDatabaseName("IX_MarketingPosts_Status_ScheduledDate")
                         .HasFilter("[ScheduledDate] IS NOT NULL");
-
-                    b.HasIndex("IsFeatured", "PriorityScore", "IsDeleted")
-                        .HasDatabaseName("IX_MarketingPosts_Featured_Priority_IsDeleted");
 
                     b.ToTable("MarketingPosts", (string)null);
                 });

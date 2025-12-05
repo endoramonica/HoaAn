@@ -12,7 +12,7 @@ public interface IUnitOfWork : IDisposable
     IPermissionRepository Permissions { get; }
     IUserRoleRepository UserRoles { get; }
     IRolePermissionRepository RolePermissions { get; }
-    
+
     // PRODUCT REPOSITORIES
     IProductRepository Products { get; }
     IProductImageRepository ProductImages { get; }
@@ -42,7 +42,7 @@ public interface IUnitOfWork : IDisposable
     // PAYMENT REPOSITORIES
     IPaymentRepository Payments { get; }
     IPaymentMethodRepository PaymentMethods { get; }
-  
+
     // ✅ LOGISTICS REPOSITORIES - STOCK TRANSFER
     ISupplierRepository Suppliers { get; }
     IStockTransferRepository StockTransfers { get; }
@@ -62,6 +62,8 @@ public interface IUnitOfWork : IDisposable
     ICommentRepository Comments { get; }
     ILikeRepository Likes { get; }           // ✅ Custom repository
     IBookmarkRepository Bookmarks { get; }   // ✅ Custom repository
+    // Marketing
+    IMarketingPostRepository MarketingPosts { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task<IDbContextTransaction> BeginTransactionAsync();
     Task CommitTransactionAsync();

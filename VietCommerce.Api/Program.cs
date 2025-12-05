@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using FluentValidation.AspNetCore;
 //using VietCommerce.Api.Middlewares;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -36,9 +37,11 @@ using VietCommerce.Data.Seeds.Seeders;
 //Health Check: /health endpoint
 //Redis Distributed Cache: Caching layer v?i health check
 // </summary>
-var builder = WebApplication.CreateBuilder(args);
-// Nếu chưa set WebRoot, thêm dòng này:
-builder.WebHost.UseWebRoot("wwwroot");
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    WebRootPath = "wwwroot" // ✅ Cấu hình ngay từ đầu
+});
 
 // ============================================
 // CONTROLLERS & API BEHAVIOR
@@ -167,7 +170,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddJwtBearer("Bearer",options =>
+.AddJwtBearer("Bearer", options =>
 {
     options.SaveToken = true;
     options.RequireHttpsMetadata = false;
@@ -207,9 +210,16 @@ builder.Services.AddAutoMapper(
     typeof(AuthMappingProfile).Assembly,
     typeof(ProductMappingProfile).Assembly,
     typeof(OrderMappingProfile).Assembly,
-    typeof(ProductFavoriteMappingProfile).Assembly
-    
+    typeof(ProductFavoriteMappingProfile).Assembly,
+    typeof(MarketingPostMappingProfile).Assembly
 );
+
+// ============================================
+// FLUENTVALIDATION CONFIGURATION
+// ============================================
+builder.Services.AddValidatorsFromAssemblyContaining<VietCommerce.Application.Validators.Marketing.CreateMarketingPostDtoValidator>();
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
 // ============================================
 // EXTERNAL SETTINGS CONFIGURATION
 // ============================================

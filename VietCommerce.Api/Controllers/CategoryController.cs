@@ -6,7 +6,7 @@ using VietCommerce.Core.Models;
 namespace VietCommerce.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 public class CategoryController : ControllerBase
 {
     private readonly ICategoryService _categoryService;

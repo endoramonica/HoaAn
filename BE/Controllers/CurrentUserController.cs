@@ -7,7 +7,7 @@ namespace VietCommerce.AdminAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] // ✅ yêu cầu đăng nhập
+    //[Authorize] // ✅ yêu cầu đăng nhập
     public class CurrentUserController : ControllerBase
     {
         private readonly ICurrentUser _currentUser;

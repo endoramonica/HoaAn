@@ -27,3 +27,21 @@ public class CreateCustomerRequest
 
     public bool IsActive { get; set; } = true;
 }
+
+// Helper Request Classes cho Controller (nếu chưa có trong Core.DTOs)
+public class AddPointsRequest
+{
+    public int Points { get; set; }
+    public string Reason { get; set; } = string.Empty;
+}
+
+public class DeductPointsRequest
+{
+    public int Points { get; set; }
+    public string Reason { get; set; } = string.Empty;
+}
+
+public class UpdateTierRequest
+{
+    public string Tier { get; set; } = string.Empty;
+}

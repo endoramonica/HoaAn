@@ -16,6 +16,7 @@ using VietCommerce.Core.Entities.HRM;
 using VietCommerce.Core.Entities.Tasks;
 using VietCommerce.Data.Context.Configurations.Notifications;
 using VietCommerce.Data.Context.Configurations.SocialCommunity;
+using VietCommerce.Data.Context.Configurations.Marketing;
 
 namespace VietCommerce.Data.Context;
 
@@ -77,6 +78,7 @@ public class AppDbContext : DbContext
     public DbSet<Campaign> Campaigns { get; set; } = null!;
     public DbSet<Promotion> Promotions { get; set; } = null!;
     public DbSet<PromotionProduct> PromotionProducts { get; set; } = null!;
+    public DbSet<MarketingPost> MarketingPosts { get; set; } = null!;
 
     // CRM
     public DbSet<CRMInteraction> CRMInteractions { get; set; } = null!;
@@ -100,7 +102,7 @@ public class AppDbContext : DbContext
     public DbSet<Comment> Comments { get; set; }
     public DbSet<Like> Likes { get; set; }
     public DbSet<Bookmark> Bookmarks { get; set; }
-    
+
 
     #endregion
 
@@ -136,7 +138,7 @@ public class AppDbContext : DbContext
         ConfigureTaskEntities(modelBuilder);
         ConfigureAuditEntities(modelBuilder);
 
-      
+
         modelBuilder.Entity<RolePermission>().HasKey(rp => new { rp.RoleId, rp.PermissionId });
         modelBuilder.Entity<PromotionProduct>().HasKey(pp => new { pp.PromotionId, pp.ProductId });
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(UserRoleConfiguration).Assembly);
@@ -154,7 +156,10 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration(new CommentConfiguration());
         modelBuilder.ApplyConfiguration(new LikeConfiguration());
         modelBuilder.ApplyConfiguration(new BookmarkConfiguration());
-        
+
+        // Marketing Post module
+        modelBuilder.ApplyConfiguration(new MarketingPostConfiguration());
+
 
         // Configure many-to-many relationships
         ConfigureManyToManyRelationships(modelBuilder);
@@ -365,7 +370,7 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(c => c.Phone);
 
-            entity.HasIndex(c => new { c.StoreId, c.CreatedAt }); 
+            entity.HasIndex(c => new { c.StoreId, c.CreatedAt });
             // ========== TENANT RELATIONSHIP (REQUIRED) ==========
             entity.HasOne(c => c.Tenant)
                 .WithMany(t => t.Customers)
@@ -592,7 +597,7 @@ public class AppDbContext : DbContext
         {
             entity
                 .HasIndex(p => new { p.OrderId, p.Status });
-                
+
             entity.HasOne(p => p.PaymentMethod)
                 .WithMany(pm => pm.Payments)
                 .HasForeignKey(p => p.MethodId)
@@ -660,7 +665,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Quantity)
                 .IsRequired();
 
-           
+
         });
 
 
@@ -681,7 +686,7 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.Cascade);
     }
 
-    
+
 
     private void ConfigureCRMEntities(ModelBuilder modelBuilder)
     {
@@ -733,7 +738,7 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => e.Code).IsUnique();
             //entity.HasIndex(e => e.Email).IsUnique();
 
-           // Self-referencing relationship for Manager
+            // Self-referencing relationship for Manager
             entity.HasOne(e => e.Manager)
                 .WithMany(e => e.Subordinates)
                 .HasForeignKey(e => e.ManagerId)
@@ -791,7 +796,7 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<WorkTask>(entity =>
         {
-            
+
 
             entity.HasOne(t => t.AssignedToUser)
                  .WithMany(u => u.AssignedTasks)
@@ -886,14 +891,14 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Product>()
     .HasIndex(p => new { p.CategoryId, p.IsDeleted });
 
-modelBuilder.Entity<Payment>()
-    .HasIndex(p => new { p.OrderId, p.Status });
+        modelBuilder.Entity<Payment>()
+            .HasIndex(p => new { p.OrderId, p.Status });
 
-modelBuilder.Entity<InventoryMovement>()
-    .HasIndex(im => new { im.InventoryId, im.CreatedAt });
+        modelBuilder.Entity<InventoryMovement>()
+            .HasIndex(im => new { im.InventoryId, im.CreatedAt });
 
-modelBuilder.Entity<OrderStatusHistory>()
-    .HasIndex(osh => new { osh.OrderId, osh.CreatedAt });
+        modelBuilder.Entity<OrderStatusHistory>()
+            .HasIndex(osh => new { osh.OrderId, osh.CreatedAt });
     }
 
     #endregion
@@ -968,31 +973,31 @@ modelBuilder.Entity<OrderStatusHistory>()
         await Task.CompletedTask;
     }
 
-   private async Task GenerateOrderNumbersAsync(CancellationToken cancellationToken)
-{
-    var newOrders = ChangeTracker.Entries<Order>()
-        .Where(e => e.State == EntityState.Added && string.IsNullOrEmpty(e.Entity.OrderNumber))
-        .Select(e => e.Entity)
-        .ToList();
-
-    if (!newOrders.Any()) return;
-
-    foreach (var order in newOrders)
+    private async Task GenerateOrderNumbersAsync(CancellationToken cancellationToken)
     {
-        var currentTime = DateTime.UtcNow;
-        var datePart = currentTime.ToString("yyyyMMdd");
+        var newOrders = ChangeTracker.Entries<Order>()
+            .Where(e => e.State == EntityState.Added && string.IsNullOrEmpty(e.Entity.OrderNumber))
+            .Select(e => e.Entity)
+            .ToList();
 
-        string orderNumber;
-        bool exists;
-        do
+        if (!newOrders.Any()) return;
+
+        foreach (var order in newOrders)
         {
-            var uniqueId = Guid.NewGuid().ToString("N")[..8].ToUpper();
-            orderNumber = $"ORD{datePart}-{uniqueId}";
-            exists = await Orders.AnyAsync(o => o.OrderNumber == orderNumber, cancellationToken);
-        } while (exists);
+            var currentTime = DateTime.UtcNow;
+            var datePart = currentTime.ToString("yyyyMMdd");
 
-        order.OrderNumber = orderNumber;
+            string orderNumber;
+            bool exists;
+            do
+            {
+                var uniqueId = Guid.NewGuid().ToString("N")[..8].ToUpper();
+                orderNumber = $"ORD{datePart}-{uniqueId}";
+                exists = await Orders.AnyAsync(o => o.OrderNumber == orderNumber, cancellationToken);
+            } while (exists);
+
+            order.OrderNumber = orderNumber;
+        }
     }
-}
     #endregion
 }

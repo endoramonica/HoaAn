@@ -16,12 +16,9 @@ namespace VietCommerce.AdminApi.Controllers
     /// Admin Address Management API
     /// </summary>
     [ApiController]
-    [Route("api/addresses")]
-    [Authorize]
-    [RequirePermission(PermissionConstants.AdminAddressManage)]
-    [RequirePermission(PermissionConstants.AdminAddressRead)]
+    [Route("api/[controller]")]
+    [Authorize] // ✅ Yêu cầu đăng nhập
     [Produces("application/json")]
-    [ApiExplorerSettings(GroupName = "Admin")]
     public class AddressController : ControllerBase
     {
         private readonly IAddressService _addressService;

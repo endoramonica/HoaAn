@@ -6,10 +6,12 @@
 // ================================================================
 
 using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using System.Text;
 using System.Text.Json;
@@ -28,8 +30,11 @@ using VietCommerce.Data.Seeders;
 using VietCommerce.Application.Services.Admin_Staff_Manager.Interfaces;
 using IInventoryService = VietCommerce.Application.Services.Admin_Staff_Manager.Interfaces.IInventoryService;
 
-var builder = WebApplication.CreateBuilder(args);
-
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    WebRootPath = "wwwroot" // ✅ Cấu hình ngay từ đầu
+});
 // ================================================================
 // 1️⃣ CONTROLLERS & VALIDATION
 // ================================================================
@@ -75,34 +80,89 @@ builder.Services.AddControllers(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    c.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "VietCommerce Admin API",
         Version = "v1",
-        Description = "VietCommerce Admin Management API"
-    });
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-    {
-        Description = "JWT Authorization header using the Bearer scheme (Example: 'Bearer 12345abcdef')",
-        Name = "Authorization",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-    {
+        Description = @"VietCommerce Admin Management API - Comprehensive API for managing products, orders, inventory, marketing posts, and administrative operations.
+        
+**Authentication:**
+All endpoints (except analytics endpoints) require JWT Bearer token authentication with Admin role.
+
+**Marketing Post Management:**
+- Create, update, delete, and restore marketing posts
+- Publish, schedule, and unpublish posts
+- Track analytics (views, clicks, shares)
+- Bulk operations for efficient management
+- Link posts to products for targeted marketing
+
+**Key Features:**
+- Soft delete with restore capability
+- Priority scoring for display control (1-100)
+- Multi-platform social media variants
+- SEO metadata management
+- Comprehensive filtering and search
+- Real-time analytics tracking",
+        Contact = new OpenApiContact
         {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
+            Name = "VietCommerce Support",
+            Email = "support@vietcommerce.com"
         }
     });
+
+    // Include XML comments for better API documentation
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
+
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = @"JWT Authorization header using the Bearer scheme. 
+                      Enter 'Bearer' [space] and then your token in the text input below.
+                      Example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+                      
+**How to get a token:**
+1. Call POST /api/admin/auth/login with admin credentials
+2. Copy the token from the response
+3. Click 'Authorize' button above
+4. Enter 'Bearer {your-token}' in the value field
+5. Click 'Authorize' and then 'Close'",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "oauth2",
+                Name = "Bearer",
+                In = ParameterLocation.Header
+            },
+            new List<string>()
+        }
+    });
+
+    // Enable annotations for better documentation
+    c.EnableAnnotations();
+
+    // Order actions by relative path
+    c.OrderActionsBy(apiDesc => apiDesc.RelativePath);
+
+    // Use full type names to avoid conflicts
+    c.CustomSchemaIds(type => type.FullName);
 });
 
 // ================================================================
@@ -224,12 +284,20 @@ builder.Services.AddAutoMapper(
     typeof(CartMappingProfile).Assembly,
     typeof(TaskMappingProfile).Assembly,
     typeof(SupplierMappingProfile).Assembly,
-    typeof(CustomerMappingProfile).Assembly, 
+    typeof(CustomerMappingProfile).Assembly,
     typeof(HRMMappingProfile).Assembly,
     typeof(NotificationMappingProfile).Assembly,
     typeof(StockTransferMappingProfile).Assembly,
-    typeof(ProductFavoriteMappingProfile).Assembly
+    typeof(ProductFavoriteMappingProfile).Assembly,
+    typeof(MarketingPostMappingProfile).Assembly
 );
+
+// ================================================================
+// 6️⃣.1️⃣ FLUENTVALIDATION
+// ================================================================
+builder.Services.AddValidatorsFromAssemblyContaining<VietCommerce.Application.Validators.Marketing.CreateMarketingPostDtoValidator>();
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
 
 // ================================================================
 // 7️⃣ REPOSITORIES & SERVICES
@@ -282,7 +350,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AdminPolicy", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:3001")
+        policy.WithOrigins("http://localhost:3000", "http://localhost:3001", "http://localhost:5173")
               .AllowCredentials()
               .AllowAnyMethod()
               .AllowAnyHeader()
@@ -317,10 +385,10 @@ app.UseHttpsRedirection();
 app.UseCors("AdminPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseStaticFiles();
 app.MapControllers();
-app.MapGet("/health", () => new { Status = "Healthy", Timestamp = DateTime.UtcNow });
-app.MapHealthChecks("/health/redis");
+//app.MapGet("/health", () => new { Status = "Healthy", Timestamp = DateTime.UtcNow });
+//app.MapHealthChecks("/health/redis");
 
 // ================================================================
 // 1️⃣1️⃣ DATABASE MIGRATION & SEEDING
