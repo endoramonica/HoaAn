@@ -37,8 +37,8 @@ namespace VietCommerce.Core.DTOs.Products
         public string? BrandName { get; set; }
 
         // Media
-        public List<string> Images { get; set; } = new();
-        public string? PrimaryImage => Images.FirstOrDefault();
+        public string? PrimaryImage { get; set; }
+        public List<ProductImageDto> Images { get; set; } = new();
 
         // Tags & SEO
         public List<string> Tags { get; set; } = new();

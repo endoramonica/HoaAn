@@ -23,19 +23,23 @@ public interface IProductRepository : IGenericRepository<Product>
         decimal? minPrice = null,
         decimal? maxPrice = null,
         string? sortBy = null,
-        bool isDescending = false
+        bool isDescending = false,
+        string? type = null,
+        string? serviceCategory = null
     );
-     Task<PaginatedResult<ProductListDto>> GetPaginatedDtoAsync(
-    int pageNumber,
-    int pageSize,
-    string? searchTerm = null,
-    Guid? categoryId = null,
-    Guid? storeId = null,
-    bool? isActive = null,
-    decimal? minPrice = null,
-    decimal? maxPrice = null,
-    string? sortBy = null,
-    bool isDescending = false);
+    Task<PaginatedResult<ProductListDto>> GetPaginatedDtoAsync(
+   int pageNumber,
+   int pageSize,
+   string? searchTerm = null,
+   Guid? categoryId = null,
+   Guid? storeId = null,
+   bool? isActive = null,
+   decimal? minPrice = null,
+   decimal? maxPrice = null,
+   string? sortBy = null,
+   bool isDescending = false,
+   string? type = null,
+   string? serviceCategory = null);
 
     // Business use cases
     Task<IEnumerable<Product>> GetPromotedProductsAsync(int count = 10);

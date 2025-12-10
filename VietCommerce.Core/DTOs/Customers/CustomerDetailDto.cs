@@ -15,6 +15,7 @@ public class CustomerDetailDto
     public string Name { get; set; } = string.Empty;
     public string? Email { get; set; }
     public string? Phone { get; set; }
+    public string? Avatar { get; set; }
 
     // Loyalty & Tier
     public int LoyaltyPoints { get; set; }
@@ -41,6 +42,11 @@ public class CustomerDetailDto
     public int TotalOrders { get; set; }
     public decimal TotalSpent { get; set; }
     public int TotalInteractions { get; set; }
+
+    // User Info (from User entity)
+    public string? UserProvider { get; set; }
+    public DateTime? LastLogin { get; set; }
+    public string? UserStatus { get; set; }
 
     // Collections
     public List<CustomerAddressDto> Addresses { get; set; } = new();

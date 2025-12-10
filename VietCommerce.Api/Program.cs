@@ -265,6 +265,7 @@ builder.Services.AddAllServices();
 // ============================================
 builder.Services.AddScoped<ProductAnalyticsSeeder>();
 builder.Services.AddScoped<CartOrderPermissionSeeder>();
+builder.Services.AddScoped<ProductServiceSeeder>();
 
 
 // ============================================
@@ -340,6 +341,7 @@ using (var scope = app.Services.CreateScope())
     // Seeder instances
     var cartOrderPermissionSeeder = services.GetRequiredService<CartOrderPermissionSeeder>();
     var productAnalyticsSeeder = services.GetRequiredService<ProductAnalyticsSeeder>();
+    var productServiceSeeder = services.GetRequiredService<ProductServiceSeeder>();
 
     try
     {
@@ -351,6 +353,7 @@ using (var scope = app.Services.CreateScope())
 
         await cartOrderPermissionSeeder.SeedAsync(dbContext);
         await productAnalyticsSeeder.SeedAsync();
+        await productServiceSeeder.SeedAsync();
 
         Console.WriteLine("🎉 Database seeding completed!");
     }

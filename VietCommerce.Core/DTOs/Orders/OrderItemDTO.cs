@@ -1,6 +1,7 @@
 ﻿using System;
 
 namespace VietCommerce.Core.DTOs.Orders;
+
 public class OrderItemDTO
 {
     public Guid Id { get; set; }  // ✅ Added OrderItem ID
@@ -19,4 +20,23 @@ public class OrderItemDTO
 
     // Calculated properties
     public decimal Subtotal => Quantity * UnitPrice;  // ✅ For display
+
+    // ========================================
+    // 🔧 SERVICES-PRODUCT UNIFICATION - NEW FIELDS
+    // ========================================
+
+    /// <summary>
+    /// Type discriminator: "product" or "service"
+    /// </summary>
+    public string Type { get; set; } = "product";
+
+    /// <summary>
+    /// Service category (only for type='service')
+    /// </summary>
+    public string? ServiceCategory { get; set; }
+
+    /// <summary>
+    /// Service duration (only for type='service')
+    /// </summary>
+    public string? ServiceDuration { get; set; }
 }

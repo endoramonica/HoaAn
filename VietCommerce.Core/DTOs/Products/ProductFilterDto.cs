@@ -26,5 +26,21 @@ namespace VietCommerce.Core.DTOs.Products
         // Sorting
         public string? SortBy { get; set; } // "name", "price", "created", "views"
         public bool IsDescending { get; set; } = false;
+
+        // ========================================
+        // 🔧 SERVICES-PRODUCT UNIFICATION - NEW FILTERS
+        // ========================================
+
+        /// <summary>
+        /// Filter by type: "product" or "service"
+        /// If null, returns all types (backward compatible)
+        /// </summary>
+        public string? Type { get; set; }
+
+        /// <summary>
+        /// Filter by service category (only applies when type='service')
+        /// Values: ancestor-worship, opening-ceremony, wedding, buddha-worship, new-house, feng-shui-consultation
+        /// </summary>
+        public string? ServiceCategory { get; set; }
     }
 }

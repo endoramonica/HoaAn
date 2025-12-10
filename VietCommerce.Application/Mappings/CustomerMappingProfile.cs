@@ -21,6 +21,10 @@ public class CustomerMappingProfile : Profile
             .ForMember(dest => dest.TotalSpent, opt => opt.MapFrom(src => src.Orders.Sum(o => o.TotalAmount)))
             .ForMember(dest => dest.TotalInteractions, opt => opt.MapFrom(src => src.Interactions.Count))
             .ForMember(dest => dest.StoreName, opt => opt.MapFrom(src => src.Store != null ? src.Store.Name : null))
+            .ForMember(dest => dest.Avatar, opt => opt.MapFrom(src => src.CustomerAvatar))
+            .ForMember(dest => dest.UserProvider, opt => opt.MapFrom(src => src.User != null ? src.User.Provider : null))
+            .ForMember(dest => dest.LastLogin, opt => opt.MapFrom(src => src.User != null ? src.User.LastLogin : null))
+            .ForMember(dest => dest.UserStatus, opt => opt.MapFrom(src => src.User != null ? src.User.Status.ToString() : null))
             .ForMember(dest => dest.Addresses, opt => opt.MapFrom(src => src.Addresses));
 
         // Customer -> CustomerListDto
@@ -95,5 +99,14 @@ public class CustomerMappingProfile : Profile
         // UpdateInteractionRequest -> CRMInteraction
         CreateMap<UpdateInteractionRequest, CRMInteraction>()
             .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+
+        // ========================================
+        // COMBINED CUSTOMER + USER MAPPINGS
+        // ========================================
+
+        // Customer -> CustomerWithUserDto (combined response)
+        CreateMap<Customer, CustomerWithUserDto>()
+            .ForMember(dest => dest.Customer, opt => opt.MapFrom(src => src))
+            .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User));
     }
 }

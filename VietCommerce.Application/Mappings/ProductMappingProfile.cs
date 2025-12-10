@@ -66,7 +66,8 @@ namespace VietCommerce.Application.Mappings
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null))
                 .ForMember(dest => dest.BrandId, opt => opt.Ignore())
                 .ForMember(dest => dest.BrandName, opt => opt.Ignore())
-                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images != null && src.Images.Any() ? src.Images.Where(i => !string.IsNullOrEmpty(i.Url)).Select(i => i.Url).ToList() : new List<string>()))
+                .ForMember(dest => dest.PrimaryImage, opt => opt.MapFrom(src => src.Images != null && src.Images.Any(i => i.IsMain) ? src.Images.First(i => i.IsMain).Url : (src.Images != null && src.Images.Any() ? src.Images.OrderBy(i => i.DisplayOrder).First().Url : null)))
+                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images != null && src.Images.Any() ? src.Images.OrderBy(i => i.DisplayOrder).Select(i => new ProductImageDto { Id = i.Id, ProductId = i.ProductId, Url = i.Url, ThumbnailUrl = i.ThumbnailUrl, DisplayOrder = i.DisplayOrder, MediaType = i.MediaType, IsMain = i.IsMain, CreatedAt = i.CreatedAt, UpdatedAt = i.UpdatedAt }).ToList() : new List<ProductImageDto>()))
                 .ForMember(dest => dest.Tags, opt => opt.Ignore())
                 .ForMember(dest => dest.MetaTitle, opt => opt.Ignore())
                 .ForMember(dest => dest.MetaDescription, opt => opt.Ignore())
@@ -82,9 +83,7 @@ namespace VietCommerce.Application.Mappings
                 // Mapping DisplayPrice từ PriceCalculationHelper
                 .ForMember(dest => dest.Price, opt => opt.MapFrom(src => PriceCalculationHelper.GetDisplayPrice(src).DiscountedPrice))
                 .ForMember(dest => dest.CompareAtPrice, opt => opt.MapFrom(src => PriceCalculationHelper.GetDisplayPrice(src).OriginalPrice))
-                .ForMember(dest => dest.DisplayPrice, opt => opt.MapFrom(src => PriceCalculationHelper.GetDisplayPrice(src)))
-                .ForMember(dest => dest.Price, opt => opt.MapFrom(src => PriceCalculationHelper.GetDisplayPrice(src).DiscountedPrice))
-                .ForMember(dest => dest.CompareAtPrice, opt => opt.MapFrom(src => PriceCalculationHelper.GetDisplayPrice(src).OriginalPrice));
+                .ForMember(dest => dest.DisplayPrice, opt => opt.MapFrom(src => PriceCalculationHelper.GetDisplayPrice(src)));
 
 
             // ===================================
@@ -94,17 +93,15 @@ namespace VietCommerce.Application.Mappings
                 .ForMember(dest => dest.ShortDescription, opt => opt.Ignore())
                 .ForMember(dest => dest.StockQuantity, opt => opt.MapFrom(src => src.Stock))
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null))
-                .ForMember(dest => dest.PrimaryImage, opt => opt.MapFrom(src => src.Images != null && src.Images.Any() ? src.Images.FirstOrDefault()!.Url : null))
+                .ForMember(dest => dest.PrimaryImage, opt => opt.MapFrom(src => src.Images != null && src.Images.Any(i => i.IsMain) ? src.Images.First(i => i.IsMain).Url : (src.Images != null && src.Images.Any() ? src.Images.OrderBy(i => i.DisplayOrder).First().Url : null)))
+                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images != null && src.Images.Any() ? src.Images.OrderBy(i => i.DisplayOrder).Select(i => new ProductImageDto { Id = i.Id, ProductId = i.ProductId, Url = i.Url, ThumbnailUrl = i.ThumbnailUrl, DisplayOrder = i.DisplayOrder, MediaType = i.MediaType, IsMain = i.IsMain, CreatedAt = i.CreatedAt, UpdatedAt = i.UpdatedAt }).ToList() : new List<ProductImageDto>()))
                 .ForMember(dest => dest.ViewCount, opt => opt.MapFrom(src => (int)src.ViewCount))
                 .ForMember(dest => dest.FavoriteCount, opt => opt.MapFrom(src => src.FavoriteCount))
                 .ForMember(dest => dest.AverageRating, opt => opt.MapFrom(src => src.AvgRating))
                 .ForMember(dest => dest.IsFeatured, opt => opt.Ignore())
                 .ForMember(dest => dest.Price, opt => opt.MapFrom(src => PriceCalculationHelper.GetDisplayPrice(src).DiscountedPrice))
                 .ForMember(dest => dest.CompareAtPrice, opt => opt.MapFrom(src => PriceCalculationHelper.GetDisplayPrice(src).OriginalPrice))
-            // AutoMapper mapping
-            .ForMember(dest => dest.DisplayPrice, opt => opt.MapFrom(src => PriceCalculationHelper.GetDisplayPrice(src)))
-            .ForMember(dest => dest.Price, opt => opt.MapFrom(src => PriceCalculationHelper.GetDisplayPrice(src).DiscountedPrice))
-            .ForMember(dest => dest.CompareAtPrice, opt => opt.MapFrom(src => PriceCalculationHelper.GetDisplayPrice(src).OriginalPrice));
+                .ForMember(dest => dest.DisplayPrice, opt => opt.MapFrom(src => PriceCalculationHelper.GetDisplayPrice(src)));
 
 
             // ===================================

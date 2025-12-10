@@ -2,7 +2,8 @@
 using VietCommerce.Core.DTOs.Users;
 using VietCommerce.Core.Entities.Users;
 
-namespace VietCommerce.Application.Mappings {
+namespace VietCommerce.Application.Mappings
+{
 
     public partial class AuthMappingProfile
     {
@@ -14,6 +15,8 @@ namespace VietCommerce.Application.Mappings {
                 CreateMap<User, UserDetailDTO>()
                     .ForMember(dest => dest.StoreName,
                         opt => opt.MapFrom(src => src.Store != null ? src.Store.Name : string.Empty))
+                    .ForMember(dest => dest.StatusText,
+                        opt => opt.MapFrom(src => src.Status.ToString().ToLower()))
                     .ForMember(dest => dest.Roles,
                         opt => opt.MapFrom(src => src.UserRoles.Select(ur => ur.Role.Name).ToList()));
 

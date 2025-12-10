@@ -48,6 +48,14 @@ namespace VietCommerce.AdminAPI.Controllers
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
+        [HttpGet("{id}/with-user")]
+        [ProducesResponseType(typeof(ApiResponse<CustomerWithUserDto>), 200)]
+        public async Task<IActionResult> GetByIdWithUser(Guid id)
+        {
+            var result = await _customerService.GetCustomerWithUserByIdAsync(id);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<CustomerDetailDto>), 201)]
         public async Task<IActionResult> Create([FromBody] CreateCustomerRequest request)
@@ -283,5 +291,5 @@ namespace VietCommerce.AdminAPI.Controllers
         #endregion
     }
 
-    
+
 }

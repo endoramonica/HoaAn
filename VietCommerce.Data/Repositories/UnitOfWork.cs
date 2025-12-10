@@ -23,6 +23,7 @@ public class UnitOfWork : IUnitOfWork
     private IOrderRepository? _orders;
     private IOrderItemRepository? _orderItems;
     private readonly ILogger<OrderRepository> _logger;
+    private IGenericRepository<CartItem>? _cartItems;
     private IOrderShippingRepository? _orderShippings;
     private IOrderStatusHistoryRepository? _orderStatusHistories;
     private ICustomerRepository? _customer;
@@ -73,7 +74,7 @@ public class UnitOfWork : IUnitOfWork
         get => _cartRepository ??= new CartRepository(_context);
     }
 
-    public IGenericRepository<CartItem> CartItems => throw new NotImplementedException();
+    public IGenericRepository<CartItem> CartItems => _cartItems ??= new GenericRepository<CartItem>(_context);
     public IOrderRepository Orders => _orders ??= new OrderRepository(_context, _logger);
     public IOrderItemRepository OrderItems => _orderItems ??= new OrderItemRepository(_context);
     private IOrderShippingRepository _orderShipping;

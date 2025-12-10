@@ -41,10 +41,10 @@ namespace VietCommerce.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(ApiResponse<CustomerDetailDto>), 200)]
+        [ProducesResponseType(typeof(ApiResponse<CustomerWithUserDto>), 200)]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var result = await _customerService.GetCustomerByIdAsync(id);
+            var result = await _customerService.GetCustomerWithUserByIdAsync(id);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 

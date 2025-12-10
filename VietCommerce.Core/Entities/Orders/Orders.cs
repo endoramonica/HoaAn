@@ -45,4 +45,51 @@ public class Order : AuditableEntity, ISoftDelete
     public virtual ICollection<OrderStatusHistory> OrderStatusHistories { get; set; } = new List<OrderStatusHistory>();
     public virtual ICollection<InventoryMovement> InventoryMovements { get; set; } = new List<InventoryMovement>();
     public virtual OrderShipping? OrderShipping { get; set; }
+
+    // ========================================
+    // 🔧 SERVICES-PRODUCT UNIFICATION - NEW FIELDS
+    // ========================================
+
+    /// <summary>
+    /// Type discriminator: "product" or "service"
+    /// Default: "product" for backward compatibility
+    /// </summary>
+    [MaxLength(50)]
+    public string Type { get; set; } = "product";
+
+    /// <summary>
+    /// Service category (only for type='service')
+    /// </summary>
+    [MaxLength(100)]
+    public string? ServiceCategory { get; set; }
+
+    /// <summary>
+    /// Service duration (only for type='service')
+    /// </summary>
+    [MaxLength(100)]
+    public string? ServiceDuration { get; set; }
+
+    /// <summary>
+    /// Service location/address (only for type='service')
+    /// </summary>
+    [MaxLength(500)]
+    public string? ServiceLocation { get; set; }
+
+    /// <summary>
+    /// Scheduled service date (only for type='service')
+    /// </summary>
+    public DateTime? ServiceDate { get; set; }
+
+    /// <summary>
+    /// Scheduled service time (only for type='service')
+    /// Example: "09:00", "14:30"
+    /// </summary>
+    [MaxLength(50)]
+    public string? ServiceTime { get; set; }
+
+    /// <summary>
+    /// Additional notes for service (only for type='service')
+    /// </summary>
+    [MaxLength(1000)]
+    public string? ServiceNotes { get; set; }
 }

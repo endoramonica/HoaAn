@@ -18,8 +18,14 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
     // ========================================
     public override async Task<Product?> GetByIdAsync(Guid id)
     {
+        var now = DateTime.UtcNow;
         return await _context.Products
-            .Include(p => p.Prices)
+            .Include(p => p.Prices.Where(pr => pr.IsActive && pr.EffectiveFrom <= now))
+            .Include(p => p.Images)
+            .Include(p => p.Category)
+            .Include(p => p.Store)
+            .Include(p => p.PromotionProducts)
+                .ThenInclude(pp => pp.Promotion)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
     public async Task<Product?> GetBySlugAsync(string slug)
@@ -29,22 +35,34 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .Include(p => p.Store)
             .Include(p => p.Images)
             .Include(p => p.Prices.Where(pr => pr.IsActive && pr.EffectiveFrom <= DateTime.UtcNow))
+            .Include(p => p.PromotionProducts)
+                .ThenInclude(pp => pp.Promotion)
             .FirstOrDefaultAsync(p => p.Slug == slug && !p.IsDeleted);
     }
 
     public async Task<Product?> GetByCodeAsync(string code)
     {
+        var now = DateTime.UtcNow;
         return await _dbSet
             .Include(p => p.Category)
             .Include(p => p.Store)
+            .Include(p => p.Images)
+            .Include(p => p.Prices.Where(pr => pr.IsActive && pr.EffectiveFrom <= now))
+            .Include(p => p.PromotionProducts)
+                .ThenInclude(pp => pp.Promotion)
             .FirstOrDefaultAsync(p => p.Code == code && !p.IsDeleted);
     }
 
     public async Task<IEnumerable<Product>> GetByStoreIdAsync(Guid storeId)
     {
+        var now = DateTime.UtcNow;
         return await _dbSet
             .Include(p => p.Category)
+            .Include(p => p.Store)
             .Include(p => p.Images)
+            .Include(p => p.Prices.Where(pr => pr.IsActive && pr.EffectiveFrom <= now))
+            .Include(p => p.PromotionProducts)
+                .ThenInclude(pp => pp.Promotion)
             .Where(p => p.StoreId == storeId && p.IsActive)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
@@ -52,9 +70,14 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
     public async Task<IEnumerable<Product>> GetByCategoryIdAsync(Guid categoryId)
     {
+        var now = DateTime.UtcNow;
         return await _dbSet
             .Include(p => p.Store)
+            .Include(p => p.Category)
             .Include(p => p.Images)
+            .Include(p => p.Prices.Where(pr => pr.IsActive && pr.EffectiveFrom <= now))
+            .Include(p => p.PromotionProducts)
+                .ThenInclude(pp => pp.Promotion)
             .Where(p => p.CategoryId == categoryId && p.IsActive)
             .OrderByDescending(p => p.TrendingScore)
             .ToListAsync();
@@ -73,12 +96,14 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
         decimal? minPrice = null,
         decimal? maxPrice = null,
         string? sortBy = null,
-        bool isDescending = false)
+        bool isDescending = false,
+        string? type = null,
+        string? serviceCategory = null)
     {
         var query = _dbSet
             .Include(p => p.Category)
             .Include(p => p.Store)
-            .Include(p => p.Images.Take(1))
+            .Include(p => p.Images)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -98,6 +123,14 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
         if (isActive.HasValue)
             query = query.Where(p => p.IsActive == isActive.Value);
+
+        // 🔧 SERVICES-PRODUCT UNIFICATION - Type filtering
+        if (!string.IsNullOrWhiteSpace(type))
+            query = query.Where(p => p.Type == type);
+
+        // 🔧 SERVICES-PRODUCT UNIFICATION - ServiceCategory filtering
+        if (!string.IsNullOrWhiteSpace(serviceCategory))
+            query = query.Where(p => p.ServiceCategory == serviceCategory);
 
         if (minPrice.HasValue || maxPrice.HasValue)
         {
@@ -151,7 +184,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
     decimal? minPrice = null,
     decimal? maxPrice = null,
     string? sortBy = null,
-    bool isDescending = false)
+    bool isDescending = false,
+    string? type = null,
+    string? serviceCategory = null)
     {
         var now = DateTime.UtcNow;
 
@@ -181,6 +216,14 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
         if (isActive.HasValue)
             query = query.Where(p => p.IsActive == isActive.Value);
+
+        // 🔧 SERVICES-PRODUCT UNIFICATION - Type filtering
+        if (!string.IsNullOrWhiteSpace(type))
+            query = query.Where(p => p.Type == type);
+
+        // 🔧 SERVICES-PRODUCT UNIFICATION - ServiceCategory filtering
+        if (!string.IsNullOrWhiteSpace(serviceCategory))
+            query = query.Where(p => p.ServiceCategory == serviceCategory);
 
         // ===============================
         // Step 2: Pagination (only product ids)
@@ -252,6 +295,23 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
             var discountedPrice = currentPrice - discountAmount;
 
+            var primaryImage = p.Images.FirstOrDefault(i => i.IsMain)?.Url ?? p.Images.FirstOrDefault()?.Url;
+            var images = p.Images
+                .OrderBy(i => i.DisplayOrder)
+                .Select(i => new ProductImageDto
+                {
+                    Id = i.Id,
+                    ProductId = i.ProductId,
+                    Url = i.Url,
+                    ThumbnailUrl = i.ThumbnailUrl,
+                    DisplayOrder = i.DisplayOrder,
+                    MediaType = i.MediaType,
+                    IsMain = i.IsMain,
+                    CreatedAt = i.CreatedAt,
+                    UpdatedAt = i.UpdatedAt
+                })
+                .ToList();
+
             return new ProductListDto
             {
                 Id = p.Id,
@@ -259,7 +319,8 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
                 Code = p.Code,
                 StockQuantity = p.Stock,
                 CategoryName = p.Category?.Name,
-                PrimaryImage = p.Images.FirstOrDefault()?.Url,
+                PrimaryImage = primaryImage,
+                Images = images,
                 ViewCount = (int)p.ViewCount,
                 FavoriteCount = p.FavoriteCount,
                 AverageRating = p.AvgRating,
@@ -271,7 +332,12 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
                     DiscountedPrice = discountedPrice,
                     DiscountAmount = discountAmount,
                     PromotionName = activePromotion?.PromotionName
-                }
+                },
+                // 🔧 SERVICES-PRODUCT UNIFICATION - Map new fields
+                Type = p.Type,
+                ServiceCategory = p.ServiceCategory,
+                ServiceDuration = p.ServiceDuration,
+                ServiceRating = p.ServiceRating
             };
         }).ToList();
 
@@ -304,8 +370,11 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
         return await _dbSet
             .Include(p => p.Store)
-            .Include(p => p.Images.Take(1))
-            .Include(p => p.Prices)
+            .Include(p => p.Category)
+            .Include(p => p.Images)
+            .Include(p => p.Prices.Where(pr => pr.IsActive && pr.EffectiveFrom <= now))
+            .Include(p => p.PromotionProducts)
+                .ThenInclude(pp => pp.Promotion)
             .Where(p => p.IsActive &&
                         p.PromotionProducts.Any(pp =>
                             pp.Promotion.IsActive &&
@@ -325,9 +394,14 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
         if (product == null || product.CategoryId == null)
             return Enumerable.Empty<Product>();
 
+        var now = DateTime.UtcNow;
         return await _dbSet
             .Include(p => p.Store)
-            .Include(p => p.Images.Take(1))
+            .Include(p => p.Category)
+            .Include(p => p.Images)
+            .Include(p => p.Prices.Where(pr => pr.IsActive && pr.EffectiveFrom <= now))
+            .Include(p => p.PromotionProducts)
+                .ThenInclude(pp => pp.Promotion)
             .Where(p => p.Id != productId &&
                         p.CategoryId == product.CategoryId &&
                         p.IsActive)
@@ -349,9 +423,14 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
         if (!recentViewedIds.Any())
             return Enumerable.Empty<Product>();
 
+        var now = DateTime.UtcNow;
         var products = await _dbSet
             .Include(p => p.Store)
-            .Include(p => p.Images.Take(1))
+            .Include(p => p.Category)
+            .Include(p => p.Images)
+            .Include(p => p.Prices.Where(pr => pr.IsActive && pr.EffectiveFrom <= now))
+            .Include(p => p.PromotionProducts)
+                .ThenInclude(pp => pp.Promotion)
             .Where(p => recentViewedIds.Contains(p.Id) && p.IsActive)
             .ToListAsync();
 
@@ -373,10 +452,14 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
         if (!favoriteIds.Any())
             return Enumerable.Empty<Product>();
 
+        var now = DateTime.UtcNow;
         return await _dbSet
             .Include(p => p.Store)
-            .Include(p => p.Images.Take(1))
+            .Include(p => p.Images)
             .Include(p => p.Category)
+            .Include(p => p.Prices.Where(pr => pr.IsActive && pr.EffectiveFrom <= now))
+            .Include(p => p.PromotionProducts)
+                .ThenInclude(pp => pp.Promotion)
             .Where(p => favoriteIds.Contains(p.Id) && p.IsActive)
             .ToListAsync();
     }
@@ -500,10 +583,14 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
     public async Task<IEnumerable<Product>> GetTrendingProductsAsync(int top = 10)
     {
+        var now = DateTime.UtcNow;
         return await _dbSet
             .Include(p => p.Store)
-            .Include(p => p.Images.Take(1))
+            .Include(p => p.Images)
             .Include(p => p.Category)
+            .Include(p => p.Prices.Where(pr => pr.IsActive && pr.EffectiveFrom <= now))
+            .Include(p => p.PromotionProducts)
+                .ThenInclude(pp => pp.Promotion)
             .Where(p => p.IsActive && p.TrendingScore > 0)
             .OrderByDescending(p => p.TrendingScore)
             .ThenByDescending(p => p.ViewCount)

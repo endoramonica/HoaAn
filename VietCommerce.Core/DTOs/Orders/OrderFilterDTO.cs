@@ -83,6 +83,24 @@ public class OrderFilterDTO
     public bool SortDescending { get; set; } = true;
 
     // ========================================
+    // 🔧 SERVICES-PRODUCT UNIFICATION - NEW FILTERS
+    // ========================================
+
+    /// <summary>
+    /// Filter by type: "product" or "service"
+    /// If null, returns all types (backward compatible)
+    /// </summary>
+    [MaxLength(50)]
+    public string? Type { get; set; }
+
+    /// <summary>
+    /// Filter by service category (only applies when type='service')
+    /// Values: ancestor-worship, opening-ceremony, wedding, buddha-worship, new-house, feng-shui-consultation
+    /// </summary>
+    [MaxLength(100)]
+    public string? ServiceCategory { get; set; }
+
+    // ========================================
     // VALIDATION
     // ========================================
 

@@ -69,6 +69,10 @@ public class PostMappingProfile : Profile
         // ========== CUSTOMER MAPPINGS ==========
 
         CreateMap<Customer, CustomerDto>()
-            .ForMember(dest => dest.CustomerAvatar, opt => opt.MapFrom(src => src.CustomerAvatar));
+            .ForMember(dest => dest.CustomerAvatar, opt => opt.MapFrom(src => src.CustomerAvatar))
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.UserProvider, opt => opt.MapFrom(src => src.User != null ? src.User.Provider : null))
+            .ForMember(dest => dest.LastLogin, opt => opt.MapFrom(src => src.User != null ? src.User.LastLogin : null))
+            .ForMember(dest => dest.UserStatus, opt => opt.MapFrom(src => src.User != null ? src.User.Status.ToString() : null));
     }
 }

@@ -130,6 +130,37 @@ public class CustomerService : BaseService, ICustomerService
         }, "GetCustomerByIdAsync");
     }
 
+    public async Task<ApiResponse<CustomerWithUserDto>> GetCustomerWithUserByIdAsync(Guid id)
+    {
+        return await ExecuteAsApiResponseAsync(async () =>
+        {
+            await CheckPermission(PERM_VIEW); // ✅ Permission Check
+            ValidateId(id, nameof(id));
+
+            var cacheKey = CreateCacheKey("customer_with_user", id);
+
+            return await GetFromCacheOrExecuteAsync(cacheKey, async () =>
+            {
+                var customer = await _unitOfWork.Customers.GetByIdAsync(id);
+                if (customer == null)
+                    throw new KeyNotFoundException($"Customer with ID {id} not found");
+
+                var dto = _mapper.Map<CustomerWithUserDto>(customer);
+
+                // Populate customer details
+                var orders = await _unitOfWork.Orders.GetByCustomerIdAsync(id);
+                dto.Customer.TotalOrders = orders.Count();
+                dto.Customer.TotalSpent = orders.Sum(o => o.TotalAmount);
+
+                var addresses = await _unitOfWork.CustomerAddresses.GetByCustomerIdAsync(id);
+                dto.Customer.Addresses = _mapper.Map<List<CustomerAddressDto>>(addresses);
+
+                return dto;
+            });
+
+        }, "GetCustomerWithUserByIdAsync");
+    }
+
     public async Task<ApiResponse<CustomerDetailDto>> CreateCustomerAsync(CreateCustomerRequest request)
     {
         return await ExecuteAsApiResponseAsync(async () =>

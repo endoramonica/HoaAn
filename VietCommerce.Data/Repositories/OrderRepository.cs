@@ -21,7 +21,7 @@ namespace VietCommerce.Data.Repositories
             _logger = logger;
         }
 
-        
+
 
         // ========================================
         // LOOKUP BY BUSINESS KEYS
@@ -188,6 +188,18 @@ namespace VietCommerce.Data.Repositories
             if (filter.MaxAmount.HasValue)
             {
                 query = query.Where(o => o.TotalAmount <= filter.MaxAmount.Value);
+            }
+
+            // 🔧 SERVICES-PRODUCT UNIFICATION - Type filtering
+            if (!string.IsNullOrWhiteSpace(filter.Type))
+            {
+                query = query.Where(o => o.Type == filter.Type);
+            }
+
+            // 🔧 SERVICES-PRODUCT UNIFICATION - ServiceCategory filtering
+            if (!string.IsNullOrWhiteSpace(filter.ServiceCategory))
+            {
+                query = query.Where(o => o.ServiceCategory == filter.ServiceCategory);
             }
 
             // Get total count before pagination

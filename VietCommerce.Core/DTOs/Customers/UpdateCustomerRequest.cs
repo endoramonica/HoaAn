@@ -26,5 +26,5 @@ public class UpdateCustomerRequest
 
     public bool? IsActive { get; set; }
 
-    public Guid? StoreId { get; set; }
+    //public Guid? StoreId { get; set; }
 }

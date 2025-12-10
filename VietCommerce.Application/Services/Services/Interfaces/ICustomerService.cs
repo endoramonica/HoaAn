@@ -31,6 +31,11 @@ public interface ICustomerService
     Task<ApiResponse<CustomerDetailDto>> GetCustomerByIdAsync(Guid id);
 
     /// <summary>
+    /// Get customer with combined User information
+    /// </summary>
+    Task<ApiResponse<CustomerWithUserDto>> GetCustomerWithUserByIdAsync(Guid id);
+
+    /// <summary>
     /// Create a new customer
     /// </summary>
     Task<ApiResponse<CustomerDetailDto>> CreateCustomerAsync(CreateCustomerRequest request);

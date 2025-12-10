@@ -26,4 +26,27 @@ public class OrderItem : AuditableEntity, ISoftDelete
     public virtual Order Order { get; set; } = null!;
     public virtual Product Product { get; set; } = null!;
     public virtual ICollection<ProductReview> Reviews { get; set; } = new List<ProductReview>();
+
+    // ========================================
+    // 🔧 SERVICES-PRODUCT UNIFICATION - NEW FIELDS
+    // ========================================
+
+    /// <summary>
+    /// Type discriminator: "product" or "service"
+    /// Default: "product" for backward compatibility
+    /// </summary>
+    [MaxLength(50)]
+    public string Type { get; set; } = "product";
+
+    /// <summary>
+    /// Service category (only for type='service')
+    /// </summary>
+    [MaxLength(100)]
+    public string? ServiceCategory { get; set; }
+
+    /// <summary>
+    /// Service duration (only for type='service')
+    /// </summary>
+    [MaxLength(100)]
+    public string? ServiceDuration { get; set; }
 }

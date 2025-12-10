@@ -45,4 +45,42 @@ public class OrderDetailDto
     public string? PaymentMethod { get; set; } // Added for payment details
     public DateTime? PaidAt { get; set; } // Added for payment timestamp
     public string? TransactionId { get; set; } // Added for payment reference
+
+    // ========================================
+    // 🔧 SERVICES-PRODUCT UNIFICATION - NEW FIELDS
+    // ========================================
+
+    /// <summary>
+    /// Type discriminator: "product" or "service"
+    /// </summary>
+    public string Type { get; set; } = "product";
+
+    /// <summary>
+    /// Service category (only for type='service')
+    /// </summary>
+    public string? ServiceCategory { get; set; }
+
+    /// <summary>
+    /// Service duration (only for type='service')
+    /// </summary>
+    public string? ServiceDuration { get; set; }
+
+    /// <summary>
+    /// Service location/address (only for type='service')
+    /// </summary>
+    public string? ServiceLocation { get; set; }
+
+    /// <summary>
+    /// Scheduled service date (only for type='service')
+    /// </summary>
+    public DateTime? ServiceDate { get; set; }
+
+    /// <summary>
+    /// Scheduled service time (only for type='service')
+    /// </summary>
+    /// public string? ServiceTime { get; set; 
+    /// <summary>
+    /// Additional notes for service (only for type='service')
+    /// </summary>
+    public string? ServiceNotes { get; set; }
 }

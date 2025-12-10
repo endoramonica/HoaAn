@@ -276,46 +276,46 @@ public class ProductService : BaseService, IProductService
     public async Task<ApiResponse<ProductDetailDto>> GetProductByBarcodeAsync(
     string code,
     Guid? actorUserId = null)
-{
-    return await ExecuteAsApiResponseAsync(async () =>
     {
-        // Validate
-        ValidateNotEmpty(code, nameof(code));
-
-        // Cache key
-        var cacheKey = CreateCacheKey(CACHE_KEY_PRODUCT, "barcode", code);
-
-        // Fetch from cache or DB
-        var product = await GetFromCacheOrExecuteAsync(
-            cacheKey,
-            async () => await _unitOfWork.Products.GetByCodeAsync(code),
-            CACHE_DURATION_DETAIL
-        );
-
-        if (product == null)
+        return await ExecuteAsApiResponseAsync(async () =>
         {
-            throw new KeyNotFoundException("Product not found");
-        }
+            // Validate
+            ValidateNotEmpty(code, nameof(code));
 
-        // Check active status
-        if (!product.IsActive)
-        {
-            // User must have permission to view inactive product
-            if (!actorUserId.HasValue ||
-                !await _permissionService.CheckUserPermissionAsync(actorUserId.Value, "product.view"))
+            // Cache key
+            var cacheKey = CreateCacheKey(CACHE_KEY_PRODUCT, "barcode", code);
+
+            // Fetch from cache or DB
+            var product = await GetFromCacheOrExecuteAsync(
+                cacheKey,
+                async () => await _unitOfWork.Products.GetByCodeAsync(code),
+                CACHE_DURATION_DETAIL
+            );
+
+            if (product == null)
             {
-                throw new UnauthorizedAccessException("Product not available");
+                throw new KeyNotFoundException("Product not found");
             }
-        }
 
-        // Map to DTO
-        var result = _mapper.Map<ProductDetailDto>(product);
+            // Check active status
+            if (!product.IsActive)
+            {
+                // User must have permission to view inactive product
+                if (!actorUserId.HasValue ||
+                    !await _permissionService.CheckUserPermissionAsync(actorUserId.Value, "product.view"))
+                {
+                    throw new UnauthorizedAccessException("Product not available");
+                }
+            }
 
-        return result;
-    },
-    "GetProductByBarcode",
-    "Product retrieved successfully");
-}
+            // Map to DTO
+            var result = _mapper.Map<ProductDetailDto>(product);
+
+            return result;
+        },
+        "GetProductByBarcode",
+        "Product retrieved successfully");
+    }
 
     // ============================================
     // LIST (PAGINATED) - WITH CACHE
@@ -341,7 +341,7 @@ public class ProductService : BaseService, IProductService
                 filter.IsActive = true;
             }
 
-            // ✅ CREATE CACHE KEY
+            // ✅ CREATE CACHE KEY (🔧 SERVICES-PRODUCT UNIFICATION - Added type and serviceCategory)
             var cacheKey = CreateCacheKey(
                 CACHE_KEY_PRODUCT_LIST,
                 filter.Page,
@@ -353,10 +353,12 @@ public class ProductService : BaseService, IProductService
                 filter.MinPrice?.ToString() ?? "0",
                 filter.MaxPrice?.ToString() ?? "max",
                 filter.SortBy ?? "default",
-                filter.IsDescending
+                filter.IsDescending,
+                filter.Type ?? "all",
+                filter.ServiceCategory ?? "all"
             );
 
-            // ✅ GET FROM CACHE OR EXECUTE
+            // ✅ GET FROM CACHE OR EXECUTE (🔧 SERVICES-PRODUCT UNIFICATION - Added type and serviceCategory)
             var paginatedResult = await GetFromCacheOrExecuteAsync(
                 cacheKey,
                 async () => await _unitOfWork.Products.GetPaginatedDtoAsync(
@@ -369,7 +371,9 @@ public class ProductService : BaseService, IProductService
                     filter.MinPrice,
                     filter.MaxPrice,
                     filter.SortBy,
-                    filter.IsDescending
+                    filter.IsDescending,
+                    filter.Type,
+                    filter.ServiceCategory
                 ),
                 CACHE_DURATION_LIST
             );

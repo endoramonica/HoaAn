@@ -27,6 +27,7 @@
 
         // Media
         public string? PrimaryImage { get; set; }
+        public List<ProductImageDto> Images { get; set; } = new();
 
         // Status
         public bool IsActive { get; set; }
@@ -43,5 +44,29 @@
 
         // Audit
         public DateTime CreatedAt { get; set; }
+
+        // ========================================
+        // 🔧 SERVICES-PRODUCT UNIFICATION - NEW FIELDS
+        // ========================================
+
+        /// <summary>
+        /// Type discriminator: "product" or "service"
+        /// </summary>
+        public string Type { get; set; } = "product";
+
+        /// <summary>
+        /// Service category (only for type='service')
+        /// </summary>
+        public string? ServiceCategory { get; set; }
+
+        /// <summary>
+        /// Service duration (only for type='service')
+        /// </summary>
+        public string? ServiceDuration { get; set; }
+
+        /// <summary>
+        /// Service rating (0-5 stars)
+        /// </summary>
+        public decimal? ServiceRating { get; set; }
     }
 }

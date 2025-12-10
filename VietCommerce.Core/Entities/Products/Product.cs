@@ -7,43 +7,44 @@ using VietCommerce.Core.Entities.Orders;
 using VietCommerce.Core.Entities.Organization;
 using VietCommerce.Core.Entities.Users;
 namespace VietCommerce.Core.Entities.Products;
-public class Product : AuditableEntity , ISoftDelete 
+
+public class Product : AuditableEntity, ISoftDelete
 {
     public Guid StoreId { get; set; }
     public string Name { get; set; } = string.Empty;
-    // ?? Thêm Code và Slug
-    // code duy nh?t trên toàn h? th?ng
+    // ?? Thï¿½m Code vï¿½ Slug
+    // code duy nh?t trï¿½n toï¿½n h? th?ng
     [MaxLength(50)]
-    public string Code { get; set; } = string.Empty; 
+    public string Code { get; set; } = string.Empty;
     [MaxLength(150)]
     public string Slug { get; set; } = string.Empty;
     public Guid? CategoryId { get; set; }
     public int Stock { get; set; } = 0;
-    // ?? Các tru?ng t? ISoftDelete
+    // ?? Cï¿½c tru?ng t? ISoftDelete
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedBy { get; set; }
 
-    public string SKU { get; set; } = string.Empty; // SKU  - stock keeping unit - mã hàng t?n kho
+    public string SKU { get; set; } = string.Empty; // SKU  - stock keeping unit - mï¿½ hï¿½ng t?n kho
     public bool IsActive { get; set; } = true;
-// ========================================
-    // ?? PRODUCT STATS (Embedded) - M?I THÊM
+    // ========================================
+    // ?? PRODUCT STATS (Embedded) - M?I THï¿½M
     // ========================================
     /// T?ng s? lu?t xem
     /// Update: Batch job t? ProductView events
     public long ViewCount { get; set; } = 0;
-    /// T?ng s? lu?t yêu thích
+    /// T?ng s? lu?t yï¿½u thï¿½ch
     /// Update: Realtime + eventual consistency
     public int FavoriteCount { get; set; } = 0;
-    /// T?ng s? lu?ng dã bán
+    /// T?ng s? lu?ng dï¿½ bï¿½n
     /// Update: Khi Order.Status == Completed
     public int PurchaseCount { get; set; } = 0;
     /// T?ng s? review
     public int ReviewCount { get; set; } = 0;
-    /// Ği?m dánh giá trung bình (1-5)
+    /// ï¿½i?m dï¿½nh giï¿½ trung bï¿½nh (1-5)
     [Column(TypeName = "decimal(3,2)")]
     public decimal AvgRating { get; set; } = 0;
-    /// Trending Score - tính d?a trên views, purchases, favorites trong 7 ngày g?n nh?t
+    /// Trending Score - tï¿½nh d?a trï¿½n views, purchases, favorites trong 7 ngï¿½y g?n nh?t
     /// Formula: (ViewCount * 0.1) + (FavoriteCount * 0.3) + (PurchaseCount * 0.6)
     /// Update: Background job daily/hourly
     [Column(TypeName = "decimal(18,2)")]
@@ -72,5 +73,37 @@ public class Product : AuditableEntity , ISoftDelete
 
     [ForeignKey(nameof(UpdatedBy))]
     public virtual User? UpdatedByUser { get; set; }
+
+    // ========================================
+    // ğŸ”§ SERVICES-PRODUCT UNIFICATION - NEW FIELDS
+    // ========================================
+
+    /// <summary>
+    /// Type discriminator: "product" or "service"
+    /// Default: "product" for backward compatibility
+    /// </summary>
+    [MaxLength(50)]
+    public string Type { get; set; } = "product";
+
+    /// <summary>
+    /// /// Service caty (only for type='service')
+    /// Values: ancestor-worship, opening-ceremony, wedding, buddha-worship, new-house, feng-shui-consultation
+    /// </summary>
+    [MaxLength(100)]
+    public string? ServiceCategory { get; set; }
+
+    /// <summary>
+    /// Service duration (only for type='service')
+    /// Example: "2-3 giá»", "1 ngÃ y", "30 phÃºt"
+    /// </summary>
+    [MaxLength(100)]
+    public string? ServiceDuration { get; set; }
+
+    /// <summary>
+    /// Service rating (0-5 stars)
+    /// Separate from AvgRating for services
+    /// </summary>
+    [Column(TypeName = "decimal(3,2)")]
+    public decimal? ServiceRating { get; set; }
 
 }

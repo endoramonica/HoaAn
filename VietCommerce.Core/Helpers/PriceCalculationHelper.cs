@@ -25,7 +25,9 @@ namespace VietCommerce.Core.Helpers
                 .OrderByDescending(p => p.EffectiveFrom)
                 .FirstOrDefault();
 
-            return currentPrice?.Price ?? 0;
+            // ✅ FIX: Return 0 only if no prices exist, otherwise return the price
+            // This ensures consistency between list and detail endpoints
+            return currentPrice?.Price ?? 0m;
         }
 
         /// <summary>
@@ -96,5 +98,5 @@ namespace VietCommerce.Core.Helpers
         }
     }
 
-    
+
 }
