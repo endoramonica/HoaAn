@@ -37,4 +37,12 @@ export interface ProductListDto {
   favoriteCount?: number;
   averageRating?: number;
   createdAt?: string;
+  /** @nullable */
+  type?: string | null;
+  /** @nullable */
+  serviceCategory?: string | null;
+  /** @nullable */
+  serviceDuration?: string | null;
+  /** @nullable */
+  serviceRating?: number | null;
 }

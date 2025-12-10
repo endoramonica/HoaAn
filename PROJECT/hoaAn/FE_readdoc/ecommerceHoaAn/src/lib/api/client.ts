@@ -100,6 +100,41 @@ export const tokenStorage = {
     console.log('[TokenStorage] 🗑️ All tokens cleared');
   },
 
+  /**
+   * Decode JWT token to get claims
+   */
+  decodeToken: (token: string): any => {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.warn('[TokenStorage] ⚠️ Invalid JWT format');
+        return null;
+      }
+
+      const decoded = JSON.parse(atob(parts[1]));
+      console.log('[TokenStorage] ✅ Token decoded:', {
+        customerId: decoded.customerId,
+        userId: decoded.sub,
+        email: decoded.email,
+      });
+      return decoded;
+    } catch (error) {
+      console.error('[TokenStorage] ❌ Failed to decode token:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Get customerId from access token
+   */
+  getCustomerId: (): string | null => {
+    const token = tokenStorage.getAccessToken();
+    if (!token) return null;
+
+    const decoded = tokenStorage.decodeToken(token);
+    return decoded?.customerId || null;
+  },
+
   setTokens: (accessToken: string, refreshToken: string, rememberMe?: boolean): void => {
     console.log('[TokenStorage] 🔄 setTokens called:', {
       accessTokenLength: accessToken.length,

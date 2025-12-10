@@ -13,11 +13,11 @@ const getAuthToken = (): string | null => {
   // Priority 1: sessionStorage (current session)
   const sessionToken = sessionStorage.getItem('authToken');
   if (sessionToken) return sessionToken;
-  
+
   // Priority 2: localStorage (remember me)
   const localToken = localStorage.getItem('authToken');
   if (localToken) return localToken;
-  
+
   return null;
 };
 
@@ -28,7 +28,7 @@ export const configureApiCredentials = () => {
   // ✅ 1. Configure OpenAPI client
   if (OpenAPI) {
     OpenAPI.WITH_CREDENTIALS = true;
-    
+
     // ✅ Dynamic token resolver
     OpenAPI.TOKEN = async () => {
       const token = getAuthToken();
@@ -37,15 +37,15 @@ export const configureApiCredentials = () => {
       }
       return token || 'undefined';
     };
-    
+
     console.log('[API Config] ✅ OpenAPI credentials + token configured');
-    
+
   }
 
   // ✅ 2. Configure Axios (if used)
   if (axios) {
     axios.defaults.withCredentials = true;
-    
+
     // Axios interceptor for token
     axios.interceptors.request.use(
       (config) => {
@@ -58,7 +58,7 @@ export const configureApiCredentials = () => {
       },
       (error) => Promise.reject(error)
     );
-    
+
     console.log('[API Config] ✅ Axios credentials + token configured');
   }
 };
@@ -67,29 +67,39 @@ export const configureApiCredentials = () => {
  * ✅ FIXED: Override fetch để tự động gửi token
  */
 const originalFetch = window.fetch;
+(window as any).__originalFetch__ = originalFetch;
 
 window.fetch = new Proxy(originalFetch, {
   apply: (target, thisArg, args) => {
     const [url, config = {}] = args;
-    
+
+    // Skip public APIs (không cần credentials)
+    const publicApis = ['open.oapi.vn'];
+    const isPublicApi = typeof url === 'string' && publicApis.some(api => url.includes(api));
+
+    if (isPublicApi) {
+      // Gọi fetch gốc mà không thêm credentials
+      return target.call(thisArg, url, config);
+    }
+
     // ✅ FIXED: Lấy token từ sessionStorage hoặc localStorage
     const token = getAuthToken();
-    
+
     // Merge headers
     const headers = new Headers(config.headers || {});
-    
+
     // Thêm Authorization nếu có token
     if (token && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`);
-      
+
       // Only log for API calls
       if (typeof url === 'string' && url.includes('/api/')) {
-        console.log('[API Config] 🔑 Token added to fetch request:', 
+        console.log('[API Config] 🔑 Token added to fetch request:',
           url.substring(url.indexOf('/api/'))
         );
       }
     }
-    
+
     return target.call(thisArg, url, {
       ...config,
       headers,
@@ -136,7 +146,7 @@ export const verifyCredentialsConfig = async (): Promise<boolean> => {
     console.log('[API Config] 🔍 Verifying config...');
     console.log('[API Config] Token available:', !!token);
     console.log('[API Config] Cookies:', document.cookie ? 'Present' : 'None visible (HTTP-only)');
-    
+
     // Test với một API endpoint
     const testResponse = await fetch('https://localhost:7131/api/v1/Cart', {
       credentials: 'include',
@@ -144,7 +154,7 @@ export const verifyCredentialsConfig = async (): Promise<boolean> => {
     });
 
     console.log('[API Config] ✅ Test response status:', testResponse.status);
-    
+
     return testResponse.ok;
   } catch (error) {
     console.error('[API Config] ❌ Credentials test failed:', error);

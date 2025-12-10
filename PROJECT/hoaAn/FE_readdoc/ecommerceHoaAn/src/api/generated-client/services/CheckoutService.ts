@@ -65,6 +65,8 @@ export class CheckoutService {
      * @param maxAmount
      * @param sortBy
      * @param sortDescending
+     * @param type
+     * @param serviceCategory
      * @returns OrderDetailDtoListApiResponse OK
      * @throws ApiError
      */
@@ -81,6 +83,8 @@ export class CheckoutService {
         maxAmount?: number,
         sortBy?: string,
         sortDescending?: boolean,
+        type?: string,
+        serviceCategory?: string,
     ): CancelablePromise<OrderDetailDtoListApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
@@ -98,6 +102,8 @@ export class CheckoutService {
                 'MaxAmount': maxAmount,
                 'SortBy': sortBy,
                 'SortDescending': sortDescending,
+                'Type': type,
+                'ServiceCategory': serviceCategory,
             },
             errors: {
                 400: `Bad Request`,

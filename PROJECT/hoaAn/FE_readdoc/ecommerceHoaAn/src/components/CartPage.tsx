@@ -23,6 +23,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useCart } from "../lib/hooks/useCart";
+import { toast } from "sonner";
 
 export function CartPage() {
   const navigate = useNavigate();
@@ -58,8 +59,26 @@ export function CartPage() {
   const handleRemoveItem = async (cartItemId: string) => {
     try {
       await removeItem(cartItemId);
-    } catch (err) {
+      toast.success('Đã xóa sản phẩm khỏi giỏ hàng');
+    } catch (err: any) {
       console.error("Failed to remove item:", err);
+      console.error("Error details:", {
+        message: err.message,
+        status: err.status,
+        statusCode: err.statusCode,
+        body: err.body,
+      });
+      
+      // Hiển thị lỗi chi tiết
+      const errorMessage = err.body?.message || err.message || 'Không thể xóa sản phẩm';
+      toast.error(errorMessage);
+      
+      // Log chi tiết để debug
+      console.error('[CartPage] Remove item failed:', {
+        cartItemId,
+        error: err,
+        body: err.body,
+      });
     }
   };
 

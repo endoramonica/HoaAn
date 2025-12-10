@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { BooleanApiResponse } from '../models/BooleanApiResponse';
 import type { BulkUpdateStatusRequest } from '../models/BulkUpdateStatusRequest';
+import type { CancelOrderRequest } from '../models/CancelOrderRequest';
 import type { DecimalApiResponse } from '../models/DecimalApiResponse';
 import type { Int32ApiResponse } from '../models/Int32ApiResponse';
 import type { OrderDetailDtoApiResponse } from '../models/OrderDetailDtoApiResponse';
@@ -31,6 +32,7 @@ export class OrderService {
                 'id': id,
             },
             errors: {
+                403: `Forbidden`,
                 404: `Not Found`,
             },
         });
@@ -48,6 +50,8 @@ export class OrderService {
      * @param maxAmount
      * @param sortBy
      * @param sortDescending
+     * @param type
+     * @param serviceCategory
      * @returns OrderDetailDtoPaginatedResultApiResponse OK
      * @throws ApiError
      */
@@ -64,6 +68,8 @@ export class OrderService {
         maxAmount?: number,
         sortBy?: string,
         sortDescending?: boolean,
+        type?: string,
+        serviceCategory?: string,
     ): CancelablePromise<OrderDetailDtoPaginatedResultApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
@@ -81,6 +87,11 @@ export class OrderService {
                 'MaxAmount': maxAmount,
                 'SortBy': sortBy,
                 'SortDescending': sortDescending,
+                'Type': type,
+                'ServiceCategory': serviceCategory,
+            },
+            errors: {
+                400: `Bad Request`,
             },
         });
     }
@@ -97,6 +108,8 @@ export class OrderService {
      * @param maxAmount
      * @param sortBy
      * @param sortDescending
+     * @param type
+     * @param serviceCategory
      * @returns OrderDetailDtoPaginatedResultApiResponse OK
      * @throws ApiError
      */
@@ -113,6 +126,8 @@ export class OrderService {
         maxAmount?: number,
         sortBy?: string,
         sortDescending?: boolean,
+        type?: string,
+        serviceCategory?: string,
     ): CancelablePromise<OrderDetailDtoPaginatedResultApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
@@ -130,22 +145,11 @@ export class OrderService {
                 'MaxAmount': maxAmount,
                 'SortBy': sortBy,
                 'SortDescending': sortDescending,
+                'Type': type,
+                'ServiceCategory': serviceCategory,
             },
-        });
-    }
-    /**
-     * @param q
-     * @returns OrderDetailDtoListApiResponse OK
-     * @throws ApiError
-     */
-    public getApiV1OrderSearch(
-        q?: string,
-    ): CancelablePromise<OrderDetailDtoListApiResponse> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/api/v1/Order/search',
-            query: {
-                'q': q,
+            errors: {
+                403: `Forbidden`,
             },
         });
     }
@@ -166,25 +170,6 @@ export class OrderService {
         });
     }
     /**
-     * @param count
-     * @param storeId
-     * @returns OrderDetailDtoListApiResponse OK
-     * @throws ApiError
-     */
-    public getApiV1OrderRecent(
-        count: number = 10,
-        storeId?: string,
-    ): CancelablePromise<OrderDetailDtoListApiResponse> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/api/v1/Order/recent',
-            query: {
-                'count': count,
-                'storeId': storeId,
-            },
-        });
-    }
-    /**
      * @param orderId
      * @returns OrderStatusHistoryDTOListApiResponse OK
      * @throws ApiError
@@ -199,6 +184,7 @@ export class OrderService {
                 'orderId': orderId,
             },
             errors: {
+                403: `Forbidden`,
                 404: `Not Found`,
             },
         });
@@ -223,6 +209,31 @@ export class OrderService {
             mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
+            },
+        });
+    }
+    /**
+     * @param orderId
+     * @param requestBody
+     * @returns BooleanApiResponse OK
+     * @throws ApiError
+     */
+    public postApiV1OrderCancel(
+        orderId: string,
+        requestBody?: CancelOrderRequest,
+    ): CancelablePromise<BooleanApiResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/api/v1/Order/{orderId}/cancel',
+            path: {
+                'orderId': orderId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                403: `Forbidden`,
+                404: `Not Found`,
             },
         });
     }
@@ -289,6 +300,9 @@ export class OrderService {
                 'fromDate': fromDate,
                 'toDate': toDate,
             },
+            errors: {
+                403: `Forbidden`,
+            },
         });
     }
     /**
@@ -306,6 +320,7 @@ export class OrderService {
             mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
+                403: `Forbidden`,
             },
         });
     }

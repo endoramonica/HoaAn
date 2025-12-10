@@ -9,9 +9,6 @@ import type {
   GetApiV1ProductParams,
   ProductCreateDto,
   ProductUpdateDto,
-  PatchApiV1ProductIdStockBody,
-  PatchApiV1ProductIdActiveBody,
-  PatchApiV1ProductIdFeaturedBody,
 } from '../../../Api/generated-orval/schemas';
 
 // Types for backward compatibility
@@ -19,14 +16,32 @@ export interface ProductListDto {
   id?: string;
   name?: string;
   slug?: string;
+  shortDescription?: string;
   price?: number;
   stock?: number;
   stockQuantity?: number;
   thumbnailUrl?: string;
   primaryImage?: string;
   categoryName?: string;
+  categoryId?: string;
   storeName?: string;
+  type?: string;
+  serviceCategory?: string;
+  serviceDuration?: string;
+  serviceRating?: number;
+  isFeatured?: boolean;
   inStock?: boolean;
+}
+
+export interface ImageObject {
+  id?: string;
+  url?: string;
+  thumbnailUrl?: string;
+  displayOrder?: number;
+  mediaType?: string;
+  isMain?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ProductDetailDto extends ProductListDto {
@@ -36,7 +51,12 @@ export interface ProductDetailDto extends ProductListDto {
   sku?: string;
   isActive?: boolean;
   description?: string;
-  images?: string[];
+  images?: ImageObject[];
+  tags?: string[];
+  viewCount?: number;
+  favoriteCount?: number;
+  averageRating?: number;
+  reviewCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -53,6 +73,7 @@ export interface ProductFilterDto {
   isFeatured?: boolean;
   sortBy?: string;
   isDescending?: boolean;
+  type?: string; // 'product' or 'service'
 }
 
 export interface PaginatedResult<T> {
@@ -72,19 +93,22 @@ class VietCommerceProductService {
    */
   async getProducts(filter?: ProductFilterDto): Promise<PaginatedResult<ProductListDto>> {
     try {
-      // Map filter to Orval params
+      // Map filter to Orval params (note: Orval uses PascalCase)
+      // NOTE: Do NOT send Type parameter to backend - it doesn't filter correctly
+      // We'll filter by type on frontend instead
       const params: GetApiV1ProductParams = {
-        pageNumber: filter?.pageNumber,
-        pageSize: filter?.pageSize,
-        searchTerm: filter?.searchTerm,
-        categoryId: filter?.categoryId,
-        storeId: filter?.storeId,
-        minPrice: filter?.minPrice,
-        maxPrice: filter?.maxPrice,
-        isActive: filter?.isActive,
-        isFeatured: filter?.isFeatured,
-        sortBy: filter?.sortBy,
-        isDescending: filter?.isDescending,
+        Page: filter?.pageNumber,
+        PageSize: filter?.pageSize,
+        SearchTerm: filter?.searchTerm,
+        CategoryId: filter?.categoryId,
+        StoreId: filter?.storeId,
+        MinPrice: filter?.minPrice,
+        MaxPrice: filter?.maxPrice,
+        IsActive: filter?.isActive,
+        IsFeatured: filter?.isFeatured,
+        SortBy: filter?.sortBy,
+        IsDescending: filter?.isDescending,
+        // Type: filter?.type, // Don't send to backend - filter on frontend instead
       };
 
       const response = await api.getApiV1Product(params);
@@ -92,35 +116,71 @@ class VietCommerceProductService {
       // Debug log
       console.log('[vietCommerceProductService] Raw response:', JSON.stringify(response, null, 2));
 
-      // Handle nested response structure: response.data.data (backend wraps twice)
-      // Structure: { success, data: { success, data: { items, pageNumber, ... } } }
-      const outerData = response.data;
-      const innerData = (outerData as any)?.data || outerData;
+      // Handle nested response structure: response.data.data.data (backend wraps 3 times)
+      // Structure: { success, data: { success, data: { items, pageNumber, ... }, message } }
+      const firstLevel = (response as any)?.data;
+      const secondLevel = firstLevel?.data;
+      const paginatedData = secondLevel?.data || secondLevel;
 
       console.log('[vietCommerceProductService] Parsed data:', {
-        hasOuterData: !!outerData,
-        hasInnerData: !!innerData,
-        itemsCount: innerData?.items?.length,
+        firstLevel: !!firstLevel,
+        secondLevel: !!secondLevel,
+        paginatedData: !!paginatedData,
+        itemsCount: paginatedData?.items?.length,
+        filterType: filter?.type,
+        params: params,
       });
 
+      let items = paginatedData?.items || [];
+
+      // Filter by type on frontend since backend doesn't support Type parameter filtering
+      if (filter?.type) {
+        items = items.filter((item: any) => {
+          // Backend returns empty string "" for products, "service" for services
+          const itemType = item.type || '';
+
+          // Map filter type to backend type value
+          // 'product' filter → match empty string ""
+          // 'service' filter → match "service"
+          if (filter.type === 'product') {
+            return itemType === '';
+          } else if (filter.type === 'service') {
+            return itemType === 'service';
+          }
+          return true;
+        });
+        console.log('[vietCommerceProductService] Filtered items by type:', {
+          filterType: filter.type,
+          beforeFilter: paginatedData?.items?.length,
+          afterFilter: items.length,
+        });
+      }
+
       return {
-        items: (innerData?.items || []).map((item: any) => ({
+        items: items.map((item: any) => ({
           id: item.id,
           name: item.name,
           slug: item.slug,
+          shortDescription: item.shortDescription,
           price: item.price || item.displayPrice?.discountedPrice || 0,
           stock: item.stockQuantity,
           stockQuantity: item.stockQuantity,
           thumbnailUrl: item.primaryImage,
           primaryImage: item.primaryImage,
           categoryName: item.categoryName,
+          categoryId: item.categoryId,
           storeName: item.storeName,
+          type: item.type,
+          serviceCategory: item.serviceCategory,
+          serviceDuration: item.serviceDuration,
+          serviceRating: item.serviceRating,
+          isFeatured: item.isFeatured,
           inStock: item.inStock ?? (item.stockQuantity || 0) > 0,
         })),
-        pageNumber: innerData?.pageNumber || 1,
-        pageSize: innerData?.pageSize || 12,
-        totalItems: innerData?.totalItems || 0,
-        totalPages: innerData?.totalPages || 0,
+        pageNumber: paginatedData?.pageNumber || 1,
+        pageSize: paginatedData?.pageSize || 12,
+        totalItems: paginatedData?.totalItems || 0,
+        totalPages: paginatedData?.totalPages || 0,
       };
     } catch (error) {
       console.error('Get products error:', error);
@@ -135,7 +195,10 @@ class VietCommerceProductService {
   async getProductById(id: string): Promise<ProductDetailDto> {
     try {
       const response = await api.getApiV1ProductId(id);
-      const data = response.data;
+      const firstLevel = (response as any)?.data;
+      const data = firstLevel?.data || firstLevel;
+
+      console.log('[getProductById] Raw data:', data);
 
       return {
         id: data?.id,
@@ -152,7 +215,21 @@ class VietCommerceProductService {
         description: data?.description,
         thumbnailUrl: data?.primaryImage,
         primaryImage: data?.primaryImage,
-        images: data?.images?.map(img => img.imageUrl || '') || [],
+        images: data?.images?.map((img: any) => ({
+          id: img.id,
+          url: img.url,
+          thumbnailUrl: img.thumbnailUrl,
+          displayOrder: img.displayOrder,
+          mediaType: img.mediaType,
+          isMain: img.isMain,
+          createdAt: img.createdAt,
+          updatedAt: img.updatedAt,
+        })) || [],
+        tags: data?.tags || [],
+        viewCount: data?.viewCount,
+        favoriteCount: data?.favoriteCount,
+        averageRating: data?.averageRating,
+        reviewCount: data?.reviewCount,
         categoryName: data?.categoryName,
         storeName: data?.storeName,
         createdAt: data?.createdAt,
@@ -172,7 +249,8 @@ class VietCommerceProductService {
   async getProductBySlug(slug: string): Promise<ProductDetailDto> {
     try {
       const response = await api.getApiV1ProductSlugSlug(slug);
-      const data = response.data;
+      const firstLevel = (response as any)?.data;
+      const data = firstLevel?.data || firstLevel;
 
       return {
         id: data?.id,
@@ -189,7 +267,21 @@ class VietCommerceProductService {
         description: data?.description,
         thumbnailUrl: data?.primaryImage,
         primaryImage: data?.primaryImage,
-        images: data?.images?.map(img => img.imageUrl || '') || [],
+        images: data?.images?.map((img: any) => ({
+          id: img.id,
+          url: img.url,
+          thumbnailUrl: img.thumbnailUrl,
+          displayOrder: img.displayOrder,
+          mediaType: img.mediaType,
+          isMain: img.isMain,
+          createdAt: img.createdAt,
+          updatedAt: img.updatedAt,
+        })) || [],
+        tags: data?.tags || [],
+        viewCount: data?.viewCount,
+        favoriteCount: data?.favoriteCount,
+        averageRating: data?.averageRating,
+        reviewCount: data?.reviewCount,
         categoryName: data?.categoryName,
         storeName: data?.storeName,
         createdAt: data?.createdAt,
@@ -209,9 +301,10 @@ class VietCommerceProductService {
   async getProductsByCategory(categoryId: string): Promise<ProductListDto[]> {
     try {
       const response = await api.getApiV1ProductCategoryCategoryId(categoryId);
-      const items = response.data || [];
+      const firstLevel = (response as any)?.data;
+      const items = firstLevel?.data || firstLevel || [];
 
-      return items.map(item => ({
+      return items.map((item: any) => ({
         id: item.id,
         name: item.name,
         slug: item.slug,
@@ -237,9 +330,10 @@ class VietCommerceProductService {
   async getProductsByStore(storeId: string): Promise<ProductListDto[]> {
     try {
       const response = await api.getApiV1ProductStoreStoreId(storeId);
-      const items = response.data || [];
+      const firstLevel = (response as any)?.data;
+      const items = firstLevel?.data || firstLevel || [];
 
-      return items.map(item => ({
+      return items.map((item: any) => ({
         id: item.id,
         name: item.name,
         slug: item.slug,
@@ -265,7 +359,8 @@ class VietCommerceProductService {
   async createProduct(data: ProductCreateDto): Promise<ProductDetailDto> {
     try {
       const response = await api.postApiV1Product(data);
-      const result = response.data;
+      const firstLevel = (response as any)?.data;
+      const result = firstLevel?.data || firstLevel;
 
       return {
         id: result?.id,
@@ -282,7 +377,21 @@ class VietCommerceProductService {
         description: result?.description,
         thumbnailUrl: result?.primaryImage,
         primaryImage: result?.primaryImage,
-        images: result?.images?.map(img => img.imageUrl || '') || [],
+        images: result?.images?.map((img: any) => ({
+          id: img.id,
+          url: img.url,
+          thumbnailUrl: img.thumbnailUrl,
+          displayOrder: img.displayOrder,
+          mediaType: img.mediaType,
+          isMain: img.isMain,
+          createdAt: img.createdAt,
+          updatedAt: img.updatedAt,
+        })) || [],
+        tags: result?.tags || [],
+        viewCount: result?.viewCount,
+        favoriteCount: result?.favoriteCount,
+        averageRating: result?.averageRating,
+        reviewCount: result?.reviewCount,
         createdAt: result?.createdAt,
         updatedAt: result?.updatedAt,
       };
@@ -299,7 +408,8 @@ class VietCommerceProductService {
   async updateProduct(id: string, data: ProductUpdateDto): Promise<ProductDetailDto> {
     try {
       const response = await api.putApiV1ProductId(id, data);
-      const result = response.data;
+      const firstLevel = (response as any)?.data;
+      const result = firstLevel?.data || firstLevel;
 
       return {
         id: result?.id,
@@ -316,7 +426,21 @@ class VietCommerceProductService {
         description: result?.description,
         thumbnailUrl: result?.primaryImage,
         primaryImage: result?.primaryImage,
-        images: result?.images?.map(img => img.imageUrl || '') || [],
+        images: result?.images?.map((img: any) => ({
+          id: img.id,
+          url: img.url,
+          thumbnailUrl: img.thumbnailUrl,
+          displayOrder: img.displayOrder,
+          mediaType: img.mediaType,
+          isMain: img.isMain,
+          createdAt: img.createdAt,
+          updatedAt: img.updatedAt,
+        })) || [],
+        tags: result?.tags || [],
+        viewCount: result?.viewCount,
+        favoriteCount: result?.favoriteCount,
+        averageRating: result?.averageRating,
+        reviewCount: result?.reviewCount,
         createdAt: result?.createdAt,
         updatedAt: result?.updatedAt,
       };
@@ -346,8 +470,7 @@ class VietCommerceProductService {
    */
   async updateStock(id: string, quantity: number): Promise<boolean> {
     try {
-      const body: PatchApiV1ProductIdStockBody = { quantity };
-      const response = await api.patchApiV1ProductIdStock(id, body);
+      const response = await api.patchApiV1ProductIdStock(id, quantity);
       return response.success || false;
     } catch (error) {
       console.error('Update stock error:', error);
@@ -375,8 +498,7 @@ class VietCommerceProductService {
    */
   async toggleActive(id: string, isActive: boolean): Promise<boolean> {
     try {
-      const body: PatchApiV1ProductIdActiveBody = { isActive };
-      const response = await api.patchApiV1ProductIdActive(id, body);
+      const response = await api.patchApiV1ProductIdActive(id, isActive);
       return response.success || false;
     } catch (error) {
       console.error('Toggle active error:', error);
@@ -390,8 +512,7 @@ class VietCommerceProductService {
    */
   async toggleFeatured(id: string, isFeatured: boolean): Promise<boolean> {
     try {
-      const body: PatchApiV1ProductIdFeaturedBody = { isFeatured };
-      const response = await api.patchApiV1ProductIdFeatured(id, body);
+      const response = await api.patchApiV1ProductIdFeatured(id, isFeatured);
       return response.success || false;
     } catch (error) {
       console.error('Toggle featured error:', error);

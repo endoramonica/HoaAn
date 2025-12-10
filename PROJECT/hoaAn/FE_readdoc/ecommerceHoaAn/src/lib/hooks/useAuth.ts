@@ -108,7 +108,12 @@ export const useAuth = (): UseAuthReturn => {
           const savedUser = getUserFromStorage();
 
           if (savedUser) {
-            console.log('[useAuth] User loaded from storage:', savedUser.email);
+            // Get customerId from token
+            const customerId = tokenStorage.getCustomerId();
+            if (customerId) {
+              savedUser.customerId = customerId;
+            }
+            console.log('[useAuth] User loaded from storage:', savedUser.email, 'customerId:', customerId);
             setUser(savedUser);
           } else {
             console.warn('[useAuth] Token exists but no user data found');

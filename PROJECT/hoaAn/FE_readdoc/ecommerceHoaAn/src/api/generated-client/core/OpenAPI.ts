@@ -20,31 +20,11 @@ export type OpenAPIConfig = {
 };
 
 export const OpenAPI: OpenAPIConfig = {
-    BASE: 'https://localhost:7131',
+    BASE: '',
     VERSION: '1',
-    WITH_CREDENTIALS: true,  // ✅ FIXED: Enable credentials
+    WITH_CREDENTIALS: false,
     CREDENTIALS: 'include',
-    
-    // ✅ FIXED: Dynamic token resolver - Đọc từ sessionStorage hoặc localStorage
-    TOKEN: async () => {
-        // Check sessionStorage first (current session)
-        const sessionToken = sessionStorage.getItem('authToken');
-        if (sessionToken) {
-            console.log('[OpenAPI] ✅ Using token from sessionStorage');
-            return sessionToken;
-        }
-        
-        // Fallback to localStorage (remember me)
-        const localToken = localStorage.getItem('authToken');
-        if (localToken) {
-            console.log('[OpenAPI] ✅ Using token from localStorage');
-            return localToken;
-        }
-        
-        console.log('[OpenAPI] ⚠️ No token found');
-        return '';
-    },
-    
+    TOKEN: undefined,
     USERNAME: undefined,
     PASSWORD: undefined,
     HEADERS: undefined,

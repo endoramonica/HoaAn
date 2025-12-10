@@ -1,10 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useKeenSlider } from 'keen-slider/react';
+import 'keen-slider/keen-slider.min.css';
+import '../styles/keen-slider-custom.css';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
+import { Skeleton } from './ui/skeleton';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useHybridNavigate } from '../lib/hooks/useHybridNavigate';
+import { useActiveCategories } from '../lib/hooks/useCategories';
 import { 
   Flower2, 
   Star, 
@@ -26,7 +31,8 @@ import {
   Zap,
   Brain,
   Moon,
-  ArrowRight
+  ArrowRight,
+  AlertCircle
 } from 'lucide-react';
 
 interface HomePageProps {
@@ -36,7 +42,41 @@ interface HomePageProps {
 export function HomePage() {
   const navigate = useNavigate();
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
-  const [currentCeremony, setCurrentCeremony] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const sliderRef = useRef<any>(null);
+  const [sliderInstanceState, instanceRef] = useKeenSlider<HTMLDivElement>(
+    {
+      initial: 0,
+      slides: {
+        perView: 3,
+        spacing: 8,
+      },
+      breakpoints: {
+        '(max-width: 768px)': {
+          slides: {
+            perView: 1.5,
+            spacing: 8,
+          },
+        },
+        '(max-width: 1024px)': {
+          slides: {
+            perView: 2,
+            spacing: 8,
+          },
+        },
+      },
+      loop: true,
+      mode: 'free-snap',
+      created(slider) {
+        setLoaded(true);
+        sliderRef.current = slider;
+      },
+      slideChanged(slider) {
+        setCurrentSlide(slider.track.details.rel);
+      },
+    }
+  );
 
   // Auto-rotate testimonials every 5 seconds
   useEffect(() => {
@@ -46,14 +86,19 @@ export function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
-  const categories = [
-    { name: 'Hương', icon: Flame, count: '50+ sản phẩm' },
-    { name: 'Nến', icon: Sparkles, count: '30+ loại' },
-    { name: 'Hoa quả', icon: Gift, count: '20+ combo' },
-    { name: 'Mâm cúng', icon: Award, count: '15+ bộ' },
-    { name: 'Giấy tiền', icon: Calendar, count: '25+ mẫu' },
-    { name: 'Dịch vụ', icon: Shield, count: 'Trọn gói' }
-  ];
+  // Auto-scroll carousel with keen-slider
+  useEffect(() => {
+    if (!loaded || !sliderRef.current) return;
+
+    const interval = setInterval(() => {
+      sliderRef.current?.next();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [loaded]);
+
+  // Load categories from API (same as ProductsPage)
+  const { data: apiCategories, isLoading: categoriesLoading } = useActiveCategories();
 
   const ceremonyTypes = [
     { name: 'Lễ cưới hỏi', image: 'https://images.unsplash.com/photo-1730130856640-3db880ab33b7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhc2lhbiUyMGNlcmVtb25pYWwlMjB3ZWRkaW5nJTIwdHJhZGl0aW9uYWx8ZW58MXx8fHwxNzU3Njc0NDMwfDA&ixlib=rb-4.1.0&q=80&w=1080' },
@@ -347,7 +392,7 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Categories Section */}
+      {/* Categories Section - Load from API */}
       <section className="py-16 bg-white">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-12">
@@ -360,23 +405,48 @@ export function HomePage() {
             </p>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            {categories.map((category, index) => (
-              <Card key={index} className="group cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-2 border-2 hover:border-yellow-400">
-                <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-yellow-400 to-red-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <category.icon className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-lg text-amber-900 mb-2">{category.name}</h3>
-                  <p className="text-sm text-gray-600">{category.count}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {categoriesLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+              {Array.from({ length: 6 }, (_, i) => (
+                <Card key={i} className="border-2">
+                  <CardContent className="p-6 text-center">
+                    <Skeleton className="w-16 h-16 mx-auto mb-4 rounded-full" />
+                    <Skeleton className="h-4 w-20 mx-auto mb-2" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : apiCategories && apiCategories.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+              {apiCategories.map((category) => (
+                <Card 
+                  key={category.id} 
+                  className="group cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-2 border-2 hover:border-yellow-400"
+                  onClick={() => navigate(`/products?category=${category.id}`)}
+                >
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-yellow-400 to-red-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                      {category.imageUrl ? (
+                        <img src={category.imageUrl} alt={category.name} className="w-8 h-8 object-contain" />
+                      ) : (
+                        <Flower2 className="w-8 h-8 text-white" />
+                      )}
+                    </div>
+                    <h3 className="text-lg text-amber-900 font-medium">{category.name}</h3>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-3 p-6 bg-red-50 rounded-lg border border-red-200">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+              <p className="text-red-700">Không thể tải danh mục. Vui lòng thử lại sau.</p>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Ceremony Types Carousel */}
+      {/* Ceremony Types Carousel - Keen Slider */}
       <section className="py-16 bg-gradient-to-br from-red-50 to-yellow-50">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-12">
@@ -389,50 +459,67 @@ export function HomePage() {
           </div>
           
           <div className="relative">
-            <div className="flex items-center justify-between mb-6">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => scrollCeremony('left')}
-                className="border-amber-300 text-amber-700 hover:bg-amber-100"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => scrollCeremony('right')}
-                className="border-amber-300 text-amber-700 hover:bg-amber-100"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+            {/* Keen Slider Container */}
+            <div ref={instanceRef} className="keen-slider rounded-lg overflow-hidden">
+              {ceremonyTypes.map((ceremony, index) => (
+                <div key={index} className="keen-slider__slide">
+                  <Card className="overflow-hidden group cursor-pointer hover:shadow-xl transition-all duration-300 h-full">
+                    <div className="relative h-64">
+                      <ImageWithFallback
+                        src={ceremony.image}
+                        alt={ceremony.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      <h3 className="absolute bottom-4 left-4 text-white text-xl font-semibold">
+                        {ceremony.name}
+                      </h3>
+                    </div>
+                  </Card>
+                </div>
+              ))}
             </div>
-            
-            <div className="overflow-hidden">
-              <div 
-                className="flex transition-transform duration-500 ease-in-out"
-                style={{ transform: `translateX(-${currentCeremony * (100 / 3)}%)` }}
-              >
-                {ceremonyTypes.map((ceremony, index) => (
-                  <div key={index} className="w-1/3 flex-shrink-0 px-2">
-                    <Card className="overflow-hidden group cursor-pointer hover:shadow-xl transition-all duration-300">
-                      <div className="relative">
-                        <ImageWithFallback
-                          src={ceremony.image}
-                          alt={ceremony.name}
-                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                        <h3 className="absolute bottom-4 left-4 text-white text-xl">
-                          {ceremony.name}
-                        </h3>
-                      </div>
-                    </Card>
-                  </div>
+
+            {/* Navigation Buttons */}
+            {loaded && sliderInstanceState && (
+              <>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => sliderInstanceState.prev()}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-10 border-amber-300 text-amber-700 hover:bg-amber-100 bg-white/80 backdrop-blur shadow-lg"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => sliderInstanceState.next()}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-10 border-amber-300 text-amber-700 hover:bg-amber-100 bg-white/80 backdrop-blur shadow-lg"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </>
+            )}
+
+            {/* Dot Indicators */}
+            {loaded && sliderInstanceState && (
+              <div className="flex justify-center gap-2 mt-6">
+                {Array.from({ length: sliderInstanceState.track.details.slides.length }).map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => sliderInstanceState.moveToIdx(index)}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      index === currentSlide
+                        ? 'bg-amber-600 w-8'
+                        : 'bg-gray-300 hover:bg-gray-400'
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
                 ))}
               </div>
-            </div>
+            )}
           </div>
         </div>
       </section>

@@ -58,4 +58,16 @@ export interface OrderDetailDto {
   paidAt?: string | null;
   /** @nullable */
   transactionId?: string | null;
+  /** @nullable */
+  type?: string | null;
+  /** @nullable */
+  serviceCategory?: string | null;
+  /** @nullable */
+  serviceDuration?: string | null;
+  /** @nullable */
+  serviceLocation?: string | null;
+  /** @nullable */
+  serviceDate?: string | null;
+  /** @nullable */
+  serviceNotes?: string | null;
 }

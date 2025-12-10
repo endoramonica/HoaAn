@@ -13,8 +13,43 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Loader2, RefreshCw, Check, AlertCircle } from "lucide-react";
-import { generateAiPosts } from "../../../../api/generated-client/services/geminiService";
+import { generateText } from "@/lib/api/geminiService";
 import type { PostResponseDto } from "../../../../../Api/generated-orval/schemas";
+
+// Generate AI post suggestions
+const generateAiPosts = async (topic: string): Promise<PostResponseDto[]> => {
+  const prompt = `Tạo 3 gợi ý bài viết cộng đồng về chủ đề: "${topic}"
+
+Yêu cầu:
+- Mỗi bài viết 100-150 từ
+- Viết bằng tiếng Việt
+- Thân thiện, hấp dẫn
+- Phù hợp cho cộng đồng
+
+Định dạng:
+POST 1: [nội dung]
+POST 2: [nội dung]
+POST 3: [nội dung]`;
+
+  const response = await generateText({ prompt, temperature: 0.8 });
+  
+  // Parse response
+  const posts: PostResponseDto[] = [];
+  const postMatches = response.match(/POST \d+:\s*(.+?)(?=POST \d+:|$)/gs);
+  
+  if (postMatches) {
+    postMatches.forEach((match, index) => {
+      const content = match.replace(/POST \d+:\s*/i, '').trim();
+      posts.push({
+        id: `ai-${index}`,
+        content,
+        createdAt: new Date().toISOString(),
+      } as PostResponseDto);
+    });
+  }
+  
+  return posts;
+};
 
 interface AiSuggestionsModalProps {
   open: boolean;

@@ -20,4 +20,10 @@ export interface OrderItemDTO {
   quantity?: number;
   totalPrice?: number;
   readonly subtotal?: number;
+  /** @nullable */
+  type?: string | null;
+  /** @nullable */
+  serviceCategory?: string | null;
+  /** @nullable */
+  serviceDuration?: string | null;
 }

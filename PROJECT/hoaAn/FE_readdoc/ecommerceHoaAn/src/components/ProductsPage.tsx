@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -42,6 +43,7 @@ interface ProductsPageProps {
 }
 
 export function ProductsPage({}: ProductsPageProps) {
+  const navigate = useNavigate();
   
   // UI State
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -99,6 +101,7 @@ export function ProductsPage({}: ProductsPageProps) {
         searchTerm: searchQuery || undefined,
         categoryId: selectedCategory !== 'all' ? selectedCategory : undefined,
         isActive: true,
+        type: 'product', // Filter by product type (empty string in backend)
       };
 
       // Apply sorting
@@ -168,6 +171,10 @@ export function ProductsPage({}: ProductsPageProps) {
   const closeQuickView = () => {
     setIsQuickViewOpen(false);
     setSelectedProduct(null);
+  };
+
+  const handleViewProductDetail = (productId: string) => {
+    navigate(`/product/${productId}`);
   };
 
   const handleToggleWishlist = async (productId: string, productName: string, e: React.MouseEvent) => {
@@ -470,7 +477,11 @@ export function ProductsPage({}: ProductsPageProps) {
                       const productPrice = product.price ?? 0;
                       
                       return (
-                        <Card key={productId} className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-amber-300">
+                        <Card 
+                          key={productId} 
+                          className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-amber-300 cursor-pointer"
+                          onClick={() => handleViewProductDetail(productId)}
+                        >
                           <div className={`${viewMode === 'list' ? 'flex' : 'block'}`}>
                             <div className={`relative overflow-hidden ${viewMode === 'list' ? 'w-48 flex-shrink-0' : ''}`}>
                               <ImageWithFallback
@@ -487,7 +498,10 @@ export function ProductsPage({}: ProductsPageProps) {
                                   size="icon" 
                                   variant="secondary" 
                                   className="bg-white/90 hover:bg-white"
-                                  onClick={() => handleQuickView(product)}
+                                  onClick={(e) => {
+                                            e.stopPropagation();      // ⛔ chặn click lan lên Card
+                                            handleQuickView(product); // mở Quick View
+                                          }}
                                 >
                                   <Eye className="w-4 h-4" />
                                 </Button>

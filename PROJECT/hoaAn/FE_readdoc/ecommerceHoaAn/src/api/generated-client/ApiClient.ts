@@ -11,6 +11,8 @@ import { CategoryService } from './services/CategoryService';
 import { CheckoutService } from './services/CheckoutService';
 import { CommentsService } from './services/CommentsService';
 import { CustomerAddressService } from './services/CustomerAddressService';
+import { CustomerAdminService } from './services/CustomerAdminService';
+import { MixedFeedService } from './services/MixedFeedService';
 import { OrderService } from './services/OrderService';
 import { PaymentWebhookService } from './services/PaymentWebhookService';
 import { PostsService } from './services/PostsService';
@@ -27,6 +29,8 @@ export class ApiClient {
     public readonly checkout: CheckoutService;
     public readonly comments: CommentsService;
     public readonly customerAddress: CustomerAddressService;
+    public readonly customerAdmin: CustomerAdminService;
+    public readonly mixedFeed: MixedFeedService;
     public readonly order: OrderService;
     public readonly paymentWebhook: PaymentWebhookService;
     public readonly posts: PostsService;
@@ -54,6 +58,8 @@ export class ApiClient {
         this.checkout = new CheckoutService(this.request);
         this.comments = new CommentsService(this.request);
         this.customerAddress = new CustomerAddressService(this.request);
+        this.customerAdmin = new CustomerAdminService(this.request);
+        this.mixedFeed = new MixedFeedService(this.request);
         this.order = new OrderService(this.request);
         this.paymentWebhook = new PaymentWebhookService(this.request);
         this.posts = new PostsService(this.request);

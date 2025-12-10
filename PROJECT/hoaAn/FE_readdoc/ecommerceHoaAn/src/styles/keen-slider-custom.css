@@ -1,0 +1,43 @@
+/* Keen Slider Custom Styling */
+
+.keen-slider {
+    --color-primary: #b45309;
+    --color-secondary: #fbbf24;
+}
+
+.keen-slider__slide {
+    min-width: 0;
+    padding: 0 4px;
+}
+
+/* Smooth animation */
+.keen-slider {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .keen-slider__slide {
+        padding: 0 4px;
+    }
+}
+
+/* Disable default keen-slider dots if using custom */
+.keen-slider__dots {
+    display: none;
+}
+
+/* Smooth scroll behavior */
+.keen-slider {
+    scroll-behavior: smooth;
+}

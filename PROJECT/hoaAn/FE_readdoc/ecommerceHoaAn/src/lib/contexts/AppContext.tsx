@@ -11,6 +11,10 @@ interface AppContextType {
   // Prayer State
   prayers: Prayer[];
   addPrayer: (prayer: Prayer) => void;
+
+  // Service Booking State
+  selectedServiceProductId: string | null;
+  setSelectedServiceProductId: (productId: string | null) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -19,6 +23,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [showSpiritualChat, setShowSpiritualChat] = useState(false);
   const [showSupportChat, setShowSupportChat] = useState(false);
   const [prayers, setPrayers] = useState<Prayer[]>([]);
+  const [selectedServiceProductId, setSelectedServiceProductId] = useState<string | null>(null);
 
   const addPrayer = (prayer: Prayer) => {
     setPrayers(prev => [...prev, prayer]);
@@ -33,6 +38,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setShowSupportChat,
         prayers,
         addPrayer,
+        selectedServiceProductId,
+        setSelectedServiceProductId,
       }}
     >
       {children}

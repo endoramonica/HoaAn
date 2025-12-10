@@ -12,8 +12,6 @@ import type { PostResponseDtoPaginatedResultApiResponse } from '../models/PostRe
 import type { UpdatePostDto } from '../models/UpdatePostDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
-import {useAuth} from "../../../lib/hooks/useAuth";
-
 export class PostsService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**

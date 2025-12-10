@@ -1717,6 +1717,22 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "Type",
+            "in": "query",
+            "schema": {
+              "maxLength": 50,
+              "type": "string"
+            }
+          },
+          {
+            "name": "ServiceCategory",
+            "in": "query",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4689,6 +4705,22 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "Type",
+            "in": "query",
+            "schema": {
+              "maxLength": 50,
+              "type": "string"
+            }
+          },
+          {
+            "name": "ServiceCategory",
+            "in": "query",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4839,6 +4871,22 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "Type",
+            "in": "query",
+            "schema": {
+              "maxLength": 50,
+              "type": "string"
+            }
+          },
+          {
+            "name": "ServiceCategory",
+            "in": "query",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
             }
           }
         ],
@@ -6470,6 +6518,20 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "Type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ServiceCategory",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -10416,6 +10478,31 @@
           "transactionId": {
             "type": "string",
             "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceCategory": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceDuration": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceLocation": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "serviceNotes": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -10626,6 +10713,18 @@
             "type": "number",
             "format": "double",
             "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceCategory": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceDuration": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -11794,6 +11893,23 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceCategory": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceDuration": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceRating": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         },
         "additionalProperties": false

@@ -40,4 +40,12 @@ MaxAmount?: number;
  */
 SortBy?: string;
 SortDescending?: boolean;
+/**
+ * @maxLength 50
+ */
+Type?: string;
+/**
+ * @maxLength 100
+ */
+ServiceCategory?: string;
 };

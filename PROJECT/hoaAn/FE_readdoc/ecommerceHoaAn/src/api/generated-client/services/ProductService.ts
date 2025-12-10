@@ -43,6 +43,8 @@ export class ProductService {
      * @param maxPrice
      * @param sortBy
      * @param isDescending
+     * @param type
+     * @param serviceCategory
      * @returns ProductListDtoPaginatedResultApiResponse OK
      * @throws ApiError
      */
@@ -58,6 +60,8 @@ export class ProductService {
         maxPrice?: number,
         sortBy?: string,
         isDescending?: boolean,
+        type?: string,
+        serviceCategory?: string,
     ): CancelablePromise<ProductListDtoPaginatedResultApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
@@ -74,6 +78,8 @@ export class ProductService {
                 'MaxPrice': maxPrice,
                 'SortBy': sortBy,
                 'IsDescending': isDescending,
+                'Type': type,
+                'ServiceCategory': serviceCategory,
             },
         });
     }

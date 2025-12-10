@@ -19,12 +19,12 @@ export class CategoryService {
      * @returns CategoryDtoApiResponse OK
      * @throws ApiError
      */
-    public getApiCategory(
+    public getApiV1Category(
         id: string,
     ): CancelablePromise<CategoryDtoApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/api/Category/{id}',
+            url: '/api/v1/Category/{id}',
             path: {
                 'id': id,
             },
@@ -36,13 +36,13 @@ export class CategoryService {
      * @returns CategoryDtoApiResponse OK
      * @throws ApiError
      */
-    public putApiCategory(
+    public putApiV1Category(
         id: string,
         requestBody?: UpdateCategoryDto,
     ): CancelablePromise<CategoryDtoApiResponse> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/api/Category/{id}',
+            url: '/api/v1/Category/{id}',
             path: {
                 'id': id,
             },
@@ -55,12 +55,12 @@ export class CategoryService {
      * @returns BooleanApiResponse OK
      * @throws ApiError
      */
-    public deleteApiCategory(
+    public deleteApiV1Category(
         id: string,
     ): CancelablePromise<BooleanApiResponse> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/api/Category/{id}',
+            url: '/api/v1/Category/{id}',
             path: {
                 'id': id,
             },
@@ -70,10 +70,10 @@ export class CategoryService {
      * @returns CategoryDtoIEnumerableApiResponse OK
      * @throws ApiError
      */
-    public getApiCategory1(): CancelablePromise<CategoryDtoIEnumerableApiResponse> {
+    public getApiV1Category1(): CancelablePromise<CategoryDtoIEnumerableApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/api/Category',
+            url: '/api/v1/Category',
         });
     }
     /**
@@ -81,12 +81,12 @@ export class CategoryService {
      * @returns CategoryDtoApiResponse OK
      * @throws ApiError
      */
-    public postApiCategory(
+    public postApiV1Category(
         requestBody?: CreateCategoryDto,
     ): CancelablePromise<CategoryDtoApiResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/api/Category',
+            url: '/api/v1/Category',
             body: requestBody,
             mediaType: 'application/json',
         });
@@ -96,12 +96,12 @@ export class CategoryService {
      * @returns BooleanApiResponse OK
      * @throws ApiError
      */
-    public patchApiCategorySoftDelete(
+    public patchApiV1CategorySoftDelete(
         id: string,
     ): CancelablePromise<BooleanApiResponse> {
         return this.httpRequest.request({
             method: 'PATCH',
-            url: '/api/Category/{id}/soft-delete',
+            url: '/api/v1/Category/{id}/soft-delete',
             path: {
                 'id': id,
             },
@@ -112,12 +112,12 @@ export class CategoryService {
      * @returns CategoryDtoIEnumerableApiResponse OK
      * @throws ApiError
      */
-    public getApiCategoryStore(
+    public getApiV1CategoryStore(
         storeId: string,
     ): CancelablePromise<CategoryDtoIEnumerableApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/api/Category/store/{storeId}',
+            url: '/api/v1/Category/store/{storeId}',
             path: {
                 'storeId': storeId,
             },
@@ -127,10 +127,10 @@ export class CategoryService {
      * @returns CategoryDtoIEnumerableApiResponse OK
      * @throws ApiError
      */
-    public getApiCategoryActiveList(): CancelablePromise<CategoryDtoIEnumerableApiResponse> {
+    public getApiV1CategoryActiveList(): CancelablePromise<CategoryDtoIEnumerableApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/api/Category/active/list',
+            url: '/api/v1/Category/active/list',
         });
     }
     /**
@@ -138,12 +138,12 @@ export class CategoryService {
      * @returns CategoryDtoIEnumerableApiResponse OK
      * @throws ApiError
      */
-    public getApiCategorySubcategories(
+    public getApiV1CategorySubcategories(
         parentId: string,
     ): CancelablePromise<CategoryDtoIEnumerableApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/api/Category/{parentId}/subcategories',
+            url: '/api/v1/Category/{parentId}/subcategories',
             path: {
                 'parentId': parentId,
             },
@@ -154,12 +154,12 @@ export class CategoryService {
      * @returns CategoryDetailDtoApiResponse OK
      * @throws ApiError
      */
-    public getApiCategoryDetails(
+    public getApiV1CategoryDetails(
         id: string,
     ): CancelablePromise<CategoryDetailDtoApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/api/Category/{id}/details',
+            url: '/api/v1/Category/{id}/details',
             path: {
                 'id': id,
             },
@@ -170,12 +170,12 @@ export class CategoryService {
      * @returns CategoryDtoIEnumerableApiResponse OK
      * @throws ApiError
      */
-    public getApiCategoryHierarchy(
+    public getApiV1CategoryHierarchy(
         storeId: string,
     ): CancelablePromise<CategoryDtoIEnumerableApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/api/Category/hierarchy/{storeId}',
+            url: '/api/v1/Category/hierarchy/{storeId}',
             path: {
                 'storeId': storeId,
             },
@@ -190,7 +190,7 @@ export class CategoryService {
      * @returns CategoryDtoPaginatedResultApiResponse OK
      * @throws ApiError
      */
-    public getApiCategoryPagedList(
+    public getApiV1CategoryPagedList(
         pageNumber: number = 1,
         pageSize: number = 10,
         storeId?: string,
@@ -199,7 +199,7 @@ export class CategoryService {
     ): CancelablePromise<CategoryDtoPaginatedResultApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/api/Category/paged/list',
+            url: '/api/v1/Category/paged/list',
             query: {
                 'pageNumber': pageNumber,
                 'pageSize': pageSize,
@@ -214,12 +214,12 @@ export class CategoryService {
      * @returns Int32ApiResponse OK
      * @throws ApiError
      */
-    public getApiCategoryCountByStore(
+    public getApiV1CategoryCountByStore(
         storeId: string,
     ): CancelablePromise<Int32ApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/api/Category/count/by-store/{storeId}',
+            url: '/api/v1/Category/count/by-store/{storeId}',
             path: {
                 'storeId': storeId,
             },
@@ -231,13 +231,13 @@ export class CategoryService {
      * @returns BooleanApiResponse OK
      * @throws ApiError
      */
-    public getApiCategoryExists(
+    public getApiV1CategoryExists(
         storeId?: string,
         name?: string,
     ): CancelablePromise<BooleanApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/api/Category/exists',
+            url: '/api/v1/Category/exists',
             query: {
                 'storeId': storeId,
                 'name': name,
@@ -250,13 +250,13 @@ export class CategoryService {
      * @returns BooleanApiResponse OK
      * @throws ApiError
      */
-    public patchApiCategoryStatus(
+    public patchApiV1CategoryStatus(
         id: string,
         isActive?: boolean,
     ): CancelablePromise<BooleanApiResponse> {
         return this.httpRequest.request({
             method: 'PATCH',
-            url: '/api/Category/{id}/status',
+            url: '/api/v1/Category/{id}/status',
             path: {
                 'id': id,
             },

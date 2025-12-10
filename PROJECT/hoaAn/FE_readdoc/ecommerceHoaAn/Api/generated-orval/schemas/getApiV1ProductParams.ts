@@ -18,4 +18,6 @@ MinPrice?: number;
 MaxPrice?: number;
 SortBy?: string;
 IsDescending?: boolean;
+Type?: string;
+ServiceCategory?: string;
 };

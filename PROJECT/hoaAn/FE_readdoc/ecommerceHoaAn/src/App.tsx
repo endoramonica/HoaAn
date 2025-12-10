@@ -17,12 +17,14 @@ import { SpiritualLayout } from "./layouts/SpiritualLayout";
 // Main Pages
 import { HomePage } from "./components/HomePage";
 import { ProductsPage } from "./components/ProductsPage";
+import { ProductDetailPage } from "./pages/ProductDetailPage";
 import { ServicesPage } from "./components/ServicesPage";
+import { ServiceDetailPage } from "./components/ServiceDetailPage";
 import { AboutPage } from "./components/AboutPage";
 import { ContactPage } from "./components/ContactPage";
 import { CartPage } from "./components/CartPage";
 import { ProfilePage } from "./components/ProfilePage";
-import { CalendarPage } from "./components/CalendarPage";
+import CalendarPage from "./components/CalendarPage";
 import WishlistPage from "./components/WishlistPage";
 import { CommunityPage } from "./components/community";
 import { QAPage } from "./components/QAPage";
@@ -49,6 +51,13 @@ import { FengShuiConsultationPage } from "./components/spiritual/FengShuiConsult
 // Checkout Flow
 import { CheckoutFlow } from "./pages/checkout/CheckoutFlow";
 
+// Calendar Booking
+import { BookingSuccessPage } from "./pages/calendar/BookingSuccessPage";
+import { BookingHistoryPage } from "./pages/calendar/BookingHistoryPage";
+
+// Order Detail
+import { OrderDetailPage } from "./pages/OrderDetailPage";
+
 // Create QueryClient instance
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,7 +82,9 @@ export default function App() {
             <Route element={<MainLayout />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/products" element={<ProductsPage />} />
+              <Route path="/product/:id" element={<ProductDetailPage />} />
               <Route path="/services" element={<ServicesPage />} />
+              <Route path="/services/:id" element={<ServiceDetailPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/cart" element={<CartPage />} />
@@ -120,6 +131,13 @@ export default function App() {
 
             {/* Checkout Flow (standalone with internal state navigation) */}
             <Route path="/checkout" element={<CheckoutFlow />} />
+
+            {/* Calendar Booking Pages */}
+            <Route path="/bookings" element={<BookingHistoryPage />} />
+            <Route path="/bookings/:orderId" element={<BookingSuccessPage />} />
+
+            {/* Order Detail Page */}
+            <Route path="/orders/:orderId" element={<OrderDetailPage />} />
 
             {/* Catch all - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { useWishlist } from '../lib/hooks/useWishlist';
+import { useCart } from '../lib/hooks/useCart';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 // import { Alert, AlertDescription } from './ui/alert'; // Reserved for future use
@@ -21,6 +22,8 @@ import {
 } from './ui/alert-dialog';
 import { Heart, ShoppingCart, Trash2, X, Package, RefreshCcw } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { CartService } from '../api/services/CartService';
+import { toast } from 'sonner';
 
 export default function WishlistPage() {
   const {
@@ -34,8 +37,11 @@ export default function WishlistPage() {
     // moveAllToCart sẽ được thêm vào hook sau
   } = useWishlist();
 
+  const { isGuest, refreshCart } = useCart();
+
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [removingItemId, setRemovingItemId] = useState<string | null>(null);
+  const [addingToCartId, setAddingToCartId] = useState<string | null>(null);
 
   const handleRemoveItem = async (itemId: string) => {
     setRemovingItemId(itemId);
@@ -49,6 +55,43 @@ export default function WishlistPage() {
   const handleClearWishlist = async () => {
     await clearWishlist();
     setShowClearDialog(false);
+  };
+
+  // Thêm sản phẩm vào giỏ hàng
+  const handleAddToCart = async (productId: string, productName: string, quantity: number = 1) => {
+    setAddingToCartId(productId);
+    try {
+      const addToCartDto = {
+        productId,
+        quantity,
+      };
+
+      if (isGuest) {
+        await CartService.postApiV1CartGuestAdd(addToCartDto);
+      } else {
+        await CartService.postApiV1CartAdd(addToCartDto);
+      }
+
+      // Refresh giỏ hàng
+      await refreshCart();
+
+      // Hiển thị thông báo thành công
+      toast.success('Đã thêm vào giỏ hàng!', {
+        description: productName,
+      });
+    } catch (error: any) {
+      console.error('Lỗi khi thêm vào giỏ hàng:', error);
+
+      if (error.message?.includes('Insufficient stock')) {
+        toast.error('Sản phẩm không đủ số lượng trong kho');
+      } else if (error.status === 401) {
+        toast.error('Vui lòng đăng nhập để thêm vào giỏ hàng');
+      } else {
+        toast.error(error.message || 'Không thể thêm vào giỏ hàng');
+      }
+    } finally {
+      setAddingToCartId(null);
+    }
   };
 
   // TODO: Thêm moveAllToCart vào hook nếu backend hỗ trợ
@@ -270,14 +313,20 @@ export default function WishlistPage() {
                       <div className="flex gap-2">
                         <Button
                           className="flex-1 bg-[#92400E] hover:bg-[#7C2D12] text-white text-sm"
-                          disabled={productStock === 0}
-                          onClick={() => {
-                            console.log('Add to cart:', productId);
-                            // TODO: Gọi addToCart từ useCart
-                          }}
+                          disabled={productStock === 0 || addingToCartId === productId}
+                          onClick={() => handleAddToCart(productId, productName, 1)}
                         >
-                          <ShoppingCart className="h-4 w-4 mr-2" />
-                          Thêm vào giỏ
+                          {addingToCartId === productId ? (
+                            <>
+                              <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
+                              Đang thêm...
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingCart className="h-4 w-4 mr-2" />
+                              Thêm vào giỏ
+                            </>
+                          )}
                         </Button>
                       </div>
                     </div>

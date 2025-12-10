@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { Star, ShoppingCart, Heart, Minus, Plus, Loader2 } from 'lucide-react';
+import { Star, ShoppingCart, Heart, Minus, Plus, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useWishlist } from '../lib/hooks/useWishlist';
 import { getVietCommerceAPI } from '../../Api/generated-orval';
@@ -10,6 +10,7 @@ import type { AddToCartDto } from '../../Api/generated-orval/schemas';
 import { useCart } from '../lib/hooks/useCart';
 import { useAuth } from '../lib/hooks/useAuth';
 import { toast } from 'sonner';
+import { productService } from '../lib/services/productService';
 
 const api = getVietCommerceAPI();
 
@@ -36,6 +37,9 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
   const [quantity, setQuantity] = useState(1);
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [productDetail, setProductDetail] = useState<any>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   
   const { isInWishlist, toggleWishlist, loadWishlist } = useWishlist();
   const { isAuthenticated } = useAuth();
@@ -90,6 +94,29 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
     }
   };
 
+  // Load product detail with images
+  useEffect(() => {
+    const loadProductDetail = async () => {
+      if (!product?.id || !isOpen) return;
+
+      try {
+        setLoadingDetail(true);
+        const detail = await productService.getProductById(product.id);
+        setProductDetail(detail);
+        setCurrentImageIndex(0);
+        
+        // Record product view
+        await productService.recordProductView(product.id);
+      } catch (error) {
+        console.error('Failed to load product detail:', error);
+      } finally {
+        setLoadingDetail(false);
+      }
+    };
+
+    loadProductDetail();
+  }, [product?.id, isOpen]);
+
   // Reset quantity when modal opens/closes
   useEffect(() => {
     if (isOpen) {
@@ -127,6 +154,20 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
     }
   };
 
+  const handlePrevImage = () => {
+    const images = productDetail?.images || [product?.image];
+    if (images.length > 0) {
+      setCurrentImageIndex(prev => (prev - 1 + images.length) % images.length);
+    }
+  };
+
+  const handleNextImage = () => {
+    const images = productDetail?.images || [product?.image];
+    if (images.length > 0) {
+      setCurrentImageIndex(prev => (prev + 1) % images.length);
+    }
+  };
+
   const isProductInWishlist = product?.id ? isInWishlist(product.id) : false;
 
   return (
@@ -137,22 +178,78 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
         </DialogHeader>
         
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Product Image */}
-          <div className="relative">
-            <ImageWithFallback
-              src={product.image}
-              alt={product.name}
-              className="w-full h-96 object-cover rounded-lg"
-            />
-            {product.featured && (
-              <Badge className="absolute top-3 left-3 bg-red-600 text-white">
-                Nổi bật
-              </Badge>
-            )}
-            {product.discount > 0 && (
-              <Badge className="absolute top-3 right-3 bg-green-600 text-white">
-                -{product.discount}%
-              </Badge>
+          {/* Product Image Gallery */}
+          <div className="space-y-4">
+            {/* Main Image */}
+            <div className="relative bg-gray-100 rounded-lg overflow-hidden">
+              {loadingDetail ? (
+                <div className="w-full h-96 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+                </div>
+              ) : (
+                <>
+                  <ImageWithFallback
+                    src={productDetail?.images?.[currentImageIndex] || product.image}
+                    alt={product.name}
+                    className="w-full h-96 object-cover"
+                  />
+                  {product.featured && (
+                    <Badge className="absolute top-3 left-3 bg-red-600 text-white">
+                      Nổi bật
+                    </Badge>
+                  )}
+                  {product.discount > 0 && (
+                    <Badge className="absolute top-3 right-3 bg-green-600 text-white">
+                      -{product.discount}%
+                    </Badge>
+                  )}
+                  
+                  {/* Image Navigation */}
+                  {(productDetail?.images?.length || 0) > 1 && (
+                    <>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white"
+                        onClick={handlePrevImage}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white"
+                        onClick={handleNextImage}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Image Thumbnails */}
+            {(productDetail?.images?.length || 0) > 1 && (
+              <div className="flex gap-2 overflow-x-auto">
+                {productDetail?.images?.map((image: string, index: number) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`flex-shrink-0 w-16 h-16 rounded border-2 overflow-hidden transition-all ${
+                      currentImageIndex === index
+                        ? 'border-amber-600'
+                        : 'border-gray-200 hover:border-amber-300'
+                    }`}
+                  >
+                    <ImageWithFallback
+                      src={image}
+                      alt={`${product.name} ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
@@ -166,13 +263,13 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                 <div className="flex items-center">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className={`w-5 h-5 ${
-                      i < Math.floor(product.rating) 
+                      i < Math.floor(productDetail?.averageRating || product.rating || 0) 
                         ? 'fill-yellow-400 text-yellow-400' 
                         : 'text-gray-300'
                     }`} />
                   ))}
                   <span className="text-sm text-gray-600 ml-2">
-                    {product.rating} ({product.reviews} đánh giá)
+                    {(productDetail?.averageRating || product.rating || 0).toFixed(1)} ({productDetail?.reviewCount || product.reviews || 0} đánh giá)
                   </span>
                 </div>
               </div>
@@ -194,9 +291,10 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
             <div className="border-t border-gray-200 pt-4">
               <h3 className="text-lg text-amber-900 mb-2">Mô tả sản phẩm</h3>
               <p className="text-gray-600 leading-relaxed">
-                Sản phẩm {product.name.toLowerCase()} chất lượng cao, được tuyển chọn kỹ lưỡng 
+                {productDetail?.description || productDetail?.shortDescription || 
+                `Sản phẩm ${product.name.toLowerCase()} chất lượng cao, được tuyển chọn kỹ lưỡng 
                 để mang đến trải nghiệm tâm linh tốt nhất. Phù hợp cho các nghi lễ truyền thống 
-                và thể hiện lòng thành kính với tổ tiên.
+                và thể hiện lòng thành kính với tổ tiên.`}
               </p>
             </div>
 
@@ -280,15 +378,27 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>Danh mục:</span>
-                  <span className="capitalize">{product.category}</span>
+                  <span className="capitalize">{productDetail?.categoryName || product.category}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Mã sản phẩm:</span>
-                  <span>SP{product.id.toString().padStart(6, '0')}</span>
+                  <span>{productDetail?.code || productDetail?.sku || `SP${product.id.toString().padStart(6, '0')}`}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tình trạng:</span>
-                  <span className="text-green-600">Còn hàng</span>
+                  <span className={productDetail?.stockQuantity ? 'text-green-600' : 'text-red-600'}>
+                    {productDetail?.stockQuantity ? `Còn ${productDetail.stockQuantity} sản phẩm` : 'Hết hàng'}
+                  </span>
+                </div>
+                {productDetail?.brandName && (
+                  <div className="flex justify-between">
+                    <span>Thương hiệu:</span>
+                    <span>{productDetail.brandName}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span>Lượt xem:</span>
+                  <span>{productDetail?.viewCount || 0}</span>
                 </div>
               </div>
             </div>

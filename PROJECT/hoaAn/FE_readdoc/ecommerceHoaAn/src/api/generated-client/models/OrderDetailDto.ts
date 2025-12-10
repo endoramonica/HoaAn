@@ -37,5 +37,11 @@ export type OrderDetailDto = {
     paymentMethod?: string | null;
     paidAt?: string | null;
     transactionId?: string | null;
+    type?: string | null;
+    serviceCategory?: string | null;
+    serviceDuration?: string | null;
+    serviceLocation?: string | null;
+    serviceDate?: string | null;
+    serviceNotes?: string | null;
 };
 

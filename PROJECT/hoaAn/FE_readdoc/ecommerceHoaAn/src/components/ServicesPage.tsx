@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -8,127 +9,59 @@ import {
 } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { Skeleton } from "./ui/skeleton";
+import { Alert, AlertDescription } from "./ui/alert";
 import {
   Truck,
   Package,
   Clock,
-  MapPin,
   Shield,
   Heart,
   Flame,
   Brain,
-  Moon,
   Zap,
   CheckCircle2,
-  ArrowRight,
   Star,
-  Calendar, // ← Đã thêm
+  Calendar,
+  AlertCircle,
 } from "lucide-react";
-
-// Props interface removed
+import { vietCommerceProductService } from "../lib/services/vietCommerceProductService";
+import { useApp } from "../lib/contexts/AppContext";
+import type { ProductListDto, ProductFilterDto } from "../lib/services/vietCommerceProductService";
 
 export function ServicesPage() {
   const navigate = useNavigate();
+  const { setSelectedServiceProductId } = useApp();
+  const [services, setServices] = useState<ProductListDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const services = [
-    {
-      id: 1,
-      title: "Dịch vụ Cúng Gia Tiên",
-      description:
-        "Chuẩn bị đầy đủ mâm cúng theo truyền thống với ngũ quả, hương nến, giấy tiền. Tư vấn ngày giờ tốt và cách bày trí chuẩn phong thủy.",
-      price: "Từ 1.250.000₫",
-      duration: "2-3 giờ",
-      image:
-        "https://images.unsplash.com/photo-1519097000072-e44ffa116485?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWV0bmFtZXNlJTIwb2ZmZXJpbmdzJTIwYWx0YXIlMjBmcnVpdHN8ZW58MXx8fHwxNzU3Njc0NDI5fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      features: [
-        "Tư vấn ngày giờ tốt",
-        "Chuẩn bị mâm cúng hoàn chỉnh",
-        "Hướng dẫn nghi lễ",
-        "Giao hàng tận nơi",
-      ],
-      popular: true,
-    },
-    {
-      id: 2,
-      title: "Dịch vụ Lễ Khai Trương",
-      description:
-        "Trọn gói lễ khai trương với mâm cúng, hoa tươi, băng khai trương. Tư vấn phong thủy và lựa chọn ngày tốt.",
-      price: "Từ 2.890.000₫",
-      duration: "3-4 giờ",
-      image:
-        "https://images.unsplash.com/photo-1588358581442-c0a340052b75?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHh2aWV0bmFtZXNlJTIwdGVtcGxlJTIwcHJheWVyJTIwY2VyZW1vbnl8ZW58MXx8fHwxNzU3Njc0NDMwfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      features: [
-        "Tư vấn phong thủy",
-        "Mâm cúng khai trương",
-        "Hoa tươi trang trí",
-        "Phục vụ tại chỗ",
-      ],
-    },
-    {
-      id: 3,
-      title: "Dịch vụ Lễ Cưới Hỏi",
-      description:
-        "Chuẩn bị lễ vật cưới hỏi theo truyền thống, từ mâm quả đến các món lễ cần thiết. Tư vấn nghi thức đầy đủ.",
-      price: "Từ 3.500.000₫",
-      duration: "4-5 giờ",
-      image:
-        "https://images.unsplash.com/photo-1730130856640-3db880ab33b7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhc2lhbiUyMGNlcmVtb25pYWwlMjB3ZWRkaW5nJTIwdHJhZGl0aW9uYWx8ZW58MXx8fHwxNzU3Njc0NDMwfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      features: [
-        "Mâm quả cưới hỏi",
-        "Tư vấn nghi thức",
-        "Lễ vật truyền thống",
-        "Hỗ trợ tổ chức",
-      ],
-    },
-    {
-      id: 4,
-      title: "Dịch vụ Cúng Phật",
-      description:
-        "Chuẩn bị lễ vật cúng Phật với hoa sen, trái cây, hương nến cao cấp. Tư vấn về các ngày lễ Phật giáo.",
-      price: "Từ 980.000₫",
-      duration: "1-2 giờ",
-      image:
-        "https://images.unsplash.com/photo-1573460630303-81cbaf895c54?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsb3R1cyUyMGZsb3dlciUyMGNlcmVtb25pYWwlMjBnb2xkfGVufDF8fHx8MTc1NzY3NDQyOXww&ixlib=rb-4.1.0&q=80&w=1080",
-      features: [
-        "Hoa sen tươi",
-        "Trái cây cúng Phật",
-        "Hương nến cao cấp",
-        "Tư vấn ngày lễ Phật",
-      ],
-    },
-    {
-      id: 5,
-      title: "Dịch vụ Lễ Tân Gia",
-      description:
-        "Trọn gói lễ tân gia với mâm cúng thổ địa, ông táo, tư vấn phong thủy ngôi nhà mới.",
-      price: "Từ 1.800.000₫",
-      duration: "2-3 giờ",
-      image:
-        "https://images.unsplash.com/photo-1532334722716-c5850cdd878d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWV0bmFtZXNlJTIwaW5jZW5zZSUyMGNlcmVtb255JTIwdHJhZGl0aW9uYWx8ZW58MXx8fHwxNzU3Njc0NDI4fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      features: [
-        "Mâm cúng thổ địa",
-        "Tư vấn phong thủy",
-        "Lễ cúng ông táo",
-        "Setup tại nhà mới",
-      ],
-    },
-    {
-      id: 6,
-      title: "Dịch vụ Tư Vấn Phong Thủy",
-      description:
-        "Tư vấn chuyên sâu về phong thủy, lựa chọn ngày tốt, bố trí không gian theo phong thủy.",
-      price: "Từ 500.000₫",
-      duration: "1-2 giờ",
-      image:
-        "https://images.unsplash.com/photo-1732117924212-39bfaec174c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0cmFkaXRpb25hbCUyMGNhbmRsZXMlMjByZWQlMjBnb2xkfGVufDF8fHx8MTc1NzY3NDQyOXww&ixlib=rb-4.1.0&q=80&w=1080",
-      features: [
-        "Tư vấn phong thủy chuyên sâu",
-        "Chọn ngày tốt",
-        "Bố trí không gian",
-        "Báo cáo chi tiết",
-      ],
-    },
-  ];
+  // Fetch services from API
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const filter: ProductFilterDto = {
+          pageNumber: 1,
+          pageSize: 100,
+          type: 'service', // Only fetch services
+          isActive: true,
+        };
+
+        const result = await vietCommerceProductService.getProducts(filter);
+        setServices(result.items || []);
+      } catch (err: any) {
+        console.error('Error fetching services:', err);
+        setError(err.message || 'Không thể tải danh sách dịch vụ. Vui lòng thử lại sau.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, []);
 
   const processSteps = [
     {
@@ -224,90 +157,150 @@ export function ServicesPage() {
               phù hợp với mọi nhu cầu
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {services.map((service) => (
-              <Card
-                key={service.id}
-                className="hover:shadow-xl transition-all duration-300 border-2 hover:border-amber-300 relative"
-              >
-                {service.popular && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-red-600 text-white z-10">
-                    Phổ biến nhất
-                  </Badge>
-                )}
-                <div className="relative overflow-hidden">
-                  <ImageWithFallback
-                    src={service.image}
-                    alt={service.title}
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-4 right-4">
-                    <Badge className="bg-white/90 text-amber-900">
-                      {service.duration}
+
+          {/* Error Alert */}
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Loading Skeleton */}
+          {isLoading && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {Array.from({ length: 6 }, (_, i) => (
+                <Card key={i} className="border-2 border-amber-200">
+                  <Skeleton className="w-full h-48" />
+                  <CardContent className="p-6">
+                    <Skeleton className="h-6 w-full mb-2" />
+                    <Skeleton className="h-6 w-3/4 mb-4" />
+                    <Skeleton className="h-8 w-24 mb-4" />
+                    <Skeleton className="h-10 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Services Grid */}
+          {!isLoading && services.length > 0 && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {services.map((service) => (
+                <Card
+                  key={service.id}
+                  className="hover:shadow-xl transition-all duration-300 border-2 hover:border-amber-300 relative"
+                >
+                  {service.isFeatured && (
+                    <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-red-600 text-white z-10">
+                      Phổ biến nhất
                     </Badge>
+                  )}
+                  <div className="relative overflow-hidden">
+                    <ImageWithFallback
+                      src={service.primaryImage || 'https://images.unsplash.com/photo-1588358581442-c0a340052b75?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWV0bmFtZXNlJTIwdGVtcGxlJTIwcHJheWVyJTIwY2VyZW1vbnl8ZW58MXx8fHwxNzU3Njc0NDMwfDA&ixlib=rb-4.1.0&q=80&w=1080'}
+                      alt={service.name || 'Dịch vụ'}
+                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-4 right-4">
+                      <Badge className="bg-white/90 text-amber-900">
+                        {service.serviceDuration || '2-3 giờ'}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
-                <CardContent className="p-6">
-                  <CardHeader className="p-0 mb-4">
-                    <CardTitle className="text-xl text-amber-900 mb-2">
-                      {service.title}
-                    </CardTitle>
-                    <p className="text-gray-600 text-sm leading-relaxed">
-                      {service.description}
-                    </p>
-                  </CardHeader>
-                  <div className="space-y-3 mb-6">
-                    {service.features.map((feature, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-2"
-                      >
+                  <CardContent className="p-6">
+                    <CardHeader className="p-0 mb-4">
+                      <CardTitle className="text-xl text-amber-900 mb-2">
+                        {service.name}
+                      </CardTitle>
+                      <p className="text-gray-600 text-sm leading-relaxed">
+                        {service.shortDescription}
+                      </p>
+                    </CardHeader>
+                    <div className="space-y-3 mb-6">
+                      <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
                         <span className="text-sm text-gray-700">
-                          {feature}
+                          Danh mục: {service.serviceCategory || 'Dịch vụ'}
                         </span>
                       </div>
-                    ))}
-                  </div>
-                  <div className="border-t pt-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-2xl text-red-600">
-                        {service.price}
-                      </span>
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                          />
-                        ))}
-                        <span className="text-sm text-gray-600 ml-1">
-                          (4.9)
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                        <span className="text-sm text-gray-700">
+                          Thời gian: {service.serviceDuration || '2-3 giờ'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                        <span className="text-sm text-gray-700">
+                          Còn lại: {service.stockQuantity} dịch vụ
                         </span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => navigate("/booking")}
-                        className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                      >
-                        Đặt dịch vụ
-                      </Button>
-                      <Button
-                        onClick={() =>
-                          navigate(`/services/${service.id}`)
-                        }
-                        variant="outline"
-                        className="border-amber-300 text-amber-700 hover:bg-amber-50"
-                      >
-                        Chi tiết
-                      </Button>
+                    <div className="border-t pt-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-2xl text-red-600">
+                          {new Intl.NumberFormat('vi-VN').format(service.price || 0)}₫
+                        </span>
+                        <div className="flex items-center">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < Math.floor(service.serviceRating || 0)
+                                  ? 'fill-yellow-400 text-yellow-400'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                          <span className="text-sm text-gray-600 ml-1">
+                            ({(service.serviceRating || 0).toFixed(1)})
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            // Set the service product ID in context
+                            if (service.id) {
+                              setSelectedServiceProductId(service.id);
+                              // Navigate to calendar
+                              navigate("/calendar");
+                            }
+                          }}
+                          className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          Đặt dịch vụ
+                        </Button>
+                        <Button
+                          onClick={() =>
+                            navigate(`/services/${service.id}`)
+                          }
+                          variant="outline"
+                          className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                        >
+                          Chi tiết
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* No Services Found */}
+          {!isLoading && services.length === 0 && !error && (
+            <div className="text-center py-16">
+              <div className="w-24 h-24 mx-auto mb-4 bg-amber-100 rounded-full flex items-center justify-center">
+                <Flame className="w-12 h-12 text-amber-600" />
+              </div>
+              <h3 className="text-xl text-amber-900 mb-2">Chưa có dịch vụ nào</h3>
+              <p className="text-gray-600">
+                Vui lòng quay lại sau để xem các dịch vụ mới
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

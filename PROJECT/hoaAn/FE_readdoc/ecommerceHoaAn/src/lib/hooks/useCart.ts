@@ -217,14 +217,18 @@ export function useCart(): UseCartReturn {
   const removeItem = useCallback(
     async (cartItemId: string) => {
       try {
+        console.log('[useCart] 🗑️ Removing item:', cartItemId);
+
         if (isGuest) {
           await CartService.deleteApiV1CartGuestItems(cartItemId);
         } else {
           await CartService.deleteApiV1CartItems(cartItemId);
         }
 
+        console.log('[useCart] ✅ Item removed successfully');
         await Promise.all([fetchCartCount(), fetchCart()]);
       } catch (err: any) {
+        console.error('[useCart] ❌ Error removing item:', err);
         setError(err.message || "Không thể xóa sản phẩm");
         throw err;
       }

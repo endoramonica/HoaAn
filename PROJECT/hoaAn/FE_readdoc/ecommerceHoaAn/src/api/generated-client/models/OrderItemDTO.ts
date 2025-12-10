@@ -13,5 +13,8 @@ export type OrderItemDTO = {
     quantity?: number;
     totalPrice?: number;
     readonly subtotal?: number;
+    type?: string | null;
+    serviceCategory?: string | null;
+    serviceDuration?: string | null;
 };
 

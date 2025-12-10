@@ -57,6 +57,7 @@ export interface UserDto {
   isEmailConfirmed: boolean;
   createdAt: string;
   updatedAt: string;
+  customerId?: string; // Customer ID from backend (different from userId)
 }
 
 export enum UserRole {

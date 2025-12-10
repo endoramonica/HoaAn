@@ -228,6 +228,132 @@ class OrderService {
       throw error;
     }
   }
+
+  /**
+   * Lấy danh sách đơn hàng dịch vụ của user hiện tại
+   * @param params Filter parameters including serviceCategory
+   */
+  async getMyServiceOrders(params?: OrderFilterParams & { serviceCategory?: string }): Promise<PagedResponse<any>> {
+    try {
+      const orvalParams: GetApiV1OrderMyOrdersParams = {
+        pageNumber: params?.pageNumber,
+        pageSize: params?.pageSize,
+        status: params?.status as any,
+        type: 'service',
+        serviceCategory: params?.serviceCategory,
+      };
+
+      const response = await api.getApiV1OrderMyOrders(orvalParams);
+      const data = response.data;
+
+      return {
+        items: data?.items || [],
+        pageNumber: data?.pageNumber || 1,
+        pageSize: data?.pageSize || 10,
+        totalPages: data?.totalPages || 0,
+        totalCount: data?.totalItems || 0,
+        hasPreviousPage: (data?.pageNumber || 1) > 1,
+        hasNextPage: (data?.pageNumber || 1) < (data?.totalPages || 0),
+      };
+    } catch (error) {
+      console.error('Get my service orders error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Lấy danh sách đơn hàng sản phẩm của user hiện tại
+   * @param params Filter parameters
+   */
+  async getMyProductOrders(params?: OrderFilterParams): Promise<PagedResponse<any>> {
+    try {
+      const orvalParams: GetApiV1OrderMyOrdersParams = {
+        pageNumber: params?.pageNumber,
+        pageSize: params?.pageSize,
+        status: params?.status as any,
+        type: 'product',
+      };
+
+      const response = await api.getApiV1OrderMyOrders(orvalParams);
+      const data = response.data;
+
+      return {
+        items: data?.items || [],
+        pageNumber: data?.pageNumber || 1,
+        pageSize: data?.pageSize || 10,
+        totalPages: data?.totalPages || 0,
+        totalCount: data?.totalItems || 0,
+        hasPreviousPage: (data?.pageNumber || 1) > 1,
+        hasNextPage: (data?.pageNumber || 1) < (data?.totalPages || 0),
+      };
+    } catch (error) {
+      console.error('Get my product orders error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Lấy danh sách đơn hàng dịch vụ (Admin)
+   * @param params Filter parameters including serviceCategory
+   */
+  async getServiceOrders(params?: OrderFilterParams & { serviceCategory?: string }): Promise<PagedResponse<any>> {
+    try {
+      const orvalParams: GetApiV1OrderParams = {
+        pageNumber: params?.pageNumber,
+        pageSize: params?.pageSize,
+        status: params?.status as any,
+        type: 'service',
+        serviceCategory: params?.serviceCategory,
+      };
+
+      const response = await api.getApiV1Order(orvalParams);
+      const data = response.data;
+
+      return {
+        items: data?.items || [],
+        pageNumber: data?.pageNumber || 1,
+        pageSize: data?.pageSize || 10,
+        totalPages: data?.totalPages || 0,
+        totalCount: data?.totalItems || 0,
+        hasPreviousPage: (data?.pageNumber || 1) > 1,
+        hasNextPage: (data?.pageNumber || 1) < (data?.totalPages || 0),
+      };
+    } catch (error) {
+      console.error('Get service orders error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Lấy danh sách đơn hàng sản phẩm (Admin)
+   * @param params Filter parameters
+   */
+  async getProductOrders(params?: OrderFilterParams): Promise<PagedResponse<any>> {
+    try {
+      const orvalParams: GetApiV1OrderParams = {
+        pageNumber: params?.pageNumber,
+        pageSize: params?.pageSize,
+        status: params?.status as any,
+        type: 'product',
+      };
+
+      const response = await api.getApiV1Order(orvalParams);
+      const data = response.data;
+
+      return {
+        items: data?.items || [],
+        pageNumber: data?.pageNumber || 1,
+        pageSize: data?.pageSize || 10,
+        totalPages: data?.totalPages || 0,
+        totalCount: data?.totalItems || 0,
+        hasPreviousPage: (data?.pageNumber || 1) > 1,
+        hasNextPage: (data?.pageNumber || 1) < (data?.totalPages || 0),
+      };
+    } catch (error) {
+      console.error('Get product orders error:', error);
+      throw error;
+    }
+  }
 }
 
 export const orderService = new OrderService();

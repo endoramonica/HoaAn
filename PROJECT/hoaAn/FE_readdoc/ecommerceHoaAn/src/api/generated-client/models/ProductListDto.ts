@@ -24,5 +24,9 @@ export type ProductListDto = {
     favoriteCount?: number;
     averageRating?: number;
     createdAt?: string;
+    type?: string | null;
+    serviceCategory?: string | null;
+    serviceDuration?: string | null;
+    serviceRating?: number | null;
 };
 
