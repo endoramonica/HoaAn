@@ -65,6 +65,20 @@ namespace VietCommerce.Core.DTOs.Products
         public DateTime? UpdatedAt { get; set; }
         public Guid CreatedBy { get; set; }
         public string? CreatedByName { get; set; }
+
+        // Package & Customizable Products
+        /// <summary>
+        /// List of fixed items included in the package product (e.g., "Cá chép (3 con)", "Mũ giấy (3 cái)").
+        /// Null if this is not a package product.
+        /// </summary>
+        public List<string>? Details { get; set; }
+
+        /// <summary>
+        /// List of customizable options available for this package product.
+        /// Customers can modify quantities of these options when adding to cart.
+        /// Null if this is not a customizable package product.
+        /// </summary>
+        public List<CustomizableOptionDto>? CustomizableOptions { get; set; }
     }
 
 }

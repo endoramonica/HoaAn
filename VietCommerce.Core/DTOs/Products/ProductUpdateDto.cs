@@ -51,5 +51,18 @@ namespace VietCommerce.Core.DTOs.Products
         public string? MetaTitle { get; set; }
         public string? MetaDescription { get; set; }
         public string? MetaKeywords { get; set; }
+
+        /// <summary>
+        /// List of fixed items included in the package product (e.g., "Cá chép (3 con)", "Mũ giấy (3 cái)").
+        /// Only applicable for package products. Null for regular products.
+        /// </summary>
+        public List<string>? Details { get; set; }
+
+        /// <summary>
+        /// List of customizable options for the package product.
+        /// Allows customers to modify quantities of specific items within the package.
+        /// Only applicable for package products. Null for regular products.
+        /// </summary>
+        public List<CustomizableOptionDto>? CustomizableOptions { get; set; }
     }
 }

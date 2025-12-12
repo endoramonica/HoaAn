@@ -2,6 +2,7 @@
 using VietCommerce.Core.DTOs.Orders;
 using VietCommerce.Core.Enums.Orders;
 using VietCommerce.Core.Models;
+using VietCommerce.Core.Entities.Orders;
 
 namespace VietCommerce.Application.Services.Services.Interfaces
 {
@@ -150,5 +151,17 @@ namespace VietCommerce.Application.Services.Services.Interfaces
             List<Guid> orderIds,
             OrderStatus newStatus,
             string? reason = null);
+
+        /// <summary>
+        /// Create an OrderItem from a CartItem, snapshotting customization data
+        /// ✅ Preserves customizations, base price, and customization price from CartItem
+        /// ✅ Ensures historical accuracy for fulfillment and analytics
+        /// </summary>
+        /// <param name="cartItem">CartItem to convert to OrderItem</param>
+        /// <param name="orderId">Order ID to associate with the new OrderItem</param>
+        /// <returns>Created OrderItem with snapshotted customization data</returns>
+        Task<OrderItem> CreateOrderItemFromCartItemAsync(
+            CartItem cartItem,
+            Guid orderId);
     }
 }

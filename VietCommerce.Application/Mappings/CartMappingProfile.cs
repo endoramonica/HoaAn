@@ -2,6 +2,7 @@
 using AutoMapper;
 using VietCommerce.Core.DTOs.Cart;
 using VietCommerce.Core.Entities.Orders;
+using VietCommerce.Core.Helpers;
 
 namespace VietCommerce.Application.Mappings
 {
@@ -43,6 +44,13 @@ namespace VietCommerce.Application.Mappings
                 .ForMember(dest => dest.PurchaseCount, opt => opt.MapFrom(src => src.Product.PurchaseCount))
                 .ForMember(dest => dest.AvgRating, opt => opt.MapFrom(src => src.Product.AvgRating))
                 .ForMember(dest => dest.ReviewCount, opt => opt.MapFrom(src => src.Product.ReviewCount))
+                .ForMember(dest => dest.BasePrice, opt => opt.MapFrom(src => src.BasePrice))
+                .ForMember(dest => dest.CustomizationPrice, opt => opt.MapFrom(src => src.CustomizationPrice))
+                .ForMember(dest => dest.FinalPrice, opt => opt.MapFrom(src => src.FinalPrice))
+                .ForMember(dest => dest.Customizations, opt => opt.MapFrom(src =>
+                    string.IsNullOrWhiteSpace(src.CustomizationsJson)
+                        ? null
+                        : JsonSerializationHelper.DeserializeCustomizations(src.CustomizationsJson)))
                 .ReverseMap();
 
         }

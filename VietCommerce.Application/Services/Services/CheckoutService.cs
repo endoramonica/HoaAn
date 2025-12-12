@@ -26,6 +26,7 @@ namespace VietCommerce.Application.Services.Services
         private readonly IVnpayService _vnpayService;
         private readonly IHttpContextAccessor _httpContext;
         private readonly ICurrentUser _currentUser;
+        private readonly IOrderService _orderService;
 
         public CheckoutService(
             IOrderRepository orderRepository,
@@ -35,6 +36,7 @@ namespace VietCommerce.Application.Services.Services
             IVnpayService vnpayService,
             IHttpContextAccessor httpContext,
             ICurrentUser currentUser,
+            IOrderService orderService,
             IMapper mapper,
             ILogger<CheckoutService> logger,
             ICacheService cacheService)
@@ -48,6 +50,7 @@ namespace VietCommerce.Application.Services.Services
             _vnpayService = vnpayService;
             _httpContext = httpContext;
             _currentUser = currentUser;
+            _orderService = orderService;
         }
 
         // ========================================
@@ -241,32 +244,16 @@ namespace VietCommerce.Application.Services.Services
                         continue;
                     }
 
-                    var currentPrice = GetCurrentProductPrice(product);
-                    if (currentPrice == null)
-                    {
-                        LogWarning("No active price found for product {ProductId}", ci.ProductId);
-                        continue;
-                    }
-
                     if (product.Stock < ci.Quantity)
                     {
                         return ApiResponse<CheckoutResponseDto>.FailureResponse(
                             $"Insufficient stock for {product.Name} INSUFFICIENT_STOCK");
                     }
 
-                    orderItems.Add(new OrderItem
-                    {
-                        Id = Guid.NewGuid(),
-                        OrderId = order.Id,
-                        ProductId = product.Id,
-                        ProductName = product.Name,
-                        ProductCode = product.Code ?? "",
-                        UnitPrice = currentPrice.Price,
-                        Quantity = ci.Quantity,
-                        TotalPrice = currentPrice.Price * ci.Quantity,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    });
+                    // Use OrderService to create OrderItem from CartItem
+                    // This ensures customization data is properly snapshotted
+                    var orderItem = await _orderService.CreateOrderItemFromCartItemAsync(ci, order.Id);
+                    orderItems.Add(orderItem);
                 }
 
                 if (!orderItems.Any())

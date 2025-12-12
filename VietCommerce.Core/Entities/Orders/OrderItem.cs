@@ -49,4 +49,24 @@ public class OrderItem : AuditableEntity, ISoftDelete
     /// </summary>
     [MaxLength(100)]
     public string? ServiceDuration { get; set; }
+
+    // ========================================
+    // 📦 PACKAGE & CUSTOMIZABLE PRODUCTS - NEW FIELDS
+    // ========================================
+
+    /// <summary>
+    /// JSON snapshot of customizations from CartItem at order time
+    /// Format: [{"optionId":"opt-xoi","quantity":10,"unitPrice":45000,"totalPrice":450000}]
+    /// </summary>
+    public string? CustomizationsJson { get; set; }
+
+    /// <summary>
+    /// Snapshot of base price from CartItem at order time
+    /// </summary>
+    public decimal BasePrice { get; set; }
+
+    /// <summary>
+    /// Snapshot of customization price from CartItem at order time
+    /// </summary>
+    public decimal CustomizationPrice { get; set; }
 }

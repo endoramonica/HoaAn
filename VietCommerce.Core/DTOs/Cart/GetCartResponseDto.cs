@@ -5,7 +5,11 @@ namespace VietCommerce.Core.DTOs.Cart
     {
         public Guid CartId { get; set; }
         public Guid UserId { get; set; }
-        public List<CartItemDto> Items { get; set; } = new();
+        /// <summary>
+        /// List of cart items with detailed information including customizations.
+        /// Each item includes BasePrice, CustomizationPrice, and FinalPrice breakdown.
+        /// </summary>
+        public List<CartItemDetailDto> Items { get; set; } = new();
         public int TotalItems { get; set; }
         public decimal SubTotal { get; set; }
         public decimal TaxAmount { get; set; }

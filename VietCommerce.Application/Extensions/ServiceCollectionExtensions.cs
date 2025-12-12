@@ -62,6 +62,9 @@ namespace VietCommerce.Application.Extension
             // Helpers
             services.AddScoped<JwtHelper>();
 
+            // Validators
+            services.AddScoped<CustomizableOptionValidator>();
+
             // Application Services
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<ICheckoutService, CheckoutService>();
@@ -87,8 +90,7 @@ namespace VietCommerce.Application.Extension
             services.AddScoped<ICustomerService, CustomerService>();
             services.AddScoped<IMarketingPostService, MarketingPostService>();
             services.AddScoped<IMixedFeedService, MixedFeedService>();
-
-
+            services.AddScoped<ICustomizationAnalyticsService, CustomizationAnalyticsService>();
 
             // RBAC / Auth
             services.AddScoped<IPermissionService, PermissionService>();

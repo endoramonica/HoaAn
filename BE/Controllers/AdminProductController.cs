@@ -38,14 +38,44 @@ namespace VietCommerce.AdminApi.Controllers
 
 
 
-        /// Create a new product
-
-
+        /// <summary>
+        /// Create a new product (regular or package product with customizable options).
+        /// 
+        /// For package products:
+        /// - Include Details array with fixed items (e.g., "Cá chép (3 con)", "Mũ giấy (3 cái)")
+        /// - Include CustomizableOptions array for items customers can modify
+        /// 
+        /// For regular products:
+        /// - Leave Details and CustomizableOptions null or empty
+        /// </summary>
+        /// <remarks>
         /// Required permission: product.create
+        /// 
+        /// Example package product request:
+        /// {
+        ///   "name": "Mâm Cúng Ông Công Ông Táo",
+        ///   "code": "MAM-CONG-TAO-001",
+        ///   "price": 3500000,
+        ///   "stockQuantity": 10,
+        ///   "details": ["Cá chép (3 con)", "Mũ giấy (3 cái)"],
+        ///   "customizableOptions": [
+        ///     {
+        ///       "id": "opt-xoi",
+        ///       "name": "Xôi gấc đậu xanh",
+        ///       "baseQuantity": 5,
+        ///       "unitPrice": 45000,
+        ///       "minQuantity": 5,
+        ///       "maxQuantity": 100,
+        ///       "unit": "dĩa"
+        ///     }
+        ///   ]
+        /// }
+        /// </remarks>
 
         [HttpPost]
         [Authorize] // JWT required
         [ProducesResponseType(typeof(ApiResponse<ProductDetailDto>), 200)]
+        [ProducesResponseType(400)]
         [ProducesResponseType(403)]
         public async Task<IActionResult> CreateProduct([FromBody] ProductCreateDto dto)
         {
@@ -72,14 +102,43 @@ namespace VietCommerce.AdminApi.Controllers
 
 
 
-        /// Update an existing product
-
-
+        /// <summary>
+        /// Update an existing product (regular or package product).
+        /// 
+        /// For package products:
+        /// - Include Details array to update fixed items
+        /// - Include CustomizableOptions array to update customizable items
+        /// - Changes apply only to new orders; existing orders retain snapshots
+        /// 
+        /// For regular products:
+        /// - Leave Details and CustomizableOptions null or empty
+        /// </summary>
+        /// <remarks>
         /// Required permission: product.update
+        /// 
+        /// Example package product update request:
+        /// {
+        ///   "name": "Mâm Cúng Ông Công Ông Táo - Updated",
+        ///   "price": 3600000,
+        ///   "details": ["Cá chép (3 con)", "Mũ giấy (3 cái)", "Hương đèn (1 bộ)"],
+        ///   "customizableOptions": [
+        ///     {
+        ///       "id": "opt-xoi",
+        ///       "name": "Xôi gấc đậu xanh",
+        ///       "baseQuantity": 5,
+        ///       "unitPrice": 50000,
+        ///       "minQuantity": 5,
+        ///       "maxQuantity": 100,
+        ///       "unit": "dĩa"
+        ///     }
+        ///   ]
+        /// }
+        /// </remarks>
 
         [HttpPut("{id}")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<ProductDetailDto>), 200)]
+        [ProducesResponseType(400)]
         [ProducesResponseType(403)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] ProductUpdateDto dto)
@@ -90,7 +149,22 @@ namespace VietCommerce.AdminApi.Controllers
                 return Unauthorized(new { message = "User not authenticated" });
             }
 
-            var result = await _productService.UpdateProductAsync(userId.Value, id, dto);
+            // Check if this is a package product update (has Details or CustomizableOptions)
+            bool isPackageUpdate = (dto.Details != null && dto.Details.Count > 0) ||
+                                   (dto.CustomizableOptions != null && dto.CustomizableOptions.Count > 0);
+
+            ApiResponse<ProductDetailDto> result;
+
+            if (isPackageUpdate)
+            {
+                // Use UpdatePackageProductAsync for package product updates
+                result = await _productService.UpdatePackageProductAsync(userId.Value, id, dto);
+            }
+            else
+            {
+                // Use standard UpdateProductAsync for regular product updates
+                result = await _productService.UpdateProductAsync(userId.Value, id, dto);
+            }
 
             if (!result.Success)
             {

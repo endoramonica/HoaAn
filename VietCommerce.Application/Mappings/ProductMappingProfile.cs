@@ -61,6 +61,7 @@ namespace VietCommerce.Application.Mappings
             CreateMap<Product, ProductDetailDto>()
                 .ForMember(dest => dest.ShortDescription, opt => opt.Ignore())
                 .ForMember(dest => dest.Description, opt => opt.Ignore())
+                .ForMember(dest => dest.StockQuantity, opt => opt.MapFrom(src => src.Stock))
                 .ForMember(dest => dest.Sku, opt => opt.MapFrom(src => src.SKU))
                 .ForMember(dest => dest.Barcode, opt => opt.Ignore())
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null))
@@ -79,6 +80,9 @@ namespace VietCommerce.Application.Mappings
                 .ForMember(dest => dest.ReviewCount, opt => opt.MapFrom(src => src.ReviewCount))
                 .ForMember(dest => dest.StoreName, opt => opt.MapFrom(src => src.Store != null ? src.Store.Name : null))
                 .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedByUser != null ? src.CreatedByUser.Name : null))
+                // Package & Customizable Products
+                .ForMember(dest => dest.Details, opt => opt.MapFrom(src => JsonSerializationHelper.DeserializeDetails(src.DetailsJson)))
+                .ForMember(dest => dest.CustomizableOptions, opt => opt.MapFrom(src => JsonSerializationHelper.DeserializeCustomizableOptions(src.CustomizableOptionsJson)))
 
                 // Mapping DisplayPrice từ PriceCalculationHelper
                 .ForMember(dest => dest.Price, opt => opt.MapFrom(src => PriceCalculationHelper.GetDisplayPrice(src).DiscountedPrice))

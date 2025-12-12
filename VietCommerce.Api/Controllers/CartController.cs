@@ -113,6 +113,46 @@ namespace VietCommerce.Api.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Add a package product to cart with customizations.
+        /// Validates customization quantities against product constraints and calculates final price.
+        /// </summary>
+        /// <param name="dto">The add to cart request containing product ID and customizations</param>
+        /// <returns>The newly added cart item with customization details and calculated prices</returns>
+        /// <remarks>
+        /// Requirements: 3.1, 3.3
+        /// - Validates customizations using ProductService.ValidateCustomizationsAsync
+        /// - Calculates final price: basePrice + sum(customization quantities × unit prices)
+        /// - Stores customizations as JSON in CartItem
+        /// - Returns CartItemDetailDto with BasePrice, CustomizationPrice, and FinalPrice breakdown
+        /// </remarks>
+        [HttpPost("add-with-customizations")]
+        [Authorize]
+        public async Task<IActionResult> AddToCartWithCustomizations([FromBody] AddToCartDto dto)
+        {
+            var userId = GetCurrentUserId();
+            if (!userId.HasValue)
+                return Unauthorized(new { message = "User not authenticated" });
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _cartService.AddToCartWithCustomizationsAsync(userId.Value, dto);
+
+            if (!result.Success)
+            {
+                if (result.Message.Contains("Access denied"))
+                    return Forbid();
+
+                if (result.Message.Contains("not found") || result.Message.Contains("Insufficient") || result.Message.Contains("validation failed"))
+                    return BadRequest(result);
+
+                return StatusCode(500, result);
+            }
+
+            return Ok(result);
+        }
+
         [HttpPut("update-item")]
         [Authorize]
         public async Task<IActionResult> UpdateCartItem([FromBody] UpdateCartItemDto dto)
@@ -135,6 +175,49 @@ namespace VietCommerce.Api.Controllers
                     return BadRequest(result);
 
                 if (result.Message.Contains("Insufficient"))
+                    return BadRequest(result);
+
+                return StatusCode(500, result);
+            }
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Update the customizations for an existing cart item.
+        /// Validates new customization quantities and recalculates the final price.
+        /// </summary>
+        /// <param name="cartItemId">The unique identifier of the cart item to update</param>
+        /// <param name="customizations">The new list of customizations to apply</param>
+        /// <returns>The updated cart item with new customization details and recalculated prices</returns>
+        /// <remarks>
+        /// Requirements: 4.1, 4.2
+        /// - Validates new customizations against product constraints
+        /// - Recalculates final price based on new customizations
+        /// - Updates CartItem with new customizationsJson, customizationPrice, and finalPrice
+        /// - Returns CartItemDetailDto with updated price breakdown
+        /// </remarks>
+        [HttpPut("items/{cartItemId}/customizations")]
+        [Authorize]
+        public async Task<IActionResult> UpdateCartItemCustomizations(
+            Guid cartItemId,
+            [FromBody] List<CartItemCustomizationDto> customizations)
+        {
+            var userId = GetCurrentUserId();
+            if (!userId.HasValue)
+                return Unauthorized(new { message = "User not authenticated" });
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _cartService.UpdateCartItemCustomizationsAsync(userId.Value, cartItemId, customizations);
+
+            if (!result.Success)
+            {
+                if (result.Message.Contains("Access denied"))
+                    return Forbid();
+
+                if (result.Message.Contains("not found") || result.Message.Contains("Unauthorized") || result.Message.Contains("validation failed"))
                     return BadRequest(result);
 
                 return StatusCode(500, result);
@@ -258,7 +341,7 @@ namespace VietCommerce.Api.Controllers
             var sessionId = GetOrCreateSessionId();
 
             _logger.LogDebug(
-                "Getting guest cart for session: {SessionId}", 
+                "Getting guest cart for session: {SessionId}",
                 SessionIdHelper.FormatSessionIdForLogging(sessionId));
 
             var result = await _cartService.GetGuestCartAsync(sessionId);
@@ -324,7 +407,7 @@ namespace VietCommerce.Api.Controllers
         [HttpPut("guest/items/{cartItemId}")]
         [AllowAnonymous]
         public async Task<IActionResult> UpdateGuestCartItem(
-            Guid cartItemId, 
+            Guid cartItemId,
             [FromBody] UpdateCartItemDto dto)
         {
             if (!ModelState.IsValid)

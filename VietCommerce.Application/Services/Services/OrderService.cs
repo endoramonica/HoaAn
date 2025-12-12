@@ -6,6 +6,7 @@ using VietCommerce.Application.Services.Services.Interfaces.Identities;
 using VietCommerce.Core.DTOs.Orders;
 using VietCommerce.Core.Entities.Orders;
 using VietCommerce.Core.Enums.Orders;
+using VietCommerce.Core.Helpers;
 using VietCommerce.Core.Models;
 using VietCommerce.Data.Repositories.Interfaces;
 
@@ -548,6 +549,69 @@ namespace VietCommerce.Application.Services.Services
             {
                 _logger.LogError(ex, "Error in bulk update");
                 return ApiResponse<int>.FailureResponse("BULK_UPDATE_ERROR");
+            }
+        }
+
+        /// <summary>
+        /// Create an OrderItem from a CartItem, snapshotting customization data.
+        /// ✅ Preserves customizations, base price, and customization price from CartItem
+        /// ✅ Ensures historical accuracy for fulfillment and analytics
+        /// </summary>
+        /// <param name="cartItem">CartItem to convert to OrderItem</param>
+        /// <param name="orderId">Order ID to associate with the new OrderItem</param>
+        /// <returns>Created OrderItem with snapshotted customization data</returns>
+        /// <remarks>
+        /// Validates: Requirements 5.1, 5.2, 5.3
+        /// This method snapshots all customization data from the CartItem to the OrderItem,
+        /// ensuring that any future changes to the product or cart do not affect the order.
+        /// </remarks>
+        public async Task<OrderItem> CreateOrderItemFromCartItemAsync(
+            CartItem cartItem,
+            Guid orderId)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Creating OrderItem from CartItem {CartItemId} for Order {OrderId}",
+                    cartItem.Id, orderId);
+
+                // Create new OrderItem with snapshotted data
+                var orderItem = new OrderItem
+                {
+                    OrderId = orderId,
+                    ProductId = cartItem.ProductId,
+                    ProductName = cartItem.Product?.Name ?? "Unknown Product",
+                    ProductCode = cartItem.Product?.Code ?? "UNKNOWN",
+                    UnitPrice = cartItem.BasePrice,
+                    Quantity = cartItem.Quantity,
+                    TotalPrice = cartItem.FinalPrice,
+
+                    // Snapshot customization data
+                    CustomizationsJson = cartItem.CustomizationsJson,
+                    BasePrice = cartItem.BasePrice,
+                    CustomizationPrice = cartItem.CustomizationPrice,
+
+                    // Audit fields
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = _currentUser.UserId,
+                    IsActive = true,
+                    IsDeleted = false
+                };
+
+                _logger.LogInformation(
+                    "OrderItem created from CartItem {CartItemId}: " +
+                    "BasePrice={BasePrice}, CustomizationPrice={CustomizationPrice}, FinalPrice={FinalPrice}",
+                    cartItem.Id, cartItem.BasePrice, cartItem.CustomizationPrice, cartItem.FinalPrice);
+
+                return await Task.FromResult(orderItem);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error creating OrderItem from CartItem {CartItemId} for Order {OrderId}",
+                    cartItem.Id, orderId);
+                throw;
             }
         }
 

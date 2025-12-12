@@ -11,6 +11,7 @@ using VietCommerce.Core.DTOs.Cart;
 using VietCommerce.Core.DTOs.Orders;
 using VietCommerce.Core.Entities.Orders;
 using VietCommerce.Core.Entities.Products;
+using VietCommerce.Core.Helpers;
 using VietCommerce.Core.Models;
 using VietCommerce.Data.Repositories.Interfaces;
 
@@ -30,6 +31,7 @@ namespace VietCommerce.Application.Services.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IPermissionService _permissionService;
+        private readonly IProductService _productService;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -38,12 +40,13 @@ namespace VietCommerce.Application.Services.Services
         private const string GUEST_CART_CACHE_PREFIX = "cart:guest";
         private const string CART_SUMMARY_CACHE_PREFIX = "cart:summary";
 
-        
+
         private const int CACHE_DURATION_MINUTES = 60;
 
         public CartService(
             IUnitOfWork unitOfWork,
             IPermissionService permissionService,
+            IProductService productService,
             IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
             ILogger<CartService> logger,
@@ -52,6 +55,7 @@ namespace VietCommerce.Application.Services.Services
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
+            _productService = productService ?? throw new ArgumentNullException(nameof(productService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         }
@@ -855,33 +859,221 @@ namespace VietCommerce.Application.Services.Services
         }
 
         /// <summary>
+        /// Add a product to user's cart with customizations for package products.
+        /// Validates customization quantities against product constraints and calculates final price.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user</param>
+        /// <param name="dto">The add to cart request containing product ID and optional customizations</param>
+        /// <returns>The newly added cart item with customization details and calculated prices</returns>
+        /// <remarks>
+        /// Requirements: 3.1, 3.3, 3.4
+        /// - Validates customizations using ProductService.ValidateCustomizationsAsync
+        /// - Calculates final price: basePrice + sum(customization quantities × unit prices)
+        /// - Stores customizations as JSON in CartItem
+        /// - Returns CartItemDetailDto with BasePrice, CustomizationPrice, and FinalPrice breakdown
+        /// </remarks>
+        public async Task<ApiResponse<CartItemDetailDto>> AddToCartWithCustomizationsAsync(Guid userId, AddToCartDto dto)
+        {
+            return await ExecuteAsApiResponseAsync(async () =>
+            {
+                ValidateId(userId);
+                ValidateNotNull(dto, nameof(dto));
+                ValidateId(dto.ProductId, nameof(dto.ProductId));
+                ThrowIf(dto.Quantity <= 0, "Quantity must be greater than 0");
+
+                ThrowIfNot(
+                    await _permissionService.CheckUserPermissionAsync(userId, "cart.add_item"),
+                    "Access denied: cart.add_item permission required");
+
+                var user = await _unitOfWork.Users.GetByIdAsync(userId);
+                ThrowIf(user == null, "User not found");
+
+                var product = await _unitOfWork.Products.GetByIdAsync(dto.ProductId);
+                ThrowIf(product == null, "Product not found");
+
+                ThrowIf(product.Stock < dto.Quantity,
+                    $"Insufficient stock. Available: {product.Stock}, Required: {dto.Quantity}");
+
+                // Validate customizations if provided
+                if (dto.Customizations != null && dto.Customizations.Count > 0)
+                {
+                    var validationResult = await _productService.ValidateCustomizationsAsync(
+                        dto.ProductId,
+                        dto.Customizations);
+
+                    ThrowIf(!validationResult.IsValid,
+                        $"Customization validation failed: {string.Join(", ", validationResult.Errors)}");
+                }
+
+                var cartRepository = _unitOfWork.Carts as ICartRepository;
+                var cart = await cartRepository.GetOrCreateCartByUserIdAsync(userId);
+                var currentPrice = GetCurrentProductPrice(product.Prices);
+
+                // Calculate customization price and final price
+                decimal customizationPrice = 0;
+                if (dto.Customizations != null && dto.Customizations.Count > 0)
+                {
+                    customizationPrice = dto.Customizations.Sum(c => c.Quantity * c.UnitPrice);
+                }
+
+                decimal finalPrice = PriceCalculationHelper.CalculateFinalPrice(currentPrice, dto.Customizations);
+
+                // Serialize customizations to JSON
+                string? customizationsJson = null;
+                if (dto.Customizations != null && dto.Customizations.Count > 0)
+                {
+                    customizationsJson = JsonSerializationHelper.SerializeCustomizations(dto.Customizations);
+                }
+
+                // Add cart item with customization data
+                var cartItem = await cartRepository.AddCartItemAsync(
+                    cart.Id,
+                    dto.ProductId,
+                    dto.Quantity,
+                    currentPrice
+                );
+
+                // Update cart item with customization details
+                cartItem.CustomizationsJson = customizationsJson;
+                cartItem.BasePrice = currentPrice;
+                cartItem.CustomizationPrice = customizationPrice;
+                cartItem.FinalPrice = finalPrice;
+                cartItem.UpdatedAt = DateTime.UtcNow;
+
+                _unitOfWork.CartItems.Update(cartItem);
+                await _unitOfWork.SaveChangesAsync();
+
+                // Invalidate cache
+                await InvalidateMultipleCachesAsync(
+                    CreateCacheKey(USER_CART_CACHE_PREFIX, userId),
+                    CreateCacheKey(CART_SUMMARY_CACHE_PREFIX, userId)
+                );
+
+                // Map to CartItemDetailDto
+                var cartItemDetail = _mapper.Map<CartItemDetailDto>(cartItem);
+                cartItemDetail.BasePrice = currentPrice;
+                cartItemDetail.CustomizationPrice = customizationPrice;
+                cartItemDetail.FinalPrice = finalPrice;
+                cartItemDetail.Customizations = dto.Customizations;
+
+                LogInfo($"✅ Item {dto.ProductId} added to cart for user {userId} with customizations. Qty: {dto.Quantity}");
+
+                return cartItemDetail;
+
+            }, "AddToCartWithCustomizations", "Item with customizations added to cart successfully");
+        }
+
+        /// <summary>
+        /// Update the customizations for an existing cart item.
+        /// Validates new customization quantities and recalculates the final price.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user</param>
+        /// <param name="cartItemId">The unique identifier of the cart item to update</param>
+        /// <param name="customizations">The new list of customizations to apply</param>
+        /// <returns>The updated cart item with new customization details and recalculated prices</returns>
+        /// <remarks>
+        /// Requirements: 4.1, 4.2
+        /// - Validates new customizations against product constraints
+        /// - Recalculates final price based on new customizations
+        /// - Updates CartItem with new customizationsJson, customizationPrice, and finalPrice
+        /// - Returns CartItemDetailDto with updated price breakdown
+        /// </remarks>
+        public async Task<ApiResponse<CartItemDetailDto>> UpdateCartItemCustomizationsAsync(
+            Guid userId,
+            Guid cartItemId,
+            List<CartItemCustomizationDto> customizations)
+        {
+            return await ExecuteAsApiResponseAsync(async () =>
+            {
+                ValidateId(userId);
+                ValidateId(cartItemId);
+                ValidateNotNull(customizations, nameof(customizations));
+
+                ThrowIfNot(
+                    await _permissionService.CheckUserPermissionAsync(userId, "cart.update_item"),
+                    "Access denied: cart.update_item permission required");
+
+                var cartItem = await _unitOfWork.CartItems.GetByIdAsync(cartItemId);
+                ThrowIf(cartItem == null, "Cart item not found");
+
+                var cart = await _unitOfWork.Carts.GetByIdAsync(cartItem.CartId);
+                ThrowIf(cart == null || cart.UserId != userId, "Unauthorized access to cart");
+
+                var product = await _unitOfWork.Products.GetByIdAsync(cartItem.ProductId);
+                ThrowIf(product == null, "Product not found");
+
+                // Validate new customizations
+                if (customizations.Count > 0)
+                {
+                    var validationResult = await _productService.ValidateCustomizationsAsync(
+                        cartItem.ProductId,
+                        customizations);
+
+                    ThrowIf(!validationResult.IsValid,
+                        $"Customization validation failed: {string.Join(", ", validationResult.Errors)}");
+                }
+
+                // Calculate new prices
+                decimal customizationPrice = 0;
+                if (customizations.Count > 0)
+                {
+                    customizationPrice = customizations.Sum(c => c.Quantity * c.UnitPrice);
+                }
+
+                decimal currentPrice = GetCurrentProductPrice(product.Prices);
+                decimal finalPrice = PriceCalculationHelper.CalculateFinalPrice(currentPrice, customizations);
+
+                // Serialize customizations to JSON
+                string? customizationsJson = null;
+                if (customizations.Count > 0)
+                {
+                    customizationsJson = JsonSerializationHelper.SerializeCustomizations(customizations);
+                }
+
+                // Update cart item
+                cartItem.CustomizationsJson = customizationsJson;
+                cartItem.BasePrice = currentPrice;
+                cartItem.CustomizationPrice = customizationPrice;
+                cartItem.FinalPrice = finalPrice;
+                cartItem.UpdatedAt = DateTime.UtcNow;
+
+                _unitOfWork.CartItems.Update(cartItem);
+                await _unitOfWork.SaveChangesAsync();
+
+                // Invalidate cache
+                await InvalidateMultipleCachesAsync(
+                    CreateCacheKey(USER_CART_CACHE_PREFIX, userId),
+                    CreateCacheKey(CART_SUMMARY_CACHE_PREFIX, userId)
+                );
+
+                // Map to CartItemDetailDto
+                var cartItemDetail = _mapper.Map<CartItemDetailDto>(cartItem);
+                cartItemDetail.BasePrice = currentPrice;
+                cartItemDetail.CustomizationPrice = customizationPrice;
+                cartItemDetail.FinalPrice = finalPrice;
+                cartItemDetail.Customizations = customizations;
+
+                LogInfo($"✏️ Cart item {cartItemId} customizations updated for user {userId}");
+
+                return cartItemDetail;
+
+            }, "UpdateCartItemCustomizations", "Cart item customizations updated successfully");
+        }
+
+        /// <summary>
         /// Map Cart entity to GetCartResponseDto
         /// Calculates totals and formats for API response
         /// </summary>
         private GetCartResponseDto MapCartToDto(Cart cart, IEnumerable<CartItem> cartItems)
         {
-            var subTotal = cartItems.Sum(ci => ci.Quantity * GetCurrentProductPrice(ci.Product?.Prices));
+            // Calculate subtotal including customization prices
+            var subTotal = cartItems.Sum(ci => ci.FinalPrice > 0 ? ci.FinalPrice : ci.Quantity * GetCurrentProductPrice(ci.Product?.Prices));
 
             return new GetCartResponseDto
             {
                 CartId = cart.Id,
                 UserId = cart.UserId,
-                Items = cartItems.Select(ci => new CartItemDto
-                {
-                    Id = ci.Id,
-                    CartId = ci.CartId,
-                    ProductId = ci.ProductId,
-                    ProductName = ci.Product?.Name ?? "Unknown",
-                    ProductCode = ci.Product?.Code ?? string.Empty,
-                    ProductImage = ci.Product?.Images?
-                        .OrderByDescending(img => img.CreatedAt)
-                        .Select(img => img.Url)
-                        .FirstOrDefault(),
-                    Quantity = ci.Quantity,
-                    UnitPrice = GetCurrentProductPrice(ci.Product?.Prices),
-                    StockAvailable = ci.Product?.Stock ?? 0,
-                    AddedAt = ci.CreatedAt
-                }).ToList(),
+                Items = cartItems.Select(ci => MapCartItemToDetailDto(ci)).ToList(),
                 TotalItems = cartItems.Sum(ci => ci.Quantity),
                 SubTotal = subTotal,
                 TaxAmount = 0,
@@ -889,6 +1081,53 @@ namespace VietCommerce.Application.Services.Services
                 TotalAmount = subTotal,
                 CreatedAt = cart.CreatedAt,
                 UpdatedAt = cart.UpdatedAt
+            };
+        }
+
+        /// <summary>
+        /// Maps a CartItem to CartItemDetailDto with customization details and price breakdown.
+        ///  /// Deserializes customizations from JSON and incice, CustomizationPrice, and FinalPrice.
+        /// </summary>
+        /// <param name="cartItem">The cart item to map</param>
+        /// <returns>CartItemDetailDto with customization details and price breakdown</returns>
+        /// <remarks>
+        /// Requirements: 8.1, 8.2
+        /// - Deserializes customizationsJson to CartItemCustomizationDto list
+        /// - Returns BasePrice, CustomizationPrice, and FinalPrice breakdown
+        /// - Handles null customizations gracefully
+        /// </remarks>
+        private CartItemDetailDto MapCartItemToDetailDto(CartItem cartItem)
+        {
+            // Deserialize customizations from JSON
+            var customizations = string.IsNullOrWhiteSpace(cartItem.CustomizationsJson)
+                ? null
+                : JsonSerializationHelper.DeserializeCustomizations(cartItem.CustomizationsJson);
+
+            return new CartItemDetailDto
+            {
+                CartItemId = cartItem.Id,
+                ProductId = cartItem.ProductId,
+                ProductName = cartItem.Product?.Name ?? "Unknown",
+                ProductSlug = cartItem.Product?.Slug ?? string.Empty,
+                SKU = cartItem.Product?.Code ?? string.Empty,
+                ProductImage = cartItem.Product?.Images?
+                    .OrderByDescending(img => img.CreatedAt)
+                    .Select(img => img.Url)
+                    .FirstOrDefault(),
+                UnitPrice = GetCurrentProductPrice(cartItem.Product?.Prices),
+                Quantity = cartItem.Quantity,
+                TotalPrice = cartItem.Quantity * GetCurrentProductPrice(cartItem.Product?.Prices),
+                AvailableStock = cartItem.Product?.Stock ?? 0,
+                IsProductActive = cartItem.Product?.IsActive ?? false,
+                PurchaseCount = cartItem.Product?.PurchaseCount ?? 0,
+                AvgRating = cartItem.Product?.AvgRating ?? 0,
+                ReviewCount = cartItem.Product?.ReviewCount ?? 0,
+                CreatedAt = cartItem.CreatedAt,
+                UpdatedAt = cartItem.UpdatedAt,
+                BasePrice = cartItem.BasePrice,
+                CustomizationPrice = cartItem.CustomizationPrice,
+                FinalPrice = cartItem.FinalPrice,
+                Customizations = customizations
             };
         }
 

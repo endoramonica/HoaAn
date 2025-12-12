@@ -6,6 +6,7 @@ using VietCommerce.Core.Entities.Marketing;
 using VietCommerce.Core.Enums.Products;
 using VietCommerce.Core.Enums.Marketing;
 using VietCommerce.Core.DTOs.Products;
+using VietCommerce.Core.DTOs.Cart;
 
 namespace VietCommerce.Core.Helpers
 {
@@ -95,6 +96,28 @@ namespace VietCommerce.Core.Helpers
                 DiscountAmount = discountAmount,
                 PromotionName = promotionName
             };
+        }
+
+        /// <summary>
+        /// Calculates the final price for a package product with customizations.
+        /// Formula: basePrice + sum(customization quantities × unit prices)
+        /// </summary>
+        /// <param name="basePrice">The base price of the package product</param>
+        /// <param name="customizations">List of customizations selected by the customer, or null if no customizations</param>
+        /// <returns>The final price including customization surcharges</returns>
+        /// <remarks>
+        /// If customizations is null or empty, returns the base price.
+        /// Each customization's contribution is calculated as: Quantity × UnitPrice
+        /// </remarks>
+        public static decimal CalculateFinalPrice(decimal basePrice, List<CartItemCustomizationDto>? customizations)
+        {
+            if (customizations == null || customizations.Count == 0)
+            {
+                return basePrice;
+            }
+
+            decimal customizationPrice = customizations.Sum(c => c.Quantity * c.UnitPrice);
+            return basePrice + customizationPrice;
         }
     }
 

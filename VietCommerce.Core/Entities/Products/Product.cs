@@ -106,4 +106,22 @@ public class Product : AuditableEntity, ISoftDelete
     [Column(TypeName = "decimal(3,2)")]
     public decimal? ServiceRating { get; set; }
 
+    // ========================================
+    // 📦 PACKAGE & CUSTOMIZABLE PRODUCTS - NEW FIELDS
+    // ========================================
+
+    /// <summary>
+    /// JSON array of fixed items included in the package
+    /// Example: ["Cá chép giấy (3 con)", "Mũ giấy (3 cái)", "Vàng mã (1 bộ)"]
+    /// Null if product is not a package
+    /// </summary>
+    public string? DetailsJson { get; set; }
+
+    /// <summary>
+    /// JSON array of customizable options for the package
+    /// Example: [{"id":"opt-xoi","name":"Xôi gấc đậu xanh","baseQuantity":5,"unitPrice":45000,"minQuantity":5,"maxQuantity":100,"unit":"dĩa"}]
+    /// Null if product has no customizable options
+    /// </summary>
+    public string? CustomizableOptionsJson { get; set; }
+
 }

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.Extensions.Logging;
 using VietCommerce.Application.Services.Services.Interfaces;
+using VietCommerce.Core.DTOs.Cart;
 using VietCommerce.Core.DTOs.Products;
 using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Helpers;
@@ -20,6 +21,7 @@ public class ProductService : BaseService, IProductService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPermissionService _permissionService;
     private readonly IMapper _mapper;
+    private readonly CustomizableOptionValidator _customizableOptionValidator;
 
     // Cache keys prefix
     private const string CACHE_KEY_PRODUCT = "product";
@@ -37,12 +39,14 @@ public class ProductService : BaseService, IProductService
         IPermissionService permissionService,
         ILogger<ProductService> logger,
         IMapper mapper,
-        ICacheService cacheService)
+        ICacheService cacheService,
+        CustomizableOptionValidator customizableOptionValidator)
         : base(logger, cacheService)
     {
         _unitOfWork = unitOfWork;
         _permissionService = permissionService;
         _mapper = mapper;
+        _customizableOptionValidator = customizableOptionValidator ?? throw new ArgumentNullException(nameof(customizableOptionValidator));
     }
 
     // ============================================
@@ -68,6 +72,16 @@ public class ProductService : BaseService, IProductService
                 throw new InvalidOperationException($"Product code '{dto.Code}' already exists");
             }
 
+            // ✅ VALIDATE: Package product fields (if present)
+            if (dto.CustomizableOptions != null && dto.CustomizableOptions.Count > 0)
+            {
+                var validationResult = await ValidateCustomizableOptionsAsync(dto.CustomizableOptions);
+                if (!validationResult.IsValid)
+                {
+                    throw new InvalidOperationException($"Customizable options validation failed: {string.Join("; ", validationResult.Errors)}");
+                }
+            }
+
             // ✅ MAP & CREATE
             var product = _mapper.Map<Product>(dto);
             product.Id = Guid.NewGuid();
@@ -77,6 +91,19 @@ public class ProductService : BaseService, IProductService
             product.CreatedAt = DateTime.UtcNow;
             product.UpdatedAt = DateTime.UtcNow;
             product.StoreId = Guid.Parse("47AA5519-C503-4CFA-8101-2EDB36FD9D8C");
+
+            // ✅ SERIALIZE: Package product fields
+            if (dto.Details != null && dto.Details.Count > 0)
+            {
+                product.DetailsJson = JsonSerializationHelper.SerializeDetails(dto.Details);
+                LogInfo("✅ Serialized {Count} product details", dto.Details.Count);
+            }
+
+            if (dto.CustomizableOptions != null && dto.CustomizableOptions.Count > 0)
+            {
+                product.CustomizableOptionsJson = JsonSerializationHelper.SerializeCustomizableOptions(dto.CustomizableOptions);
+                LogInfo("✅ Serialized {Count} customizable options", dto.CustomizableOptions.Count);
+            }
 
             // ✅ SAVE
             await _unitOfWork.Products.AddAsync(product);
@@ -156,6 +183,115 @@ public class ProductService : BaseService, IProductService
         },
         "UpdateProduct",
         "Product updated successfully");
+    }
+
+    /// <summary>
+    /// Updates a package product's customizable options and details.
+    /// Validates new options structure and updates CustomizableOptionsJson.
+    /// Ensures existing orders are not affected (they have snapshots).
+    /// Requirements: 6.1, 6.2
+    /// </summary>
+    public async Task<ApiResponse<ProductDetailDto>> UpdatePackageProductAsync(
+        Guid actorUserId,
+        Guid productId,
+        ProductUpdateDto dto)
+    {
+        return await ExecuteAsApiResponseAsync(async () =>
+        {
+            // ✅ VALIDATE
+            ValidateId(actorUserId, nameof(actorUserId));
+            ValidateId(productId, nameof(productId));
+            ValidateNotNull(dto, nameof(dto));
+
+            // ✅ PERMISSION CHECK
+            if (!await _permissionService.CheckUserPermissionAsync(actorUserId, "product.update"))
+            {
+                LogWarning("User {UserId} attempted to update package product {ProductId} without permission",
+                    actorUserId, productId);
+                throw new UnauthorizedAccessException("Access denied: product.update permission required");
+            }
+
+            // ✅ FETCH EXISTING PRODUCT
+            var product = await _unitOfWork.Products.GetByIdAsync(productId);
+            if (product == null)
+            {
+                throw new KeyNotFoundException("Product not found");
+            }
+
+            // ✅ VALIDATE NEW OPTIONS STRUCTURE (if provided)
+            if (dto.CustomizableOptions != null && dto.CustomizableOptions.Count > 0)
+            {
+                var validationResult = await ValidateCustomizableOptionsAsync(dto.CustomizableOptions);
+                if (!validationResult.IsValid)
+                {
+                    throw new InvalidOperationException($"Customizable options validation failed: {string.Join("; ", validationResult.Errors)}");
+                }
+            }
+
+            // ✅ UPDATE PACKAGE FIELDS
+            // Update Details if provided
+            if (dto.Details != null)
+            {
+                if (dto.Details.Count > 0)
+                {
+                    product.DetailsJson = JsonSerializationHelper.SerializeDetails(dto.Details);
+                    LogInfo("✅ Updated {Count} product details", dto.Details.Count);
+                }
+                else
+                {
+                    product.DetailsJson = null;
+                    LogInfo("✅ Cleared product details");
+                }
+            }
+
+            // Update CustomizableOptions if provided
+            if (dto.CustomizableOptions != null)
+            {
+                if (dto.CustomizableOptions.Count > 0)
+                {
+                    product.CustomizableOptionsJson = JsonSerializationHelper.SerializeCustomizableOptions(dto.CustomizableOptions);
+                    LogInfo("✅ Updated {Count} customizable options", dto.CustomizableOptions.Count);
+                }
+                else
+                {
+                    product.CustomizableOptionsJson = null;
+                    LogInfo("✅ Cleared customizable options");
+                }
+            }
+
+            // ✅ UPDATE STANDARD FIELDS (from base UpdateProductAsync logic)
+            if (dto.Name != null)
+            {
+                product.Name = dto.Name;
+                product.Slug = SlugHelper.GenerateSlug(dto.Name);
+            }
+            if (dto.CategoryId.HasValue) product.CategoryId = dto.CategoryId;
+            if (dto.Sku != null) product.SKU = dto.Sku;
+            if (dto.StockQuantity.HasValue) product.Stock = dto.StockQuantity.Value;
+            if (dto.IsActive.HasValue) product.IsActive = dto.IsActive.Value;
+
+            product.UpdatedBy = actorUserId;
+            product.UpdatedAt = DateTime.UtcNow;
+
+            // ✅ SAVE
+            _unitOfWork.Products.Update(product);
+            await _unitOfWork.SaveChangesAsync();
+
+            // ✅ INVALIDATE CACHE
+            // Note: Existing orders are NOT affected because they have snapshots of customizations
+            // in OrderItem.CustomizationsJson, BasePrice, and CustomizationPrice
+            await InvalidateProductCachesAsync(product.StoreId, product.CategoryId, productId);
+
+            // ✅ FETCH & RETURN UPDATED
+            var updated = await _unitOfWork.Products.GetByIdAsync(productId);
+            var result = _mapper.Map<ProductDetailDto>(updated);
+
+            LogInfo("✅ Package product {ProductId} updated by user {UserId}. Existing orders unaffected (snapshots preserved).",
+                productId, actorUserId);
+            return result;
+        },
+        "UpdatePackageProduct",
+        "Package product updated successfully. Existing orders are not affected.");
     }
 
     // ============================================
@@ -638,6 +774,105 @@ public class ProductService : BaseService, IProductService
         },
         "GetProductsByCategory",
         "Category products retrieved successfully");
+    }
+
+    // ============================================
+    // PACKAGE PRODUCT VALIDATION
+    // ============================================
+    public async Task<ValidationResult> ValidateCustomizableOptionsAsync(List<CustomizableOptionDto> options)
+    {
+        return await _customizableOptionValidator.ValidateCustomizableOptionsAsync(options);
+    }
+
+    public async Task<ValidationResult> ValidateCustomizationsAsync(
+        Guid productId,
+        List<CartItemCustomizationDto> customizations)
+    {
+        return await ExecuteAsync(async () =>
+        {
+            // Validate input
+            if (customizations == null || customizations.Count == 0)
+            {
+                LogWarning("❌ Customizations list is null or empty");
+                return new ValidationResult
+                {
+                    IsValid = false,
+                    Errors = new[] { "Customizations list cannot be null or empty" }
+                };
+            }
+
+            // Fetch product
+            var product = await _unitOfWork.Products.GetByIdAsync(productId);
+            if (product == null)
+            {
+                LogWarning("❌ Product {ProductId} not found", productId);
+                return new ValidationResult
+                {
+                    IsValid = false,
+                    Errors = new[] { "Product not found" }
+                };
+            }
+
+            // Deserialize customizable options from product
+            var options = JsonSerializationHelper.DeserializeCustomizableOptions(product.CustomizableOptionsJson);
+            if (options.Count == 0)
+            {
+                LogWarning("❌ Product {ProductId} has no customizable options", productId);
+                return new ValidationResult
+                {
+                    IsValid = false,
+                    Errors = new[] { "Product does not have customizable options" }
+                };
+            }
+
+            // Validate each customization
+            var allErrors = new List<string>();
+            var customizationIndex = 0;
+
+            foreach (var customization in customizations)
+            {
+                // Find matching option
+                var option = options.FirstOrDefault(o => o.Id == customization.OptionId);
+                if (option == null)
+                {
+                    allErrors.Add($"Customization {customizationIndex} - Option ID '{customization.OptionId}' not found in product");
+                    customizationIndex++;
+                    continue;
+                }
+
+                // Validate quantity within bounds
+                if (customization.Quantity < option.MinQuantity)
+                {
+                    allErrors.Add($"Customization {customizationIndex} - Quantity {customization.Quantity} is below minimum {option.MinQuantity}");
+                }
+
+                if (option.MaxQuantity.HasValue && customization.Quantity > option.MaxQuantity.Value)
+                {
+                    allErrors.Add($"Customization {customizationIndex} - Quantity {customization.Quantity} exceeds maximum {option.MaxQuantity.Value}");
+                }
+
+                customizationIndex++;
+            }
+
+            // Return result
+            if (allErrors.Any())
+            {
+                LogWarning($"❌ Customizations validation failed with {allErrors.Count} error(s)");
+                return new ValidationResult
+                {
+                    IsValid = false,
+                    Errors = allErrors.ToArray()
+                };
+            }
+
+            LogInfo("✅ Customizations validation passed for product {ProductId}", productId);
+            return new ValidationResult
+            {
+                IsValid = true,
+                Errors = Array.Empty<string>()
+            };
+        },
+        "ValidateCustomizations");
     }
 
     // ============================================

@@ -23,6 +23,7 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .Include(p => p.Prices.Where(pr => pr.IsActive && pr.EffectiveFrom <= now))
             .Include(p => p.Images)
             .Include(p => p.Category)
+            .Include(p => p.Inventories.Where(i => !i.IsDeleted))
             .Include(p => p.Store)
             .Include(p => p.PromotionProducts)
                 .ThenInclude(pp => pp.Promotion)
