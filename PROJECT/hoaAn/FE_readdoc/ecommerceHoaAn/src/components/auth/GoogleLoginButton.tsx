@@ -1,13 +1,14 @@
 /**
  * GoogleLoginButton - Nút đăng nhập/đăng ký bằng Google
- * Sử dụng @react-oauth/google hoặc mock cho development
+ * Tích hợp với @react-oauth/google
  */
 
-import { useState } from 'react';
+import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../lib/hooks/useAuth';
 import { useHybridNavigate } from '../../lib/hooks/useHybridNavigate';
 import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
+import { useState } from 'react';
 
 interface GoogleLoginButtonProps {
   onNavigate: (page: string) => void;
@@ -19,57 +20,39 @@ export const GoogleLoginButton = ({ onNavigate, isSignUp = false }: GoogleLoginB
   const { loginWithGoogle } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  /**
-   * Xử lý đăng nhập bằng Google
-   * TODO: Tích hợp thực tế với @react-oauth/google khi có Google Client ID
-   */
-  const handleGoogleLogin = async () => {
-    try {
-      setIsLoading(true);
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        setIsLoading(true);
+        console.log('[GoogleLoginButton] ✅ Google login successful, token:', tokenResponse);
 
-      // MOCK MODE: Simulate Google OAuth flow
-      // Trong production, sử dụng Google OAuth SDK
-      if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_USE_MOCK_DATA === 'true') {
-        // Mock delay để giả lập OAuth flow
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Mock Google ID token
-        const mockGoogleIdToken = 'mock_google_id_token_' + Date.now();
-        
-        await loginWithGoogle(mockGoogleIdToken);
-        
+        // Gửi access token tới backend
+        await loginWithGoogle({
+          idToken: tokenResponse.access_token,
+          accessToken: tokenResponse.access_token,
+        });
+
         // Chuyển hướng sau khi đăng nhập thành công
         navigate('home');
-      } else {
-        // PRODUCTION MODE: Real Google OAuth
-        // Kiểm tra xem có Google Client ID không
-        const googleClientId = import.meta.env?.VITE_GOOGLE_CLIENT_ID;
-        
-        if (!googleClientId) {
-          throw new Error('Google Client ID chưa được cấu hình');
-        }
-
-        // TODO: Tích hợp thực tế với Google OAuth
-        // Sử dụng thư viện @react-oauth/google
-        // import { useGoogleLogin } from '@react-oauth/google';
-        
-        // Hiện tại show error message
-        alert('Tính năng đăng nhập Google đang được phát triển.\nVui lòng sử dụng form đăng nhập thông thường.');
+      } catch (error) {
+        console.error('[GoogleLoginButton] ❌ Login error:', error);
+        // Error được xử lý bởi useAuth hook với toast notification
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Google login error:', error);
-      // Error được xử lý bởi useAuth hook với toast notification
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    onError: (error) => {
+      console.error('[GoogleLoginButton] ❌ Google login error:', error);
+    },
+    flow: 'implicit',
+  });
 
   return (
     <Button
       type="button"
       variant="outline"
       className="w-full border-[#92400E]/30 hover:border-[#92400E] hover:bg-[#92400E]/5 text-[#92400E] shadow-sm"
-      onClick={handleGoogleLogin}
+      onClick={() => googleLogin()}
       disabled={isLoading}
     >
       {isLoading ? (
@@ -105,49 +88,3 @@ export const GoogleLoginButton = ({ onNavigate, isSignUp = false }: GoogleLoginB
 };
 
 export default GoogleLoginButton;
-
-/**
- * HƯỚNG DẪN TÍCH HỢP GOOGLE OAUTH THỰC TẾ
- * ========================================
- * 
- * 1. Cài đặt thư viện Google OAuth:
- *    npm install @react-oauth/google
- * 
- * 2. Lấy Google Client ID từ Google Cloud Console:
- *    - Truy cập https://console.cloud.google.com/
- *    - Tạo project mới hoặc chọn project hiện có
- *    - Enable Google+ API
- *    - Tạo OAuth 2.0 Client ID (Web application)
- *    - Thêm authorized redirect URIs
- *    - Copy Client ID
- * 
- * 3. Thêm Google Client ID vào .env:
- *    VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
- * 
- * 4. Wrap App với GoogleOAuthProvider trong App.tsx:
- *    import { GoogleOAuthProvider } from '@react-oauth/google';
- *    
- *    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
- *      <App />
- *    </GoogleOAuthProvider>
- * 
- * 5. Sử dụng hook useGoogleLogin trong component này:
- *    import { useGoogleLogin } from '@react-oauth/google';
- *    
- *    const login = useGoogleLogin({
- *      onSuccess: async (tokenResponse) => {
- *        await loginWithGoogle(tokenResponse.access_token);
- *        onNavigate('home');
- *      },
- *      onError: (error) => console.error('Google login error:', error),
- *    });
- *    
- *    // Trong button onClick:
- *    onClick={() => login()}
- * 
- * 6. Backend (.NET Core) cần có endpoint POST /api/auth/google-login
- *    Nhận GoogleLoginRequest { idToken: string }
- *    Verify token với Google API
- *    Tạo hoặc update user
- *    Trả về LoginResponse với JWT tokens
- */

@@ -1,0 +1,28 @@
+.category-carousel-container {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 0.5rem 0;
+  
+  /* Hide scrollbar */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.category-carousel-container::-webkit-scrollbar {
+  display: none;
+}
+
+.category-carousel-item {
+  flex-shrink: 0;
+  width: 140px;
+  min-width: 140px;
+}
+
+/* Smooth scroll animation */
+@media (prefers-reduced-motion: no-preference) {
+  .category-carousel-container {
+    scroll-behavior: smooth;
+  }
+}

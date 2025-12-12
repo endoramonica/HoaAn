@@ -44,6 +44,16 @@ export interface ImageObject {
   updatedAt?: string;
 }
 
+export interface CustomizableOption {
+  id?: string;
+  name?: string;
+  baseQuantity?: number;
+  unitPrice?: number;
+  minQuantity?: number;
+  maxQuantity?: number;
+  unit?: string;
+}
+
 export interface ProductDetailDto extends ProductListDto {
   code?: string;
   categoryId?: string;
@@ -57,6 +67,8 @@ export interface ProductDetailDto extends ProductListDto {
   favoriteCount?: number;
   averageRating?: number;
   reviewCount?: number;
+  details?: string[];
+  customizableOptions?: CustomizableOption[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -230,6 +242,16 @@ class VietCommerceProductService {
         favoriteCount: data?.favoriteCount,
         averageRating: data?.averageRating,
         reviewCount: data?.reviewCount,
+        details: data?.details || [],
+        customizableOptions: data?.customizableOptions?.map((opt: any) => ({
+          id: opt.id,
+          name: opt.name,
+          baseQuantity: opt.baseQuantity,
+          unitPrice: opt.unitPrice,
+          minQuantity: opt.minQuantity,
+          maxQuantity: opt.maxQuantity,
+          unit: opt.unit,
+        })) || [],
         categoryName: data?.categoryName,
         storeName: data?.storeName,
         createdAt: data?.createdAt,
@@ -282,6 +304,16 @@ class VietCommerceProductService {
         favoriteCount: data?.favoriteCount,
         averageRating: data?.averageRating,
         reviewCount: data?.reviewCount,
+        details: data?.details || [],
+        customizableOptions: data?.customizableOptions?.map((opt: any) => ({
+          id: opt.id,
+          name: opt.name,
+          baseQuantity: opt.baseQuantity,
+          unitPrice: opt.unitPrice,
+          minQuantity: opt.minQuantity,
+          maxQuantity: opt.maxQuantity,
+          unit: opt.unit,
+        })) || [],
         categoryName: data?.categoryName,
         storeName: data?.storeName,
         createdAt: data?.createdAt,
@@ -392,6 +424,16 @@ class VietCommerceProductService {
         favoriteCount: result?.favoriteCount,
         averageRating: result?.averageRating,
         reviewCount: result?.reviewCount,
+        details: result?.details || [],
+        customizableOptions: result?.customizableOptions?.map((opt: any) => ({
+          id: opt.id,
+          name: opt.name,
+          baseQuantity: opt.baseQuantity,
+          unitPrice: opt.unitPrice,
+          minQuantity: opt.minQuantity,
+          maxQuantity: opt.maxQuantity,
+          unit: opt.unit,
+        })) || [],
         createdAt: result?.createdAt,
         updatedAt: result?.updatedAt,
       };
@@ -441,6 +483,16 @@ class VietCommerceProductService {
         favoriteCount: result?.favoriteCount,
         averageRating: result?.averageRating,
         reviewCount: result?.reviewCount,
+        details: result?.details || [],
+        customizableOptions: result?.customizableOptions?.map((opt: any) => ({
+          id: opt.id,
+          name: opt.name,
+          baseQuantity: opt.baseQuantity,
+          unitPrice: opt.unitPrice,
+          minQuantity: opt.minQuantity,
+          maxQuantity: opt.maxQuantity,
+          unit: opt.unit,
+        })) || [],
         createdAt: result?.createdAt,
         updatedAt: result?.updatedAt,
       };

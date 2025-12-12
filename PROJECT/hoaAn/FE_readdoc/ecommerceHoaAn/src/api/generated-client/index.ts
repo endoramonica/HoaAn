@@ -123,6 +123,7 @@ export type { ProblemDetails } from './models/ProblemDetails';
 export type { ProductCreateDto } from './models/ProductCreateDto';
 export type { ProductDetailDto } from './models/ProductDetailDto';
 export type { ProductDetailDtoApiResponse } from './models/ProductDetailDtoApiResponse';
+export type { ProductImageDto } from './models/ProductImageDto';
 export type { ProductInWishlistDto } from './models/ProductInWishlistDto';
 export type { ProductListDto } from './models/ProductListDto';
 export type { ProductListDtoListApiResponse } from './models/ProductListDtoListApiResponse';

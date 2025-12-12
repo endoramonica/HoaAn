@@ -132,20 +132,56 @@ export interface ProductListDto {
   createdAt: string;
 }
 
+export interface ProductImageDetailDto {
+  id: string;
+  productId: string;
+  url: string;
+  thumbnailUrl: string;
+  displayOrder: number;
+  mediaType: number;
+  isMain: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomizableOptionDto {
+  id: string;
+  name: string;
+  baseQuantity: number;
+  unitPrice: number;
+  minQuantity: number;
+  maxQuantity: number;
+  unit: string;
+}
+
 export interface ProductDetailDto {
   id: string;
   name: string;
   slug: string;
   code: string;
   categoryId: string;
+  categoryName?: string;
   storeId: string;
+  storeName?: string;
   sku: string;
   price: number;
-  stock: number;
+  compareAtPrice?: number;
+  displayPrice?: DisplayPrice;
+  stock?: number;
+  stockQuantity?: number;
   isActive: boolean;
+  isFeatured?: boolean;
   description?: string;
+  primaryImage?: string;
   thumbnailUrl?: string;
-  images?: string[];
+  images?: ProductImageDetailDto[];
+  tags?: string[];
+  viewCount?: number;
+  favoriteCount?: number;
+  averageRating?: number;
+  reviewCount?: number;
+  details?: string[];
+  customizableOptions?: CustomizableOptionDto[];
   createdAt: string;
   updatedAt: string;
 }
@@ -649,6 +685,66 @@ export interface FileUploadResponse {
   fileName: string;
   fileSize: number;
   contentType: string;
+}
+
+// ============================================================================
+// Cart Types
+// ============================================================================
+
+export interface CartItemDto {
+  cartItemId: string;
+  productId: string;
+  productName: string;
+  productSlug: string;
+  sku: string;
+  productImage: string;
+  unitPrice: number;
+  quantity: number;
+  totalPrice: number;
+  availableStock: number;
+  isProductActive: boolean;
+  purchaseCount: number;
+  avgRating: number;
+  reviewCount: number;
+  basePrice: number;
+  customizationPrice: number;
+  finalPrice: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CartDto {
+  cartId: string;
+  userId: string;
+  items: CartItemDto[];
+  totalItems: number;
+  subTotal: number;
+  taxAmount: number;
+  shippingFee: number;
+  totalAmount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CartSummaryDto {
+  totalItems: number;
+  subTotal: number;
+  taxAmount: number;
+  shippingFee: number;
+  totalAmount: number;
+  appliedCoupon?: string;
+}
+
+export interface CartResponseDto {
+  success: boolean;
+  data: CartDto;
+  message: string;
+}
+
+export interface CartSummaryResponseDto {
+  success: boolean;
+  data: CartSummaryDto;
+  message: string;
 }
 
 // ============================================================================

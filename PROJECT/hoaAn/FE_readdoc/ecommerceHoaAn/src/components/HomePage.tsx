@@ -6,10 +6,10 @@ import '../styles/keen-slider-custom.css';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Skeleton } from './ui/skeleton';
+
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { useHybridNavigate } from '../lib/hooks/useHybridNavigate';
-import { useActiveCategories } from '../lib/hooks/useCategories';
+import { CategoryCarousel, CategoryProductsSection } from './carousel';
+
 import { 
   Flower2, 
   Star, 
@@ -18,12 +18,10 @@ import {
   Calendar,
   Flame,
   Sparkles,
-  Gift,
   Clock,
   Shield,
   Award,
   Truck,
-  MessageCircle,
   Package,
   MapPin,
   Phone,
@@ -31,19 +29,15 @@ import {
   Zap,
   Brain,
   Moon,
-  ArrowRight,
-  AlertCircle
+  ArrowRight
 } from 'lucide-react';
-
-interface HomePageProps {
-  onNavigate?: (page: string) => void;
-}
 
 export function HomePage() {
   const navigate = useNavigate();
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<{ id: string; name: string } | null>(null);
   const sliderRef = useRef<any>(null);
   const [sliderInstanceState, instanceRef] = useKeenSlider<HTMLDivElement>(
     {
@@ -97,8 +91,7 @@ export function HomePage() {
     return () => clearInterval(interval);
   }, [loaded]);
 
-  // Load categories from API (same as ProductsPage)
-  const { data: apiCategories, isLoading: categoriesLoading } = useActiveCategories();
+
 
   const ceremonyTypes = [
     { name: 'Lễ cưới hỏi', image: 'https://images.unsplash.com/photo-1730130856640-3db880ab33b7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhc2lhbiUyMGNlcmVtb25pYWwlMjB3ZWRkaW5nJTIwdHJhZGl0aW9uYWx8ZW58MXx8fHwxNzU3Njc0NDMwfDA&ixlib=rb-4.1.0&q=80&w=1080' },
@@ -133,13 +126,7 @@ export function HomePage() {
     }
   ];
 
-  const scrollCeremony = (direction: 'left' | 'right') => {
-    if (direction === 'left') {
-      setCurrentCeremony((prev) => (prev - 1 + ceremonyTypes.length) % ceremonyTypes.length);
-    } else {
-      setCurrentCeremony((prev) => (prev + 1) % ceremonyTypes.length);
-    }
-  };
+
 
   return (
     <div>
@@ -392,59 +379,20 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Categories Section - Load from API */}
-      <section className="py-16 bg-white">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <Flower2 className="w-12 h-12 mx-auto mb-4 text-yellow-600" />
-            <h2 className="text-3xl md:text-4xl text-amber-900 mb-4">
-              Danh mục sản phẩm
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Khám phá đầy đủ các loại đồ cúng và dịch vụ nghi lễ chất lượng cao
-            </p>
-          </div>
-          
-          {categoriesLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-              {Array.from({ length: 6 }, (_, i) => (
-                <Card key={i} className="border-2">
-                  <CardContent className="p-6 text-center">
-                    <Skeleton className="w-16 h-16 mx-auto mb-4 rounded-full" />
-                    <Skeleton className="h-4 w-20 mx-auto mb-2" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : apiCategories && apiCategories.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-              {apiCategories.map((category) => (
-                <Card 
-                  key={category.id} 
-                  className="group cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-2 border-2 hover:border-yellow-400"
-                  onClick={() => navigate(`/products?category=${category.id}`)}
-                >
-                  <CardContent className="p-6 text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-yellow-400 to-red-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                      {category.imageUrl ? (
-                        <img src={category.imageUrl} alt={category.name} className="w-8 h-8 object-contain" />
-                      ) : (
-                        <Flower2 className="w-8 h-8 text-white" />
-                      )}
-                    </div>
-                    <h3 className="text-lg text-amber-900 font-medium">{category.name}</h3>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center gap-3 p-6 bg-red-50 rounded-lg border border-red-200">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <p className="text-red-700">Không thể tải danh mục. Vui lòng thử lại sau.</p>
-            </div>
-          )}
-        </div>
-      </section>
+      {/* Category Carousel Section - Infinite Marquee Animation */}
+      <CategoryCarousel 
+        onCategorySelect={(categoryId, categoryName) => {
+          setSelectedCategory({ id: categoryId, name: categoryName });
+        }}
+      />
+
+      {/* Category Products Section - Top 5 Products */}
+      {selectedCategory && (
+        <CategoryProductsSection 
+          categoryId={selectedCategory.id}
+          categoryName={selectedCategory.name}
+        />
+      )}
 
       {/* Ceremony Types Carousel - Keen Slider */}
       <section className="py-16 bg-gradient-to-br from-red-50 to-yellow-50">

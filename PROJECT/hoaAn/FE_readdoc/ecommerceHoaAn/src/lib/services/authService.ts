@@ -5,6 +5,7 @@
 
 import { AuthService as ApiAuthService } from '@/api/services/AuthService';
 import { tokenStorage } from '../api/client';
+import { extractGoogleUserInfo } from '../utils/googleTokenDecoder';
 import type {
   LoginRequest,
   LoginResponse,
@@ -59,12 +60,12 @@ function extractErrorMessage(error: any, defaultMessage: string): string {
   // Case 1: error.body is an object with message
   if (error.body && typeof error.body === 'object') {
     console.log('[AuthService] 📦 error.body content:', error.body);
-    
+
     if (error.body.message) {
       console.log('[AuthService] ✅ Found message in error.body.message');
       return error.body.message;
     }
-    
+
     if (error.body.title) {
       console.log('[AuthService] ✅ Found message in error.body.title');
       return error.body.title;
@@ -141,31 +142,31 @@ class AuthService {
     try {
       if (USE_MOCK) {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
         if (!request.email || !request.password) {
           throw new Error('Email và mật khẩu không được để trống');
         }
 
         tokenStorage.setTokens(
-          MOCK_LOGIN_RESPONSE.accessToken, 
+          MOCK_LOGIN_RESPONSE.accessToken,
           MOCK_LOGIN_RESPONSE.refreshToken,
           request.rememberMe
         );
-        
+
         return MOCK_LOGIN_RESPONSE;
       }
 
       console.log('[AuthService] Calling login API via OpenAPI client...');
-      
+
       const apiResponse = await ApiAuthService.postApiV1AuthLogin({
         email: request.email,
         password: request.password,
       });
-      
+
       console.log('[AuthService] 🔍 Raw API Response:', apiResponse);
-      
+
       const backendResponse = apiResponse as OpenAPIResponse;
-      
+
       const accessToken = backendResponse.data?.accessToken || backendResponse.data?.token;
       const refreshToken = backendResponse.data?.refreshToken;
       const user = backendResponse.data?.user;
@@ -186,7 +187,7 @@ class AuthService {
       }
 
       tokenStorage.setTokens(accessToken, refreshToken, request.rememberMe);
-      
+
       console.log('[AuthService] ✅ Tokens saved successfully');
 
       const transformedResponse: LoginResponse = {
@@ -204,25 +205,25 @@ class AuthService {
           updatedAt: new Date().toISOString(),
         }
       };
-      
+
       console.log('[AuthService] ✅ Login successful:', transformedResponse.user.email);
 
       return transformedResponse;
-      
+
     } catch (error: any) {
       console.error('[AuthService] ❌ Login error:', error);
       console.error('[AuthService] Full error object:', JSON.stringify(error, null, 2));
-      
+
       // ✅ CRITICAL: Extract message from error.body
       const errorMessage = extractErrorMessage(error, 'Đăng nhập thất bại');
-      
+
       console.error('[AuthService] 🎯 Final error message to display:', errorMessage);
-      
+
       // ✅ Create new error with extracted message
       const customError = new Error(errorMessage);
       (customError as any).status = error.status;
       (customError as any).originalError = error;
-      
+
       throw customError;
     }
   }
@@ -234,13 +235,13 @@ class AuthService {
     try {
       if (USE_MOCK) {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        if (!request.idToken) {
+
+        if (!request.idToken && !request.accessToken) {
           throw new Error('Token Google không hợp lệ');
         }
 
         tokenStorage.setTokens(MOCK_LOGIN_RESPONSE.accessToken, MOCK_LOGIN_RESPONSE.refreshToken);
-        
+
         return {
           ...MOCK_LOGIN_RESPONSE,
           user: {
@@ -251,21 +252,51 @@ class AuthService {
         };
       }
 
-      const apiResponse = await ApiAuthService.postApiV1AuthLoginGoogle({
-        idToken: request.idToken,
+      console.log('[AuthService] 🔍 Google login request:', {
+        hasIdToken: !!request.idToken,
+        hasAccessToken: !!request.accessToken,
       });
-      
+
+      // Extract user info from Google token
+      const googleUserInfo = request.idToken
+        ? extractGoogleUserInfo(request.idToken)
+        : null;
+
+      console.log('[AuthService] 📦 Google user info:', googleUserInfo);
+
+      // Prepare request for backend
+      const socialLoginRequest = {
+        provider: 'Google',
+        idToken: request.idToken,
+        email: googleUserInfo?.email,
+        name: googleUserInfo?.name,
+        avatarUrl: googleUserInfo?.picture,
+      };
+
+      console.log('[AuthService] 📤 Sending to backend:', socialLoginRequest);
+
+      const apiResponse = await ApiAuthService.postApiV1AuthLoginGoogle(socialLoginRequest);
+
+      console.log('[AuthService] 📥 Backend response:', apiResponse);
+
       const backendResponse = apiResponse as OpenAPIResponse;
       const accessToken = backendResponse.data?.accessToken || backendResponse.data?.token;
       const refreshToken = backendResponse.data?.refreshToken;
       const user = backendResponse.data?.user;
-      
+
       if (!accessToken || !refreshToken || !user) {
-        throw new Error('Invalid response from Google login');
+        console.error('[AuthService] ❌ Missing required fields in response:', {
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken,
+          hasUser: !!user,
+        });
+        throw new Error('Backend không trả về đầy đủ thông tin');
       }
 
       tokenStorage.setTokens(accessToken, refreshToken);
-      
+
+      console.log('[AuthService] ✅ Google login successful:', user.email);
+
       return {
         accessToken,
         refreshToken,
@@ -281,12 +312,13 @@ class AuthService {
           updatedAt: new Date().toISOString(),
         }
       };
-      
+
     } catch (error: any) {
-      console.error('[AuthService] Google login error:', error);
-      
+      console.error('[AuthService] ❌ Google login error:', error);
+      console.error('[AuthService] Full error:', JSON.stringify(error, null, 2));
+
       const errorMessage = extractErrorMessage(error, 'Đăng nhập bằng Google thất bại');
-      
+
       const customError = new Error(errorMessage);
       (customError as any).status = error.status;
       throw customError;
@@ -300,7 +332,7 @@ class AuthService {
     try {
       if (USE_MOCK) {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
         if (!request.email || !request.password || !request.fullName) {
           throw new Error('Vui lòng điền đầy đủ thông tin');
         }
@@ -310,7 +342,7 @@ class AuthService {
         }
 
         tokenStorage.setTokens(MOCK_LOGIN_RESPONSE.accessToken, MOCK_LOGIN_RESPONSE.refreshToken);
-        
+
         return {
           ...MOCK_LOGIN_RESPONSE,
           user: {
@@ -329,18 +361,18 @@ class AuthService {
         fullName: request.fullName,
         phoneNumber: request.phoneNumber,
       });
-      
+
       const backendResponse = apiResponse as OpenAPIResponse;
       const accessToken = backendResponse.data?.accessToken || backendResponse.data?.token;
       const refreshToken = backendResponse.data?.refreshToken;
       const user = backendResponse.data?.user;
-      
+
       if (!accessToken || !refreshToken || !user) {
         throw new Error('Invalid response from register');
       }
 
       tokenStorage.setTokens(accessToken, refreshToken);
-      
+
       return {
         accessToken,
         refreshToken,
@@ -356,12 +388,12 @@ class AuthService {
           updatedAt: new Date().toISOString(),
         }
       };
-      
+
     } catch (error: any) {
       console.error('[AuthService] Register error:', error);
-      
+
       const errorMessage = extractErrorMessage(error, 'Đăng ký thất bại');
-      
+
       const customError = new Error(errorMessage);
       (customError as any).status = error.status;
       throw customError;
@@ -384,7 +416,7 @@ class AuthService {
       } catch (error) {
         console.warn('[AuthService] Logout API error (ignored):', error);
       }
-      
+
       tokenStorage.clearTokens();
       console.log('[AuthService] ✅ Logged out successfully');
     } catch (error) {
@@ -399,14 +431,14 @@ class AuthService {
   async refreshToken(): Promise<RefreshTokenResponse> {
     try {
       const refreshToken = tokenStorage.getRefreshToken();
-      
+
       if (!refreshToken) {
         throw new Error('No refresh token available');
       }
 
       if (USE_MOCK) {
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         const mockResponse: RefreshTokenResponse = {
           accessToken: 'mock_access_token_refreshed_' + Date.now(),
           refreshToken: 'mock_refresh_token_refreshed_' + Date.now(),
@@ -414,24 +446,24 @@ class AuthService {
         };
 
         tokenStorage.setTokens(mockResponse.accessToken, mockResponse.refreshToken);
-        
+
         return mockResponse;
       }
 
       const apiResponse = await ApiAuthService.postApiV1AuthRefreshToken({
         refreshToken,
       });
-      
+
       const response = apiResponse as any;
       const newAccessToken = response.data?.accessToken || response.data?.token;
       const newRefreshToken = response.data?.refreshToken;
-      
+
       if (!newAccessToken || !newRefreshToken) {
         throw new Error('Invalid refresh token response');
       }
-      
+
       tokenStorage.setTokens(newAccessToken, newRefreshToken);
-      
+
       return {
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,

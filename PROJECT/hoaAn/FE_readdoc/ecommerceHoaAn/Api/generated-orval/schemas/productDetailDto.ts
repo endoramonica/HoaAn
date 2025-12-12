@@ -6,6 +6,7 @@
  * OpenAPI spec version: v1
  */
 import type { DisplayPriceResult } from './displayPriceResult';
+import type { ProductImageDto } from './productImageDto';
 
 export interface ProductDetailDto {
   id?: string;
@@ -41,7 +42,7 @@ export interface ProductDetailDto {
   /** @nullable */
   brandName?: string | null;
   /** @nullable */
-  images?: string[] | null;
+  images?: ProductImageDto[] | null;
   /** @nullable */
   readonly primaryImage?: string | null;
   /** @nullable */

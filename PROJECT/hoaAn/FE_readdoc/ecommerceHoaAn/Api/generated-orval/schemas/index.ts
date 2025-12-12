@@ -147,6 +147,7 @@ export * from './problemDetails';
 export * from './productCreateDto';
 export * from './productDetailDto';
 export * from './productDetailDtoApiResponse';
+export * from './productImageDto';
 export * from './productInWishlistDto';
 export * from './productListDto';
 export * from './productListDtoListApiResponse';

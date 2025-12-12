@@ -154,15 +154,24 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
     }
   };
 
+  const getImageUrls = (): string[] => {
+    if (productDetail?.images && Array.isArray(productDetail.images)) {
+      return productDetail.images
+        .map((img: any) => img.url)
+        .filter(Boolean) as string[];
+    }
+    return product?.image ? [product.image] : [];
+  };
+
   const handlePrevImage = () => {
-    const images = productDetail?.images || [product?.image];
+    const images = getImageUrls();
     if (images.length > 0) {
       setCurrentImageIndex(prev => (prev - 1 + images.length) % images.length);
     }
   };
 
   const handleNextImage = () => {
-    const images = productDetail?.images || [product?.image];
+    const images = getImageUrls();
     if (images.length > 0) {
       setCurrentImageIndex(prev => (prev + 1) % images.length);
     }
@@ -188,11 +197,17 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                 </div>
               ) : (
                 <>
-                  <ImageWithFallback
-                    src={productDetail?.images?.[currentImageIndex] || product.image}
-                    alt={product.name}
-                    className="w-full h-96 object-cover"
-                  />
+                  {(() => {
+                    const images = getImageUrls();
+                    const currentImage = images[currentImageIndex] || product.image;
+                    return (
+                      <ImageWithFallback
+                        src={currentImage}
+                        alt={product.name}
+                        className="w-full h-96 object-cover"
+                      />
+                    );
+                  })()}
                   {product.featured && (
                     <Badge className="absolute top-3 left-3 bg-red-600 text-white">
                       Nổi bật
@@ -205,7 +220,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                   )}
                   
                   {/* Image Navigation */}
-                  {(productDetail?.images?.length || 0) > 1 && (
+                  {getImageUrls().length > 1 && (
                     <>
                       <Button
                         size="icon"
@@ -230,27 +245,30 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
             </div>
 
             {/* Image Thumbnails */}
-            {(productDetail?.images?.length || 0) > 1 && (
-              <div className="flex gap-2 overflow-x-auto">
-                {productDetail?.images?.map((image: string, index: number) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentImageIndex(index)}
-                    className={`flex-shrink-0 w-16 h-16 rounded border-2 overflow-hidden transition-all ${
-                      currentImageIndex === index
-                        ? 'border-amber-600'
-                        : 'border-gray-200 hover:border-amber-300'
-                    }`}
-                  >
-                    <ImageWithFallback
-                      src={image}
-                      alt={`${product.name} ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
+            {(() => {
+              const images = getImageUrls();
+              return images.length > 1 ? (
+                <div className="flex gap-2 overflow-x-auto">
+                  {images.map((image: string, index: number) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`flex-shrink-0 w-16 h-16 rounded border-2 overflow-hidden transition-all ${
+                        currentImageIndex === index
+                          ? 'border-amber-600'
+                          : 'border-gray-200 hover:border-amber-300'
+                      }`}
+                    >
+                      <ImageWithFallback
+                        src={image}
+                        alt={`${product.name} ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              ) : null;
+            })()}
           </div>
 
           {/* Product Details */}
@@ -316,7 +334,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                   variant="outline"
                   size="icon"
                   onClick={() => handleQuantityChange(1)}
-                  disabled={isAddingToCart}
+                  disabled={isAddingToCart || !productDetail?.stockQuantity || productDetail.stockQuantity <= 0}
                   className="border-amber-300 text-amber-700 hover:bg-amber-50"
                 >
                   <Plus className="w-4 h-4" />
@@ -330,7 +348,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
               <Button 
                 className="w-full bg-red-600 hover:bg-red-700 text-white text-lg py-3"
                 onClick={handleAddToCart}
-                disabled={isAddingToCart}
+                disabled={isAddingToCart || !productDetail?.stockQuantity || productDetail.stockQuantity <= 0}
               >
                 {isAddingToCart ? (
                   <>
@@ -386,8 +404,8 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                 </div>
                 <div className="flex justify-between">
                   <span>Tình trạng:</span>
-                  <span className={productDetail?.stockQuantity ? 'text-green-600' : 'text-red-600'}>
-                    {productDetail?.stockQuantity ? `Còn ${productDetail.stockQuantity} sản phẩm` : 'Hết hàng'}
+                  <span className={productDetail?.stockQuantity && productDetail.stockQuantity > 0 ? 'text-green-600' : 'text-red-600'}>
+                    {productDetail?.stockQuantity && productDetail.stockQuantity > 0 ? `Còn ${productDetail.stockQuantity} sản phẩm` : 'Hết hàng'}
                   </span>
                 </div>
                 {productDetail?.brandName && (

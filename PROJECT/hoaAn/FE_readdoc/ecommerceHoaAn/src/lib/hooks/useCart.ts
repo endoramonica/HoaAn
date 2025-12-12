@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback } from "react";
 import { CartService } from "@/api/services/CartService";
 import type { UpdateCartItemDto } from "@/api/models/UpdateCartItemDto";
 import { type ApplyCouponDto } from "@/api/models/ApplyCouponDto";
+import type { CartResponseDto, CartSummaryResponseDto, CartItemDto } from "@/lib/api/types";
 import { useAuth } from "./useAuth";
 
 interface CartItem {
@@ -116,9 +117,9 @@ export function useCart(): UseCartReturn {
       console.log('[useCart] 📋 Auth Token:', localStorage.getItem('auth_token')?.substring(0, 20) + '...');
       console.log('[useCart] 👤 Is Guest:', isGuest);
 
-      const cartResponse = isGuest
+      const cartResponse = (isGuest
         ? await CartService.getApiV1CartGuest()
-        : await CartService.getApiV1Cart();
+        : await CartService.getApiV1Cart()) as CartResponseDto;
 
       // ✅ ADD THIS: Log response
       console.log('[useCart] ✅ Cart Response:', {
@@ -127,23 +128,23 @@ export function useCart(): UseCartReturn {
         itemCount: cartResponse?.data?.totalItems
       });
 
-      const summaryResponse = isGuest
+      const summaryResponse = (isGuest
         ? await CartService.getApiV1CartGuestSummary()
-        : await CartService.getApiV1CartSummary();
+        : await CartService.getApiV1CartSummary()) as CartSummaryResponseDto;
 
       // ✅ Transform API response to CartItem format
       const transformedItems: CartItem[] = cartResponse?.data?.items
-        ? cartResponse.data.items.map((item: any) => ({
-          id: item.id || item.cartItemId,
+        ? cartResponse.data.items.map((item: CartItemDto) => ({
+          id: item.cartItemId,
           productId: item.productId,
-          name: item.productName || item.name,
-          price: item.unitPrice || item.price,
-          originalPrice: item.originalPrice,
+          name: item.productName,
+          price: item.unitPrice,
+          originalPrice: undefined,
           quantity: item.quantity,
-          image: item.productImage || item.imageUrl || item.image,
-          category: item.category || "",
-          inStock: item.stockAvailable > 0,
-          maxQuantity: item.stockAvailable || 99,
+          image: item.productImage,
+          category: "",
+          inStock: item.availableStock > 0,
+          maxQuantity: item.availableStock,
         }))
         : [];
 
@@ -151,16 +152,16 @@ export function useCart(): UseCartReturn {
       const summaryData = summaryResponse?.data;
       const cartData = cartResponse?.data;
 
-      if (transformedItems.length > 0 || summaryData) {
+      if (transformedItems.length > 0 || summaryData || cartData) {
         const newCart = {
-          id: cartData?.id || cartData?.cartId || 'guest-cart',
+          id: cartData?.cartId || 'guest-cart',
           items: transformedItems,
-          subtotal: summaryData?.subTotal || summaryData?.subtotal || 0,
-          discount: summaryData?.discount || 0,
-          shippingFee: summaryData?.shippingFee || 0,
-          totalAmount: summaryData?.totalAmount || summaryData?.total || 0,
-          itemCount: summaryData?.totalItems || summaryData?.itemCount || transformedItems.length,
-          couponCode: summaryData?.appliedCoupon || summaryData?.couponCode,
+          subtotal: cartData?.subTotal || summaryData?.subTotal || 0,
+          discount: cartData?.taxAmount || summaryData?.taxAmount || 0,
+          shippingFee: cartData?.shippingFee || summaryData?.shippingFee || 0,
+          totalAmount: cartData?.totalAmount || summaryData?.totalAmount || 0,
+          itemCount: cartData?.totalItems || summaryData?.totalItems || transformedItems.length,
+          couponCode: summaryData?.appliedCoupon,
         };
 
         setCart(newCart);

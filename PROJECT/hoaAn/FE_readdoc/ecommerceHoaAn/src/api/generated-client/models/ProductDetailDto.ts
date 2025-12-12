@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { DisplayPriceResult } from './DisplayPriceResult';
+import type { ProductImageDto } from './ProductImageDto';
 export type ProductDetailDto = {
     id?: string;
     name?: string | null;
@@ -22,7 +23,7 @@ export type ProductDetailDto = {
     categoryName?: string | null;
     brandId?: string | null;
     brandName?: string | null;
-    images?: Array<string> | null;
+    images?: Array<ProductImageDto> | null;
     readonly primaryImage?: string | null;
     tags?: Array<string> | null;
     metaTitle?: string | null;
