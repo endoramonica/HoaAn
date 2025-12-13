@@ -206,3 +206,18 @@ Hệ thống quản lý bài viết marketing cho Admin, cho phép tạo, chỉn
 3. WHEN validation fails THEN the Admin Marketing Post System SHALL return 400 Bad Request with all validation errors
 4. WHEN a product reference is invalid THEN the Admin Marketing Post System SHALL return 400 Bad Request indicating the product does not exist
 5. WHEN an error response is returned THEN the Admin Marketing Post System SHALL follow the ApiResponse format with success=false and error details
+
+### Requirement 16: Tagged Product Integration
+
+**User Story:** As a frontend developer, I want to receive live product information with marketing posts, so that I can display current product details without additional API calls.
+
+#### Acceptance Criteria
+
+1. WHEN an admin creates a post with productId THEN the Admin Marketing Post System SHALL store only the productId, not the full product object
+2. WHEN retrieving a post (detail, feed, or related posts) THEN the Admin Marketing Post System SHALL fetch live product data from the Product service and build TaggedProductDto
+3. WHEN a post has productId but the product no longer exists THEN the Admin Marketing Post System SHALL return the post with TaggedProduct set to null
+4. WHEN a post has productId = null THEN the Admin Marketing Post System SHALL return the post with TaggedProduct set to null
+5. WHEN returning TaggedProductDto THEN the Admin Marketing Post System SHALL include id, name, price, currency, formattedPrice, thumbnailUrl, hasDiscount, and discountPercentage
+6. WHEN product data changes (price, image, discount) THEN the Admin Marketing Post System SHALL return the latest product information on every post retrieval
+7. WHEN creating a post THEN the Admin Marketing Post System SHALL NOT require TaggedProduct in the response, only productId
+8. WHEN retrieving posts in list view THEN the Admin Marketing Post System SHALL include TaggedProduct for each post with a valid productId

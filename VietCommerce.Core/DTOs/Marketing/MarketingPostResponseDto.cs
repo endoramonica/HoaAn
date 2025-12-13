@@ -1,3 +1,5 @@
+using VietCommerce.Core.DTOs.Products;
+
 namespace VietCommerce.Core.DTOs.Marketing;
 
 /// <summary>
@@ -15,6 +17,7 @@ public class MarketingPostResponseDto
 
     public Guid? ProductId { get; set; }
     public string? ProductName { get; set; }
+    public TaggedProductDto? TaggedProduct { get; set; } // Live product data
 
     public string? Topic { get; set; }
     public string? Platform { get; set; }

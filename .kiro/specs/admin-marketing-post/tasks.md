@@ -106,17 +106,38 @@ This implementation plan breaks down the Admin Marketing Post Management System 
   - **Property 1: Post creation initializes required fields**
   - **Validates: Requirements 1.2**
 
+- [ ]* 6.2.1 Write property test for create response excludes TaggedProduct
+  - **Property 28: Create post response excludes TaggedProduct**
+  - **Validates: Requirements 16.7**
+
 - [ ]* 6.3 Write property test for default status
   - **Property 4: Default status is draft**
   - **Validates: Requirements 2.1**
 
-- [x] 6.4 Implement GetPostsAsync with filtering and pagination
+- [x] 6.3.5 Create TaggedProductDto and mapping logic
+
+
+
+
+  done -  Created `TaggedProductDto` in `VietCommerce.Core/DTOs/Product`
+  - Create helper method to build TaggedProductDto from Product entity
+  - Handle null product case (return null TaggedProduct)
+  - Handle missing product case (return null TaggedProduct)
+  - _Requirements: 16.5_
+
+- [x] 6.4 check Implement GetPostsAsync with filtering and pagination
 
   - Validate pagination parameters
   - Apply filters (status, productId, platform, searchTerm, date range)
   - Apply sorting (default: updatedAt DESC)
   - Return paginated result with metadata
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
+
+- [ ]* 6.4.1 Enrich GetPostsAsync response with TaggedProduct
+  - For each post in paginated results, fetch live product data if productId exists
+  - Build TaggedProductDto for each post
+  - Handle null/missing products gracefully
+  - _Requirements: 16.8, 16.3, 16.5, 16.6_
 
 - [ ]* 6.5 Write property test for pagination structure
   - **Property 7: Pagination structure completeness**
@@ -130,13 +151,30 @@ This implementation plan breaks down the Admin Marketing Post Management System 
   - **Property 9: Search keyword matching**
   - **Validates: Requirements 3.3**
 
+- [ ]* 6.7.1 Write property test for list view includes TaggedProduct
+  - **Property 29: List view includes TaggedProduct**
+  - **Validates: Requirements 16.8**
+
 - [x] 6.8 Implement GetPostByIdAsync
 
   - Validate post ID
   - Retrieve post with details
   - Return 404 if not found
   - Map to detail DTO
-  - _Requirements: 14.1_
+  - Enrich response with TaggedProduct if productId exists
+  - _Requirements: 14.1, 16.3, 16.5, 16.6_
+
+- [ ]* 6.8.1 Write property test for TaggedProduct null when no productId
+  - **Property 24: TaggedProduct null when no productId**
+  - **Validates: Requirements 16.4**
+
+- [ ]* 6.8.2 Write property test for TaggedProduct null when product not found
+  - **Property 25: TaggedProduct null when product not found**
+  - **Validates: Requirements 16.3**
+
+- [ ]* 6.8.3 Write property test for TaggedProduct contains required fields
+  - **Property 26: TaggedProduct contains required fields**
+  - **Validates: Requirements 16.5**
 
 - [x] 6.9 Implement UpdatePostAsync
 
@@ -280,6 +318,14 @@ This implementation plan breaks down the Admin Marketing Post Management System 
   - Test IncrementSharesAsync
   - Test concurrent increments
   - _Requirements: 5.1, 5.2, 5.3, 5.5_
+
+
+- [ ] 8.6 Write property test for TaggedProduct reflects live product data
+
+
+
+  - **Property 27: TaggedProduct reflects live product data**
+  - **Validates: Requirements 16.6**
 
 
 - [x] 9. Implement Statistics and Utility Operations

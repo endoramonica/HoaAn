@@ -79,6 +79,10 @@ public class AppDbContext : DbContext
     public DbSet<Promotion> Promotions { get; set; } = null!;
     public DbSet<PromotionProduct> PromotionProducts { get; set; } = null!;
     public DbSet<MarketingPost> MarketingPosts { get; set; } = null!;
+    public DbSet<Voucher> Vouchers { get; set; } = null!;
+    public DbSet<CampaignImpression> CampaignImpressions { get; set; } = null!;
+    public DbSet<CampaignClick> CampaignClicks { get; set; } = null!;
+    public DbSet<VoucherRedemption> VoucherRedemptions { get; set; } = null!;
 
     // CRM
     public DbSet<CRMInteraction> CRMInteractions { get; set; } = null!;
@@ -679,10 +683,34 @@ public class AppDbContext : DbContext
             .HasForeignKey(p => p.CampaignId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<Campaign>()
+            .HasMany(c => c.Impressions)
+            .WithOne(i => i.Campaign)
+            .HasForeignKey(i => i.CampaignId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Campaign>()
+            .HasMany(c => c.Clicks)
+            .WithOne(cl => cl.Campaign)
+            .HasForeignKey(cl => cl.CampaignId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         modelBuilder.Entity<Promotion>()
             .HasMany(p => p.PromotionProducts)
             .WithOne(pp => pp.Promotion)
             .HasForeignKey(pp => pp.PromotionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Promotion>()
+            .HasMany(p => p.Vouchers)
+            .WithOne(v => v.Promotion)
+            .HasForeignKey(v => v.PromotionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Voucher>()
+            .HasMany(v => v.Redemptions)
+            .WithOne(vr => vr.Voucher)
+            .HasForeignKey(vr => vr.VoucherId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 
@@ -899,6 +927,22 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<OrderStatusHistory>()
             .HasIndex(osh => new { osh.OrderId, osh.CreatedAt });
+
+        // Campaign & Promotion Indexes
+        modelBuilder.Entity<Campaign>()
+            .HasIndex(c => new { c.StoreId, c.Status, c.StartDate, c.EndDate });
+
+        modelBuilder.Entity<Promotion>()
+            .HasIndex(p => new { p.CampaignId, p.Status });
+
+        modelBuilder.Entity<Voucher>()
+            .HasIndex(v => new { v.Code, v.ExpiryDate });
+
+        modelBuilder.Entity<CampaignImpression>()
+            .HasIndex(ci => new { ci.CampaignId, ci.RecordedAt });
+
+        modelBuilder.Entity<CampaignClick>()
+            .HasIndex(cc => new { cc.CampaignId, cc.RecordedAt });
     }
 
     #endregion

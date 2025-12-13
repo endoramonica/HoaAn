@@ -76,8 +76,35 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "VietCommerce API",
         Version = "v1",
-        Description = "VietCommerce E-commerce Platform API"
+        Description = "VietCommerce E-commerce Platform API - Campaign & Promotion Management System",
+        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+        {
+            Name = "VietCommerce Development Team",
+            Email = "dev@vietcommerce.com"
+        },
+        License = new Microsoft.OpenApi.Models.OpenApiLicense
+        {
+            Name = "MIT License"
+        }
     });
+    
+    // Add XML documentation comments from controllers
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
+    
+    // Add XML documentation from DTOs
+    var dtoXmlFile = "VietCommerce.Core.xml";
+    var dtoXmlPath = Path.Combine(AppContext.BaseDirectory, dtoXmlFile);
+    if (File.Exists(dtoXmlPath))
+    {
+        c.IncludeXmlComments(dtoXmlPath);
+    }
+    
+    // Configure security
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme (Example: 'Bearer 12345abcdef')",
@@ -100,6 +127,26 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+    
+    // Tag operations by controller
+    c.TagActionsBy(api =>
+    {
+        if (api.GroupName != null)
+        {
+            return new[] { api.GroupName };
+        }
+        
+        var controllerActionDescriptor = api.ActionDescriptor as Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor;
+        if (controllerActionDescriptor != null)
+        {
+            return new[] { controllerActionDescriptor.ControllerName };
+        }
+        
+        throw new InvalidOperationException("Unable to determine tag for endpoint.");
+    });
+    
+    // Sort tags alphabetically
+    c.OrderActionsBy((apiDescA, apiDescB) => apiDescA.RelativePath.CompareTo(apiDescB.RelativePath));
 });
 // ============================================
 // DATABASE CONFIGURATION
@@ -211,7 +258,8 @@ builder.Services.AddAutoMapper(
     typeof(ProductMappingProfile).Assembly,
     typeof(OrderMappingProfile).Assembly,
     typeof(ProductFavoriteMappingProfile).Assembly,
-    typeof(MarketingPostMappingProfile).Assembly
+    typeof(MarketingPostMappingProfile).Assembly,
+    typeof(CampaignMappingProfile).Assembly
 );
 
 // ============================================
@@ -315,9 +363,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
     app.UseDeveloperExceptionPage();
 }
+
+// Global exception handling middleware (must be early in pipeline)
+app.UseExceptionHandlingMiddleware();
+
 app.UseHttpsRedirection();
 app.UseCors("VietCommercePolicy");
-//app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 // Permission-based middleware (phải sau UseAuthorization)

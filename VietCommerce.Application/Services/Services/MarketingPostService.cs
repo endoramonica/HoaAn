@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.Extensions.Logging;
+using VietCommerce.Application.Helpers;
 using VietCommerce.Application.Services.Services.Identity;
 using VietCommerce.Application.Services.Services.Interfaces;
 using VietCommerce.Application.Services.Services.Interfaces.Identities;
@@ -85,6 +86,16 @@ public class MarketingPostService : BaseService, IMarketingPostService
             // Map to DTOs
             var dtos = _mapper.Map<List<MarketingPostListDto>>(result.Items);
 
+            // Enrich with TaggedProduct for each post with a valid productId
+            foreach (var dto in dtos)
+            {
+                if (dto.ProductId.HasValue)
+                {
+                    var product = await _unitOfWork.Products.GetByIdAsync(dto.ProductId.Value);
+                    dto.TaggedProduct = TaggedProductHelper.BuildTaggedProductDto(product);
+                }
+            }
+
             var paginatedResult = new PaginatedResult<MarketingPostListDto>
             {
                 Items = dtos,
@@ -102,7 +113,7 @@ public class MarketingPostService : BaseService, IMarketingPostService
 
     /// <summary>
     /// Get marketing post by ID with full details
-    /// Requirements: 14.1
+    /// Requirements: 14.1, 16.3, 16.5, 16.6
     /// </summary>
     public async Task<ApiResponse<MarketingPostDetailDto>> GetPostByIdAsync(Guid id)
     {
@@ -124,6 +135,13 @@ public class MarketingPostService : BaseService, IMarketingPostService
 
             // Map to detail DTO
             var dto = _mapper.Map<MarketingPostDetailDto>(post);
+
+            // Enrich with TaggedProduct if productId exists (Requirements: 16.3, 16.5, 16.6)
+            if (dto.ProductId.HasValue)
+            {
+                var product = await _unitOfWork.Products.GetByIdAsync(dto.ProductId.Value);
+                dto.TaggedProduct = TaggedProductHelper.BuildTaggedProductDto(product);
+            }
 
             LogInfo($"✅ Retrieved post: {post.Title}");
             return dto;

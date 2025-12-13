@@ -420,6 +420,22 @@ public class UpdateMarketingPostDto
 }
 ```
 
+#### TaggedProductDto
+
+```csharp
+public class TaggedProductDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public string Currency { get; set; } = "VND";
+    public string FormattedPrice { get; set; } = string.Empty;
+    public string ThumbnailUrl { get; set; } = string.Empty;
+    public bool HasDiscount { get; set; }
+    public int DiscountPercentage { get; set; }
+}
+```
+
 #### MarketingPostResponseDto
 
 ```csharp
@@ -435,6 +451,7 @@ public class MarketingPostResponseDto
 
     public Guid? ProductId { get; set; }
     public string? ProductName { get; set; }
+    public TaggedProductDto? TaggedProduct { get; set; } // Live product data
 
     public string? Topic { get; set; }
     public string? Platform { get; set; }
@@ -476,6 +493,7 @@ public class MarketingPostListDto
 
     public Guid? ProductId { get; set; }
     public string? ProductName { get; set; }
+    public TaggedProductDto? TaggedProduct { get; set; } // Live product data
 
     public string? Platform { get; set; }
     public List<string>? Hashtags { get; set; }
@@ -775,6 +793,42 @@ public class MarketingPostConfiguration : IEntityTypeConfiguration<MarketingPost
 *For any* GetMarketingPostsQuery with default sorting, posts should be ordered by priorityScore descending, then by publishedDate descending.
 
 **Validates: Requirements 3.6, 14.1, 14.6**
+
+**Property 24: TaggedProduct null when no productId**
+
+*For any* post with productId = null, retrieving the post should result in TaggedProduct being null.
+
+**Validates: Requirements 16.4**
+
+**Property 25: TaggedProduct null when product not found**
+
+*For any* post with a productId that no longer exists in the Product catalog, retrieving the post should result in TaggedProduct being null while preserving the post data.
+
+**Validates: Requirements 16.3**
+
+**Property 26: TaggedProduct contains required fields**
+
+*For any* post with a valid productId, retrieving the post should result in TaggedProduct containing id, name, price, currency, formattedPrice, thumbnailUrl, hasDiscount, and discountPercentage fields.
+
+**Validates: Requirements 16.5**
+
+**Property 27: TaggedProduct reflects live product data**
+
+*For any* post with a productId, if the product's price or discount changes, retrieving the post should return the updated product information.
+
+**Validates: Requirements 16.6**
+
+**Property 28: Create post response excludes TaggedProduct**
+
+*For any* CreateMarketingPostDto, the response should include productId but not TaggedProduct.
+
+**Validates: Requirements 16.7**
+
+**Property 29: List view includes TaggedProduct**
+
+*For any* GetMarketingPostsQuery response, each post with a valid productId should include TaggedProduct.
+
+**Validates: Requirements 16.8**
 
 ## Error Handling
 

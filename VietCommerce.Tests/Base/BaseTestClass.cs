@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 using VietCommerce.Core.Entities.Customers;
@@ -19,6 +20,7 @@ namespace VietCommerce.Data.Tests.Base
         protected readonly AppDbContext _context;
         protected readonly OrderRepository _orderRepository;
         protected readonly IServiceProvider _serviceProvider;
+        protected readonly ILogger<OrderRepository> _logger;
 
         // Test data IDs
         protected readonly Guid _storeId = Guid.NewGuid();
@@ -37,10 +39,12 @@ namespace VietCommerce.Data.Tests.Base
                 .Options;
 
             _context = new AppDbContext(options);
-            _orderRepository = new OrderRepository(_context);
             _serviceProvider = new ServiceCollection()
                 .AddLogging()
                 .BuildServiceProvider();
+            
+            _logger = _serviceProvider.GetRequiredService<ILogger<OrderRepository>>();
+            _orderRepository = new OrderRepository(_context, _logger);
         }
 
         public virtual async Task InitializeAsync()
