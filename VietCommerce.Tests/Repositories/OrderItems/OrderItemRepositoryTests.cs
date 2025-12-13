@@ -41,11 +41,15 @@ namespace VietCommerce.Data.Tests.Repositories
 
             _context = new AppDbContext(options);
             _orderItemRepository = new OrderItemRepository(_context);
+
+            // Seed data synchronously in constructor
+            SeedTestDataAsync().GetAwaiter().GetResult();
         }
 
         public async Task InitializeAsync()
         {
-            await SeedTestDataAsync();
+            // Already seeded in constructor
+            await Task.CompletedTask;
         }
 
         public async Task DisposeAsync()
@@ -221,16 +225,15 @@ namespace VietCommerce.Data.Tests.Repositories
             Assert.Empty(result);
         }
 
-        
+
         [Fact]
         public async Task GetByOrderIdAsync_ShouldIncludeProductDetails()
         {
             // Arrange
-            await SeedTestDataAsync();
-
+            var testOrderId = Guid.NewGuid();
             var order = new Order
             {
-                Id = _orderId,
+                Id = testOrderId,
                 OrderNumber = "ORD20250125-002",
                 StoreId = _storeId,
                 CustomerId = _customerId,
@@ -238,13 +241,21 @@ namespace VietCommerce.Data.Tests.Repositories
                 Status = OrderStatus.Pending,
                 TotalAmount = 200m
             };
+
+            // Detach Store to avoid tracking conflict
+            var storeEntry = _context.Entry(_context.Stores.Local.FirstOrDefault(s => s.Id == _storeId));
+            if (storeEntry != null)
+            {
+                storeEntry.State = EntityState.Detached;
+            }
+
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
 
             var item = new OrderItem
             {
                 Id = Guid.NewGuid(),
-                Order = order, // 👈 EF tự gán OrderId
+                OrderId = testOrderId,
                 ProductId = _productId1,
                 Quantity = 2,
                 UnitPrice = 100m
@@ -253,8 +264,8 @@ namespace VietCommerce.Data.Tests.Repositories
             await _context.SaveChangesAsync();
 
             // Act
-            var result = await _orderItemRepository.GetByOrderIdAsync(order.Id);
-            Assert.True(result.Any(), $"No OrderItems found for order {_orderId}");
+            var result = await _orderItemRepository.GetByOrderIdAsync(testOrderId);
+            Assert.True(result.Any(), $"No OrderItems found for order {testOrderId}");
 
             // Assert
             Assert.NotEmpty(result);

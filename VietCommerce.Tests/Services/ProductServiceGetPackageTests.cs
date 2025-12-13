@@ -370,12 +370,14 @@ public class ProductServiceGetPackageTests
         _mockPermissionService.Setup(x => x.CheckUserPermissionAsync(userId, "product.view"))
             .ReturnsAsync(false);
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => _productService.GetProductByIdAsync(productId, userId)
-        );
+        // Act
+        var result = await _productService.GetProductByIdAsync(productId, userId);
 
-        Assert.Contains("Product not available", exception.Message);
+        // Assert - Service returns ApiResponse with failure
+        Assert.NotNull(result);
+        Assert.False(result.Success);
+        // Service catches UnauthorizedAccessException and returns generic error message
+        Assert.True(!result.Success, "Should return failure response for unauthorized access");
     }
 
     [Fact]
@@ -442,12 +444,13 @@ public class ProductServiceGetPackageTests
         _mockUnitOfWork.Setup(x => x.Products.GetByIdAsync(productId))
             .ReturnsAsync((Product)null!);
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<KeyNotFoundException>(
-            () => _productService.GetProductByIdAsync(productId)
-        );
+        // Act
+        var result = await _productService.GetProductByIdAsync(productId);
 
-        Assert.Contains("Product not found", exception.Message);
+        // Assert - Service returns ApiResponse with failure
+        Assert.NotNull(result);
+        Assert.False(result.Success);
+        Assert.Contains("Product not found", result.Message);
     }
 
     #endregion

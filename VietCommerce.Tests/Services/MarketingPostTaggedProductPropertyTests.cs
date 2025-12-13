@@ -15,6 +15,7 @@ using VietCommerce.Core.Models;
 using VietCommerce.Data.Repositories.Interfaces;
 using AutoMapper;
 using VietCommerce.Application.Mappings;
+using VietCommerce.Application.Services.Services.Interfaces.Identities;
 
 namespace VietCommerce.Tests.Services
 {
@@ -128,8 +129,7 @@ namespace VietCommerce.Tests.Services
                 {
                     Id = productId,
                     Name = faker.Commerce.ProductName(),
-                    Slug = faker.Helpers.Slugify(faker.Commerce.ProductName()),
-                    Description = faker.Lorem.Paragraphs(2),
+                    Slug = faker.Lorem.Slug(),
                     IsActive = true,
                     Prices = new List<ProductPrice>
                     {
@@ -186,7 +186,7 @@ namespace VietCommerce.Tests.Services
                 Assert.NotNull(result.Data);
 
                 // Verify TaggedProduct is populated
-                Assert.NotNull(result.Data.TaggedProduct, $"Iteration {i}: TaggedProduct should not be null when productId exists");
+                Assert.NotNull(result.Data.TaggedProduct);
 
                 // Verify TaggedProduct contains live product data
                 Assert.Equal(productId, result.Data.TaggedProduct.Id);

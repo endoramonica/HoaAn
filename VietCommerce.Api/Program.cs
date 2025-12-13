@@ -87,7 +87,7 @@ builder.Services.AddSwaggerGen(c =>
             Name = "MIT License"
         }
     });
-    
+
     // Add XML documentation comments from controllers
     var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
@@ -95,7 +95,7 @@ builder.Services.AddSwaggerGen(c =>
     {
         c.IncludeXmlComments(xmlPath);
     }
-    
+
     // Add XML documentation from DTOs
     var dtoXmlFile = "VietCommerce.Core.xml";
     var dtoXmlPath = Path.Combine(AppContext.BaseDirectory, dtoXmlFile);
@@ -103,7 +103,7 @@ builder.Services.AddSwaggerGen(c =>
     {
         c.IncludeXmlComments(dtoXmlPath);
     }
-    
+
     // Configure security
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
@@ -127,7 +127,7 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
-    
+
     // Tag operations by controller
     c.TagActionsBy(api =>
     {
@@ -135,18 +135,16 @@ builder.Services.AddSwaggerGen(c =>
         {
             return new[] { api.GroupName };
         }
-        
+
         var controllerActionDescriptor = api.ActionDescriptor as Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor;
         if (controllerActionDescriptor != null)
         {
             return new[] { controllerActionDescriptor.ControllerName };
         }
-        
-        throw new InvalidOperationException("Unable to determine tag for endpoint.");
+
+        // Fallback for minimal APIs or other endpoint types
+        return new[] { "Other" };
     });
-    
-    // Sort tags alphabetically
-    c.OrderActionsBy((apiDescA, apiDescB) => apiDescA.RelativePath.CompareTo(apiDescB.RelativePath));
 });
 // ============================================
 // DATABASE CONFIGURATION

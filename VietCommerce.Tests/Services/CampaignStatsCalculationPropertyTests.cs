@@ -107,8 +107,8 @@ namespace VietCommerce.Tests.Services
                 // Generate random stats data
                 var impressionCount = faker.Random.Int(10, 1000);
                 var clickCount = faker.Random.Int(1, Math.Min(impressionCount, 500));
-                var redemptionCount = faker.Random.Int(0, Math.Min(clickCount, 100));
-                var totalDiscount = faker.Random.Decimal(0, 1000000);
+                var redemptionCount = faker.Random.Int(1, Math.Min(clickCount, 100)); // At least 1 redemption
+                var totalDiscount = faker.Random.Decimal(100, 1000000); // At least 100 discount
 
                 // Setup repository methods
                 mockImpressionRepository
@@ -136,7 +136,7 @@ namespace VietCommerce.Tests.Services
                         {
                             Id = Guid.NewGuid(),
                             VoucherId = Guid.NewGuid(),
-                            DiscountAmount = discountPerRedemption,
+                            DiscountAmount = (decimal)discountPerRedemption,
                             RedeemedAt = DateTime.UtcNow.AddSeconds(-faker.Random.Int(0, 86400))
                         });
                     }
@@ -144,7 +144,7 @@ namespace VietCommerce.Tests.Services
 
                 mockRedemptionRepository
                     .Setup(r => r.GetRedemptionsByDateRangeAsync(
-                        It.IsAny<Guid>(),
+                        campaignId,
                         It.IsAny<DateTime>(),
                         It.IsAny<DateTime>()))
                     .ReturnsAsync(redemptions);

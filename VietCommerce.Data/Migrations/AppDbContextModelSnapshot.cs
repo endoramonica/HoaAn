@@ -954,6 +954,11 @@ namespace VietCommerce.Data.Migrations
                     b.Property<Guid>("StoreId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("TargetingRules")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -964,9 +969,79 @@ namespace VietCommerce.Data.Migrations
 
                     b.HasIndex("CreatedBy");
 
-                    b.HasIndex("StoreId");
+                    b.HasIndex("StoreId", "Status", "StartDate", "EndDate");
 
                     b.ToTable("Campaigns");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.CampaignClick", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Page")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SessionId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId", "RecordedAt");
+
+                    b.ToTable("CampaignClicks");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.CampaignImpression", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Page")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SessionId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId", "RecordedAt");
+
+                    b.ToTable("CampaignImpressions");
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.MarketingPost", b =>
@@ -1265,7 +1340,7 @@ namespace VietCommerce.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CampaignId");
+                    b.HasIndex("CampaignId", "Status");
 
                     b.ToTable("Promotions");
                 });
@@ -1308,6 +1383,93 @@ namespace VietCommerce.Data.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("PromotionProducts");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.Voucher", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ExpiryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("LastUsedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PromotionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UsageCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PromotionId");
+
+                    b.HasIndex("Code", "ExpiryDate");
+
+                    b.ToTable("Vouchers");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.VoucherRedemption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(15,2)");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("RedeemedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("RedeemedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("VoucherId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VoucherId");
+
+                    b.ToTable("VoucherRedemptions");
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Notifications.Notification", b =>
@@ -1555,6 +1717,12 @@ namespace VietCommerce.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AppliedVoucherCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("AppliedVoucherId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -1569,6 +1737,9 @@ namespace VietCommerce.Data.Migrations
 
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -3472,6 +3643,28 @@ namespace VietCommerce.Data.Migrations
                     b.Navigation("Store");
                 });
 
+            modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.CampaignClick", b =>
+                {
+                    b.HasOne("VietCommerce.Core.Entities.Marketing.Campaign", "Campaign")
+                        .WithMany("Clicks")
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Campaign");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.CampaignImpression", b =>
+                {
+                    b.HasOne("VietCommerce.Core.Entities.Marketing.Campaign", "Campaign")
+                        .WithMany("Impressions")
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Campaign");
+                });
+
             modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.MarketingPost", b =>
                 {
                     b.HasOne("VietCommerce.Core.Entities.Products.Product", "Product")
@@ -3511,6 +3704,28 @@ namespace VietCommerce.Data.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("Promotion");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.Voucher", b =>
+                {
+                    b.HasOne("VietCommerce.Core.Entities.Marketing.Promotion", "Promotion")
+                        .WithMany("Vouchers")
+                        .HasForeignKey("PromotionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Promotion");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.VoucherRedemption", b =>
+                {
+                    b.HasOne("VietCommerce.Core.Entities.Marketing.Voucher", "Voucher")
+                        .WithMany("Redemptions")
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Voucher");
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Notifications.Notification", b =>
@@ -4105,12 +4320,23 @@ namespace VietCommerce.Data.Migrations
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.Campaign", b =>
                 {
+                    b.Navigation("Clicks");
+
+                    b.Navigation("Impressions");
+
                     b.Navigation("Promotions");
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.Promotion", b =>
                 {
                     b.Navigation("PromotionProducts");
+
+                    b.Navigation("Vouchers");
+                });
+
+            modelBuilder.Entity("VietCommerce.Core.Entities.Marketing.Voucher", b =>
+                {
+                    b.Navigation("Redemptions");
                 });
 
             modelBuilder.Entity("VietCommerce.Core.Entities.Notifications.NotificationTemplate", b =>
