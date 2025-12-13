@@ -64,6 +64,12 @@ public interface IUnitOfWork : IDisposable
     IBookmarkRepository Bookmarks { get; }   // ✅ Custom repository
     // Marketing
     IMarketingPostRepository MarketingPosts { get; }
+    ICampaignRepository Campaigns { get; }
+    IPromotionRepository Promotions { get; }
+    IVoucherRepository Vouchers { get; }
+    ICampaignImpressionRepository CampaignImpressions { get; }
+    ICampaignClickRepository CampaignClicks { get; }
+    IVoucherRedemptionRepository VoucherRedemptions { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task<IDbContextTransaction> BeginTransactionAsync();
     Task CommitTransactionAsync();

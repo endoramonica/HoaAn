@@ -127,6 +127,24 @@ public class UnitOfWork : IUnitOfWork
 
     public IMarketingPostRepository MarketingPosts => _marketingPosts ??= new MarketingPostRepository(_context);
 
+    private ICampaignRepository? _campaigns;
+    public ICampaignRepository Campaigns => _campaigns ??= new CampaignRepository(_context);
+
+    private IPromotionRepository? _promotions;
+    public IPromotionRepository Promotions => _promotions ??= new PromotionRepository(_context);
+
+    private IVoucherRepository? _vouchers;
+    public IVoucherRepository Vouchers => _vouchers ??= new VoucherRepository(_context);
+
+    private ICampaignImpressionRepository? _campaignImpressions;
+    public ICampaignImpressionRepository CampaignImpressions => _campaignImpressions ??= new CampaignImpressionRepository(_context);
+
+    private ICampaignClickRepository? _campaignClicks;
+    public ICampaignClickRepository CampaignClicks => _campaignClicks ??= new CampaignClickRepository(_context);
+
+    private IVoucherRedemptionRepository? _voucherRedemptions;
+    public IVoucherRedemptionRepository VoucherRedemptions => _voucherRedemptions ??= new VoucherRedemptionRepository(_context);
+
     public async Task<int> SaveChangesAsync()
     {
         return await _context.SaveChangesAsync();

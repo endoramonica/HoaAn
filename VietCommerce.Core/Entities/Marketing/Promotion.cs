@@ -37,6 +37,7 @@ namespace VietCommerce.Core.Entities.Marketing
         public Guid CampaignId { get; set; }
         public virtual Campaign Campaign { get; set; } = null!;
         public virtual ICollection<PromotionProduct> PromotionProducts { get; set; } = new List<PromotionProduct>();
+        public virtual ICollection<Voucher> Vouchers { get; set; } = new List<Voucher>();
         // 🔹 Thêm các property từ ISoftDelete
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }

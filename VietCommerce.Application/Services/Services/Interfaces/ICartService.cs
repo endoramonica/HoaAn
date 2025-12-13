@@ -154,6 +154,34 @@ namespace VietCommerce.Application.Services.Services.Interfaces
         /// </remarks>
         Task<ApiResponse<CartItemDetailDto>> UpdateCartItemCustomizationsAsync(Guid userId, Guid cartItemId, List<CartItemCustomizationDto> customizations);
 
+        /// <summary>
+        /// Apply voucher code to user's cart
+        /// Validates voucher, calculates discount, and updates cart total
+        /// Requirements: 3.2, 3.3, 3.4, 3.5
+        /// </summary>
+        Task<ApiResponse<GetCartResponseDto>> ApplyVoucherAsync(Guid userId, string voucherCode);
+
+        /// <summary>
+        /// Remove voucher from user's cart
+        /// Clears applied voucher and recalculates cart total
+        /// Requirements: 3.2
+        /// </summary>
+        Task<ApiResponse<GetCartResponseDto>> RemoveVoucherAsync(Guid userId);
+
+        /// <summary>
+        /// Apply voucher code to guest's cart
+        /// Validates voucher, calculates discount, and updates cart total
+        /// Requirements: 3.2, 3.3, 3.4, 3.5
+        /// </summary>
+        Task<ApiResponse<GetCartResponseDto>> ApplyVoucherToGuestAsync(string sessionId, string voucherCode);
+
+        /// <summary>
+        /// Remove voucher from guest's cart
+        /// Clears applied voucher and recalculates cart total
+        /// Requirements: 3.2
+        /// </summary>
+        Task<ApiResponse<GetCartResponseDto>> RemoveVoucherFromGuestAsync(string sessionId);
+
         public string GetOrCreateSessionId();
 
     }

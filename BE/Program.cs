@@ -289,7 +289,8 @@ builder.Services.AddAutoMapper(
     typeof(NotificationMappingProfile).Assembly,
     typeof(StockTransferMappingProfile).Assembly,
     typeof(ProductFavoriteMappingProfile).Assembly,
-    typeof(MarketingPostMappingProfile).Assembly
+    typeof(MarketingPostMappingProfile).Assembly,
+    typeof(CampaignMappingProfile).Assembly
 );
 
 // ================================================================

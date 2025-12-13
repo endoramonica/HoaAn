@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using VietCommerce.Application.Services.Services.Interfaces;
 using VietCommerce.Core.DTOs.Cart;
+using VietCommerce.Core.DTOs.Marketing;
 using VietCommerce.Core.DTOs.Orders;
 using VietCommerce.Core.Entities.Orders;
 using VietCommerce.Core.Entities.Products;
@@ -32,6 +33,9 @@ namespace VietCommerce.Application.Services.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IPermissionService _permissionService;
         private readonly IProductService _productService;
+        private readonly IVoucherService _voucherService;
+        private readonly IDiscountCalculationService _discountCalculationService;
+        private readonly IAnalyticsService _analyticsService;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -47,6 +51,9 @@ namespace VietCommerce.Application.Services.Services
             IUnitOfWork unitOfWork,
             IPermissionService permissionService,
             IProductService productService,
+            IVoucherService voucherService,
+            IDiscountCalculationService discountCalculationService,
+            IAnalyticsService analyticsService,
             IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
             ILogger<CartService> logger,
@@ -56,6 +63,9 @@ namespace VietCommerce.Application.Services.Services
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
             _productService = productService ?? throw new ArgumentNullException(nameof(productService));
+            _voucherService = voucherService ?? throw new ArgumentNullException(nameof(voucherService));
+            _discountCalculationService = discountCalculationService ?? throw new ArgumentNullException(nameof(discountCalculationService));
+            _analyticsService = analyticsService ?? throw new ArgumentNullException(nameof(analyticsService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         }
@@ -165,7 +175,7 @@ namespace VietCommerce.Application.Services.Services
         }
 
         /// <summary>
-        /// Get cart summary (item count, total amount, status)
+        /// Get cart summary (item count, total amount, status, discount)
         /// Lightweight response for quick lookups
         /// </summary>
         public async Task<ApiResponse<CartSummaryDto>> GetCartSummaryAsync(Guid userId)
@@ -192,23 +202,31 @@ namespace VietCommerce.Application.Services.Services
                             return new CartSummaryDto
                             {
                                 ItemCount = 0,
+                                SubTotal = 0,
+                                DiscountAmount = 0,
                                 TotalAmount = 0,
-                                Status = "ACTIVE"
+                                Status = "ACTIVE",
+                                AppliedVoucherCode = null
                             };
                         }
+
+                        var subTotal = cart.CartItems.Sum(ci =>
+                            ci.Quantity * GetCurrentProductPrice(ci.Product?.Prices));
 
                         return new CartSummaryDto
                         {
                             ItemCount = cart.CartItems.Sum(ci => ci.Quantity),
-                            TotalAmount = cart.CartItems.Sum(ci =>
-                                ci.Quantity * GetCurrentProductPrice(ci.Product?.Prices)),
-                            Status = cart.IsActive ? "ACTIVE" : "INACTIVE"
+                            SubTotal = subTotal,
+                            DiscountAmount = cart.DiscountAmount,
+                            TotalAmount = subTotal - cart.DiscountAmount,
+                            Status = cart.IsActive ? "ACTIVE" : "INACTIVE",
+                            AppliedVoucherCode = cart.AppliedVoucherCode
                         };
                     },
                     TimeSpan.FromMinutes(CACHE_DURATION_MINUTES)
                 );
 
-                LogDebug($"📊 Cart summary for user {userId}: {summary.ItemCount} items, Total: {summary.TotalAmount}");
+                LogDebug($"📊 Cart summary for user {userId}: {summary.ItemCount} items, SubTotal: {summary.SubTotal}, Discount: {summary.DiscountAmount}, Total: {summary.TotalAmount}");
 
                 return summary;
 
@@ -503,12 +521,17 @@ namespace VietCommerce.Application.Services.Services
                         // ✅ Get or create cart instead of just getting
                         var cart = await cartRepository.GetOrCreateGuestCartAsync(sessionId);
 
+                        var subTotal = cart.CartItems?.Sum(ci =>
+                            ci.Quantity * GetCurrentProductPrice(ci.Product?.Prices)) ?? 0;
+
                         return new CartSummaryDto
                         {
                             ItemCount = cart.CartItems?.Sum(ci => ci.Quantity) ?? 0,
-                            TotalAmount = cart.CartItems?.Sum(ci =>
-                                ci.Quantity * GetCurrentProductPrice(ci.Product?.Prices)) ?? 0,
-                            Status = cart.IsActive ? "ACTIVE" : "INACTIVE"
+                            SubTotal = subTotal,
+                            DiscountAmount = cart.DiscountAmount,
+                            TotalAmount = subTotal - cart.DiscountAmount,
+                            Status = cart.IsActive ? "ACTIVE" : "INACTIVE",
+                            AppliedVoucherCode = cart.AppliedVoucherCode
                         };
                     },
                     TimeSpan.FromMinutes(CACHE_DURATION_MINUTES)
@@ -815,30 +838,137 @@ namespace VietCommerce.Application.Services.Services
         }
 
         /// <summary>
-        /// Apply coupon code to cart (NOT IMPLEMENTED YET)
+        /// Apply voucher code to user's cart
+        /// Validates voucher, calculates discount, and updates cart total
+        /// Requirements: 3.2, 3.3
         /// </summary>
         public async Task<ApiResponse<CartSummaryDto>> ApplyCouponAsync(Guid userId, string couponCode)
         {
-            return await ExecuteAsApiResponseAsync<CartSummaryDto>(async () =>
+            return await ExecuteAsApiResponseAsync(async () =>
             {
                 ValidateId(userId);
                 ValidateNotEmpty(couponCode, nameof(couponCode));
 
-                throw new NotImplementedException("Coupon feature not implemented yet");
+                ThrowIfNot(
+                    await _permissionService.CheckUserPermissionAsync(userId, "cart.apply_coupon"),
+                    "Access denied: cart.apply_coupon permission required");
+
+                // Get user's cart
+                var cartRepository = _unitOfWork.Carts as ICartRepository;
+                var cart = await cartRepository.GetUserCartWithItemsAsync(userId);
+                ThrowIf(cart == null, "Cart not found");
+                ThrowIf(!cart.CartItems.Any(), "Cart is empty");
+
+                // Calculate current cart subtotal
+                var subTotal = cart.CartItems.Sum(ci =>
+                    ci.Quantity * GetCurrentProductPrice(ci.Product?.Prices));
+
+                // Validate and get voucher
+                var voucherResponse = await _voucherService.ValidateVoucherAsync(couponCode);
+                ThrowIf(!voucherResponse.Success, voucherResponse.Message ?? "Invalid voucher code");
+
+                var voucher = voucherResponse.Data;
+                var promotion = await _unitOfWork.Promotions.GetByIdAsync(voucher.PromotionId);
+                ThrowIf(promotion == null, "Promotion not found");
+
+                // Map promotion to DTO for discount calculation
+                var promotionDto = _mapper.Map<PromotionDto>(promotion);
+
+                // Validate promotion can be applied
+                var validationResult = await _discountCalculationService.ValidatePromotionAsync(promotionDto, subTotal);
+                ThrowIf(!validationResult.Data.IsValid, validationResult.Data.ErrorMessage ?? "Promotion cannot be applied");
+
+                // Calculate discount amount
+                var discountAmount = await _discountCalculationService.CalculateFinalDiscountAsync(promotionDto, subTotal);
+
+                // Update cart with voucher information
+                cart.AppliedVoucherId = voucher.Id;
+                cart.AppliedVoucherCode = couponCode;
+                cart.DiscountAmount = discountAmount;
+
+                _unitOfWork.Carts.Update(cart);
+                await _unitOfWork.SaveChangesAsync();
+
+                // Update voucher usage
+                await _voucherService.UpdateVoucherUsageAsync(couponCode, userId);
+
+                // Invalidate cache
+                await InvalidateMultipleCachesAsync(
+                    CreateCacheKey(USER_CART_CACHE_PREFIX, userId),
+                    CreateCacheKey(CART_SUMMARY_CACHE_PREFIX, userId)
+                );
+
+                // Return updated cart summary
+                var totalAmount = subTotal - discountAmount;
+                var summary = new CartSummaryDto
+                {
+                    ItemCount = cart.CartItems.Sum(ci => ci.Quantity),
+                    SubTotal = subTotal,
+                    DiscountAmount = discountAmount,
+                    TotalAmount = totalAmount,
+                    Status = cart.IsActive ? "ACTIVE" : "INACTIVE",
+                    AppliedVoucherCode = couponCode
+                };
+
+                LogInfo($"✅ Voucher {couponCode} applied to cart for user {userId}. Discount: {discountAmount}");
+
+                return summary;
 
             }, "ApplyCoupon", "Coupon applied successfully");
         }
 
         /// <summary>
-        /// Remove coupon from cart (NOT IMPLEMENTED YET)
+        /// Remove voucher from user's cart
+        /// Clears applied voucher and recalculates cart total
+        /// Requirements: 3.2
         /// </summary>
         public async Task<ApiResponse<CartSummaryDto>> RemoveCouponAsync(Guid userId)
         {
-            return await ExecuteAsApiResponseAsync<CartSummaryDto>(async () =>
+            return await ExecuteAsApiResponseAsync(async () =>
             {
                 ValidateId(userId);
 
-                throw new NotImplementedException("Coupon feature not implemented yet");
+                ThrowIfNot(
+                    await _permissionService.CheckUserPermissionAsync(userId, "cart.remove_coupon"),
+                    "Access denied: cart.remove_coupon permission required");
+
+                // Get user's cart
+                var cartRepository = _unitOfWork.Carts as ICartRepository;
+                var cart = await cartRepository.GetUserCartWithItemsAsync(userId);
+                ThrowIf(cart == null, "Cart not found");
+
+                // Clear voucher information
+                cart.AppliedVoucherId = null;
+                cart.AppliedVoucherCode = null;
+                cart.DiscountAmount = 0;
+
+                _unitOfWork.Carts.Update(cart);
+                await _unitOfWork.SaveChangesAsync();
+
+                // Invalidate cache
+                await InvalidateMultipleCachesAsync(
+                    CreateCacheKey(USER_CART_CACHE_PREFIX, userId),
+                    CreateCacheKey(CART_SUMMARY_CACHE_PREFIX, userId)
+                );
+
+                // Calculate cart subtotal
+                var subTotal = cart.CartItems.Sum(ci =>
+                    ci.Quantity * GetCurrentProductPrice(ci.Product?.Prices));
+
+                // Return updated cart summary
+                var summary = new CartSummaryDto
+                {
+                    ItemCount = cart.CartItems.Sum(ci => ci.Quantity),
+                    SubTotal = subTotal,
+                    DiscountAmount = 0,
+                    TotalAmount = subTotal,
+                    Status = cart.IsActive ? "ACTIVE" : "INACTIVE",
+                    AppliedVoucherCode = null
+                };
+
+                LogInfo($"✅ Voucher removed from cart for user {userId}");
+
+                return summary;
 
             }, "RemoveCoupon", "Coupon removed successfully");
         }
@@ -1129,6 +1259,255 @@ namespace VietCommerce.Application.Services.Services
                 FinalPrice = cartItem.FinalPrice,
                 Customizations = customizations
             };
+        }
+
+        /// <summary>
+        /// Apply voucher code to user's cart
+        /// Validates voucher, calculates discount, and updates cart total
+        /// Requirements: 3.2, 3.3, 3.4, 3.5
+        /// </summary>
+        public async Task<ApiResponse<GetCartResponseDto>> ApplyVoucherAsync(Guid userId, string voucherCode)
+        {
+            return await ExecuteAsApiResponseAsync(async () =>
+            {
+                ValidateId(userId);
+                ValidateNotEmpty(voucherCode, nameof(voucherCode));
+
+                ThrowIfNot(
+                    await _permissionService.CheckUserPermissionAsync(userId, "cart.apply_coupon"),
+                    "Access denied: cart.apply_coupon permission required");
+
+                // Get user's cart
+                var cartRepository = _unitOfWork.Carts as ICartRepository;
+                var cart = await cartRepository.GetUserCartWithItemsAsync(userId);
+                ThrowIf(cart == null, "Cart not found");
+                ThrowIf(!cart.CartItems.Any(), "Cart is empty");
+
+                // Calculate current cart subtotal
+                var subTotal = cart.CartItems.Sum(ci =>
+                    ci.Quantity * GetCurrentProductPrice(ci.Product?.Prices));
+
+                // Validate and get voucher
+                var voucherResponse = await _voucherService.ValidateVoucherAsync(voucherCode);
+                ThrowIf(!voucherResponse.Success, voucherResponse.Message ?? "Invalid voucher code");
+
+                var voucher = voucherResponse.Data;
+                var promotion = await _unitOfWork.Promotions.GetByIdAsync(voucher.PromotionId);
+                ThrowIf(promotion == null, "Promotion not found");
+
+                // Map promotion to DTO for discount calculation
+                var promotionDto = _mapper.Map<PromotionDto>(promotion);
+
+                // Validate promotion can be applied
+                var validationResult = await _discountCalculationService.ValidatePromotionAsync(promotionDto, subTotal);
+                ThrowIf(!validationResult.Data.IsValid, validationResult.Data.ErrorMessage ?? "Promotion cannot be applied");
+
+                // Calculate discount amount
+                var discountAmount = await _discountCalculationService.CalculateFinalDiscountAsync(promotionDto, subTotal);
+
+                // Update cart with voucher information
+                cart.AppliedVoucherId = voucher.Id;
+                cart.AppliedVoucherCode = voucherCode;
+                cart.DiscountAmount = discountAmount;
+
+                _unitOfWork.Carts.Update(cart);
+                await _unitOfWork.SaveChangesAsync();
+
+                // Update voucher usage
+                await _voucherService.UpdateVoucherUsageAsync(voucherCode, userId);
+
+                // Track redemption (Requirements: 7.3)
+                var trackRedemptionDto = new TrackRedemptionDto
+                {
+                    DiscountAmount = discountAmount,
+                    OrderId = null, // Order ID will be set when order is created
+                    RedeemedBy = userId,
+                    RedeemedAt = DateTime.UtcNow
+                };
+                await _analyticsService.TrackRedemptionAsync(voucher.Id, trackRedemptionDto);
+
+                // Invalidate cache
+                await InvalidateMultipleCachesAsync(
+                    CreateCacheKey(USER_CART_CACHE_PREFIX, userId),
+                    CreateCacheKey(CART_SUMMARY_CACHE_PREFIX, userId)
+                );
+
+                // Return updated cart
+                var updatedCart = await cartRepository.GetUserCartWithItemsAsync(userId);
+                var cartItems = updatedCart.CartItems ?? new List<CartItem>();
+                var cartDto = MapCartToDto(updatedCart, cartItems);
+
+                LogInfo($"✅ Voucher {voucherCode} applied to cart for user {userId}. Discount: {discountAmount}");
+
+                return cartDto;
+
+            }, "ApplyVoucher", "Voucher applied successfully");
+        }
+
+        /// <summary>
+        /// Remove voucher from user's cart
+        /// Clears applied voucher and recalculates cart total
+        /// Requirements: 3.2
+        /// </summary>
+        public async Task<ApiResponse<GetCartResponseDto>> RemoveVoucherAsync(Guid userId)
+        {
+            return await ExecuteAsApiResponseAsync(async () =>
+            {
+                ValidateId(userId);
+
+                ThrowIfNot(
+                    await _permissionService.CheckUserPermissionAsync(userId, "cart.remove_coupon"),
+                    "Access denied: cart.remove_coupon permission required");
+
+                // Get user's cart
+                var cartRepository = _unitOfWork.Carts as ICartRepository;
+                var cart = await cartRepository.GetUserCartWithItemsAsync(userId);
+                ThrowIf(cart == null, "Cart not found");
+
+                // Clear voucher information
+                cart.AppliedVoucherId = null;
+                cart.AppliedVoucherCode = null;
+                cart.DiscountAmount = 0;
+
+                _unitOfWork.Carts.Update(cart);
+                await _unitOfWork.SaveChangesAsync();
+
+                // Invalidate cache
+                await InvalidateMultipleCachesAsync(
+                    CreateCacheKey(USER_CART_CACHE_PREFIX, userId),
+                    CreateCacheKey(CART_SUMMARY_CACHE_PREFIX, userId)
+                );
+
+                // Return updated cart
+                var updatedCart = await cartRepository.GetUserCartWithItemsAsync(userId);
+                var cartItems = updatedCart.CartItems ?? new List<CartItem>();
+                var cartDto = MapCartToDto(updatedCart, cartItems);
+
+                LogInfo($"✅ Voucher removed from cart for user {userId}");
+
+                return cartDto;
+
+            }, "RemoveVoucher", "Voucher removed successfully");
+        }
+
+        /// <summary>
+        /// Apply voucher code to guest's cart
+        /// Validates voucher, calculates discount, and updates cart total
+        /// Requirements: 3.2, 3.3, 3.4, 3.5
+        /// </summary>
+        public async Task<ApiResponse<GetCartResponseDto>> ApplyVoucherToGuestAsync(string sessionId, string voucherCode)
+        {
+            return await ExecuteAsApiResponseAsync(async () =>
+            {
+                ValidateNotEmpty(sessionId, nameof(sessionId));
+                ValidateNotEmpty(voucherCode, nameof(voucherCode));
+
+                // Get guest's cart
+                var cartRepository = _unitOfWork.Carts as ICartRepository;
+                var cart = await cartRepository.GetOrCreateGuestCartAsync(sessionId);
+                ThrowIf(!cart.CartItems.Any(), "Cart is empty");
+
+                // Calculate current cart subtotal
+                var subTotal = cart.CartItems.Sum(ci =>
+                    ci.Quantity * GetCurrentProductPrice(ci.Product?.Prices));
+
+                // Validate and get voucher
+                var voucherResponse = await _voucherService.ValidateVoucherAsync(voucherCode);
+                ThrowIf(!voucherResponse.Success, voucherResponse.Message ?? "Invalid voucher code");
+
+                var voucher = voucherResponse.Data;
+                var promotion = await _unitOfWork.Promotions.GetByIdAsync(voucher.PromotionId);
+                ThrowIf(promotion == null, "Promotion not found");
+
+                // Map promotion to DTO for discount calculation
+                var promotionDto = _mapper.Map<PromotionDto>(promotion);
+
+                // Validate promotion can be applied
+                var validationResult = await _discountCalculationService.ValidatePromotionAsync(promotionDto, subTotal);
+                ThrowIf(!validationResult.Data.IsValid, validationResult.Data.ErrorMessage ?? "Promotion cannot be applied");
+
+                // Calculate discount amount
+                var discountAmount = await _discountCalculationService.CalculateFinalDiscountAsync(promotionDto, subTotal);
+
+                // Update cart with voucher information
+                cart.AppliedVoucherId = voucher.Id;
+                cart.AppliedVoucherCode = voucherCode;
+                cart.DiscountAmount = discountAmount;
+
+                _unitOfWork.Carts.Update(cart);
+                await _unitOfWork.SaveChangesAsync();
+
+                // Update voucher usage
+                await _voucherService.UpdateVoucherUsageAsync(voucherCode);
+
+                // Track redemption (Requirements: 7.3)
+                var trackRedemptionDto = new TrackRedemptionDto
+                {
+                    DiscountAmount = discountAmount,
+                    OrderId = null, // Order ID will be set when order is created
+                    RedeemedBy = null, // Guest user, no user ID
+                    RedeemedAt = DateTime.UtcNow
+                };
+                await _analyticsService.TrackRedemptionAsync(voucher.Id, trackRedemptionDto);
+
+                // Invalidate cache
+                await InvalidateMultipleCachesAsync(
+                    CreateCacheKey(GUEST_CART_CACHE_PREFIX, sessionId),
+                    CreateCacheKey(CART_SUMMARY_CACHE_PREFIX, $"guest:{sessionId}")
+                );
+
+                // Return updated cart
+                var updatedCart = await cartRepository.GetBySessionIdAsync(sessionId);
+                var cartItems = updatedCart.CartItems ?? new List<CartItem>();
+                var cartDto = MapCartToDto(updatedCart, cartItems);
+
+                LogInfo($"✅ Voucher {voucherCode} applied to guest cart. Discount: {discountAmount}");
+
+                return cartDto;
+
+            }, "ApplyVoucherToGuest", "Voucher applied to guest cart successfully");
+        }
+
+        /// <summary>
+        /// Remove voucher from guest's cart
+        /// Clears applied voucher and recalculates cart total
+        /// Requirements: 3.2
+        /// </summary>
+        public async Task<ApiResponse<GetCartResponseDto>> RemoveVoucherFromGuestAsync(string sessionId)
+        {
+            return await ExecuteAsApiResponseAsync(async () =>
+            {
+                ValidateNotEmpty(sessionId, nameof(sessionId));
+
+                // Get guest's cart
+                var cartRepository = _unitOfWork.Carts as ICartRepository;
+                var cart = await cartRepository.GetBySessionIdAsync(sessionId);
+                ThrowIf(cart == null, "Guest cart not found");
+
+                // Clear voucher information
+                cart.AppliedVoucherId = null;
+                cart.AppliedVoucherCode = null;
+                cart.DiscountAmount = 0;
+
+                _unitOfWork.Carts.Update(cart);
+                await _unitOfWork.SaveChangesAsync();
+
+                // Invalidate cache
+                await InvalidateMultipleCachesAsync(
+                    CreateCacheKey(GUEST_CART_CACHE_PREFIX, sessionId),
+                    CreateCacheKey(CART_SUMMARY_CACHE_PREFIX, $"guest:{sessionId}")
+                );
+
+                // Return updated cart
+                var updatedCart = await cartRepository.GetBySessionIdAsync(sessionId);
+                var cartItems = updatedCart.CartItems ?? new List<CartItem>();
+                var cartDto = MapCartToDto(updatedCart, cartItems);
+
+                LogInfo($"✅ Voucher removed from guest cart");
+
+                return cartDto;
+
+            }, "RemoveVoucherFromGuest", "Voucher removed from guest cart successfully");
         }
 
         #endregion

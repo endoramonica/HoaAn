@@ -50,7 +50,7 @@ namespace VietCommerce.Data.Tests.Repositories
                 .Where(h => h.OrderId == order.Id)
                 .ToListAsync();
             Assert.Single(history);
-            Assert.Equal(OrderStatus.Confirmed, history.First().Status);
+            Assert.Equal(OrderStatus.Confirmed, history.First().NewStatus);
             Assert.Equal(notes, history.First().Notes);
         }
 

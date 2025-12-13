@@ -30,11 +30,18 @@ namespace VietCommerce.Core.Entities.Marketing
         public decimal ActualCost { get; set; } = 0;
         [Required]
         public CampaignStatus Status { get; set; } = CampaignStatus.DRAFT;
+        
+        // Targeting rules (stored as JSON)
+        [MaxLength(2000)]
+        public string TargetingRules { get; set; } = string.Empty;
+        
         // Navigation properties
         public virtual Store Store { get; set; } = null!;
         [ForeignKey(nameof(CreatedBy))]
         public virtual User Creator { get; set; } = null!;
         public virtual ICollection<Promotion> Promotions { get; set; } = new List<Promotion>();
+        public virtual ICollection<CampaignImpression> Impressions { get; set; } = new List<CampaignImpression>();
+        public virtual ICollection<CampaignClick> Clicks { get; set; } = new List<CampaignClick>();
         // Computed properties
         [NotMapped]
         public bool IsActive => Status == CampaignStatus.ACTIVE &&

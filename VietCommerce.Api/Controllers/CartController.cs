@@ -4,6 +4,7 @@ using System.Security.Claims;
 using VietCommerce.Application.Helpers;
 using VietCommerce.Application.Services.Services.Interfaces;
 using VietCommerce.Core.DTOs.Cart;
+using VietCommerce.Core.DTOs.Marketing;
 using VietCommerce.Core.DTOs.Orders;
 
 namespace VietCommerce.Api.Controllers
@@ -542,6 +543,154 @@ namespace VietCommerce.Api.Controllers
 
             // Clear session cookie after merge
             SessionIdHelper.ClearSessionId(Response, _logger);
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Apply a voucher code to user's cart
+        /// Requirements: 3.2, 3.3, 3.4, 3.5
+        /// </summary>
+        /// <param name="dto">Voucher code to apply</param>
+        /// <returns>Updated cart with discount applied</returns>
+        /// <response code="200">Voucher applied successfully</response>
+        /// <response code="400">Validation error or invalid voucher</response>
+        /// <response code="404">Cart or voucher not found</response>
+        /// <response code="409">Business rule violation (expired, usage limit exceeded, etc.)</response>
+        /// <response code="401">Unauthorized</response>
+        [HttpPost("apply-voucher")]
+        [Authorize]
+        [ProducesResponseType(typeof(Core.Models.ApiResponse<GetCartResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Core.Models.ApiResponse<GetCartResponseDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(Core.Models.ApiResponse<GetCartResponseDto>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Core.Models.ApiResponse<GetCartResponseDto>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> ApplyVoucher([FromBody] ApplyVoucherDto dto)
+        {
+            var userId = GetCurrentUserId();
+            if (!userId.HasValue)
+                return Unauthorized(new { message = "User not authenticated" });
+
+            if (string.IsNullOrWhiteSpace(dto.VoucherCode))
+                return BadRequest(new { message = "Voucher code is required" });
+
+            var result = await _cartService.ApplyVoucherAsync(userId.Value, dto.VoucherCode);
+
+            if (!result.Success)
+            {
+                if (result.Message.Contains("not found"))
+                    return NotFound(result);
+
+                if (result.Message.Contains("expired") || result.Message.Contains("limit exceeded") || result.Message.Contains("minimum order"))
+                    return Conflict(result);
+
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Remove applied voucher from user's cart
+        /// Requirements: 3.2
+        /// </summary>
+        /// <returns>Updated cart with discount removed</returns>
+        /// <response code="200">Voucher removed successfully</response>
+        /// <response code="400">Error removing voucher</response>
+        /// <response code="404">Cart not found</response>
+        /// <response code="401">Unauthorized</response>
+        [HttpPost("remove-voucher")]
+        [Authorize]
+        [ProducesResponseType(typeof(Core.Models.ApiResponse<GetCartResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Core.Models.ApiResponse<GetCartResponseDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(Core.Models.ApiResponse<GetCartResponseDto>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> RemoveVoucher()
+        {
+            var userId = GetCurrentUserId();
+            if (!userId.HasValue)
+                return Unauthorized(new { message = "User not authenticated" });
+
+            var result = await _cartService.RemoveVoucherAsync(userId.Value);
+
+            if (!result.Success)
+            {
+                if (result.Message.Contains("not found"))
+                    return NotFound(result);
+
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Apply a voucher code to guest's cart
+        /// Requirements: 3.2, 3.3, 3.4, 3.5
+        /// </summary>
+        /// <param name="dto">Voucher code to apply</param>
+        /// <returns>Updated guest cart with discount applied</returns>
+        /// <response code="200">Voucher applied successfully</response>
+        /// <response code="400">Validation error or invalid voucher</response>
+        /// <response code="404">Cart or voucher not found</response>
+        /// <response code="409">Business rule violation (expired, usage limit exceeded, etc.)</response>
+        [HttpPost("guest/apply-voucher")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(Core.Models.ApiResponse<GetCartResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Core.Models.ApiResponse<GetCartResponseDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(Core.Models.ApiResponse<GetCartResponseDto>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Core.Models.ApiResponse<GetCartResponseDto>), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> ApplyVoucherToGuestCart([FromBody] ApplyVoucherDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.VoucherCode))
+                return BadRequest(new { message = "Voucher code is required" });
+
+            var sessionId = GetOrCreateSessionId();
+
+            var result = await _cartService.ApplyVoucherToGuestAsync(sessionId, dto.VoucherCode);
+
+            if (!result.Success)
+            {
+                if (result.Message.Contains("not found"))
+                    return NotFound(result);
+
+                if (result.Message.Contains("expired") || result.Message.Contains("limit exceeded") || result.Message.Contains("minimum order"))
+                    return Conflict(result);
+
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Remove applied voucher from guest's cart
+        /// Requirements: 3.2
+        /// </summary>
+        /// <returns>Updated guest cart with discount removed</returns>
+        /// <response code="200">Voucher removed successfully</response>
+        /// <response code="400">Error removing voucher</response>
+        /// <response code="404">Cart not found</response>
+        [HttpPost("guest/remove-voucher")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(Core.Models.ApiResponse<GetCartResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Core.Models.ApiResponse<GetCartResponseDto>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(Core.Models.ApiResponse<GetCartResponseDto>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> RemoveVoucherFromGuestCart()
+        {
+            var sessionId = GetSessionId();
+            if (string.IsNullOrWhiteSpace(sessionId))
+                return BadRequest(new { message = "No active guest session" });
+
+            var result = await _cartService.RemoveVoucherFromGuestAsync(sessionId);
+
+            if (!result.Success)
+            {
+                if (result.Message.Contains("not found"))
+                    return NotFound(result);
+
+                return BadRequest(result);
+            }
 
             return Ok(result);
         }

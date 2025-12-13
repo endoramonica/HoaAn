@@ -91,6 +91,12 @@ namespace VietCommerce.Application.Extension
             services.AddScoped<IMarketingPostService, MarketingPostService>();
             services.AddScoped<IMixedFeedService, MixedFeedService>();
             services.AddScoped<ICustomizationAnalyticsService, CustomizationAnalyticsService>();
+            services.AddScoped<ICampaignService, CampaignService>();
+            services.AddScoped<IPromotionService, PromotionService>();
+            services.AddScoped<IDiscountCalculationService, DiscountCalculationService>();
+            services.AddScoped<IVoucherService, VoucherService>();
+            services.AddScoped<IAnalyticsService, AnalyticsService>();
+            services.AddScoped<ITargetingRulesService, TargetingRulesService>();
 
             // RBAC / Auth
             services.AddScoped<IPermissionService, PermissionService>();
@@ -140,8 +146,12 @@ namespace VietCommerce.Application.Extension
             services.AddScoped<ILikeRepository, LikeRepository>();
             services.AddScoped<IBookmarkRepository, BookmarkRepository>();
             services.AddScoped<ICommentRepository, CommentRepository>();
-
-
+            services.AddScoped<ICampaignRepository, CampaignRepository>();
+            services.AddScoped<IPromotionRepository, PromotionRepository>();
+            services.AddScoped<IVoucherRepository, VoucherRepository>();
+            services.AddScoped<ICampaignImpressionRepository, CampaignImpressionRepository>();
+            services.AddScoped<ICampaignClickRepository, CampaignClickRepository>();
+            services.AddScoped<IVoucherRedemptionRepository, VoucherRedemptionRepository>();
 
             services.AddScoped<IOrderItemRepository, OrderItemRepository>();
 

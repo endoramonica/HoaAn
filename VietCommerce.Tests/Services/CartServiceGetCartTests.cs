@@ -54,10 +54,17 @@ namespace VietCommerce.Tests.Services
             // Setup cache service
             _mockCacheService.Setup(c => c.RemoveAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
 
+            var mockVoucherService = new Mock<IVoucherService>();
+            var mockDiscountCalculationService = new Mock<IDiscountCalculationService>();
+            var mockAnalyticsService = new Mock<IAnalyticsService>();
+
             _cartService = new CartService(
                 _mockUnitOfWork.Object,
                 _mockPermissionService.Object,
                 _mockProductService.Object,
+                mockVoucherService.Object,
+                mockDiscountCalculationService.Object,
+                mockAnalyticsService.Object,
                 _mapper,
                 _mockHttpContextAccessor.Object,
                 _mockLogger.Object,

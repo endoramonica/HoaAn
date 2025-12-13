@@ -1,5 +1,6 @@
 using System.Text.Json;
 using VietCommerce.Core.DTOs.Cart;
+using VietCommerce.Core.DTOs.Marketing;
 using VietCommerce.Core.DTOs.Products;
 
 namespace VietCommerce.Core.Helpers
@@ -247,6 +248,86 @@ namespace VietCommerce.Core.Helpers
                 // Log unexpected error
                 System.Diagnostics.Debug.WriteLine($"Unexpected error during customizations deserialization: {ex.Message}");
                 return new List<CartItemCustomizationDto>();
+            }
+        }
+
+        /// <summary>
+        /// Serializes a TargetingRulesDto to JSON string.
+        /// </summary>
+        /// <param name="rules">Targeting rules to serialize</param>
+        /// <returns>JSON string representation of the rules, or null if serialization fails</returns>
+        /// <remarks>
+        /// Handles serialization errors gracefully by logging and returning null.
+        /// Validates: Requirements 4.1
+        /// </remarks>
+        public static string? SerializeTargetingRules(TargetingRulesDto? rules)
+        {
+            try
+            {
+                if (rules == null)
+                {
+                    return null;
+                }
+
+                return JsonSerializer.Serialize(rules, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = false,
+                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                });
+            }
+            catch (JsonException ex)
+            {
+                // Log serialization error
+                System.Diagnostics.Debug.WriteLine($"Error serializing targeting rules: {ex.Message}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                // Log unexpected error
+                System.Diagnostics.Debug.WriteLine($"Unexpected error during targeting rules serialization: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Deserializes a JSON string to a TargetingRulesDto.
+        /// </summary>
+        /// <param name="json">JSON string to deserialize</param>
+        /// <returns>TargetingRulesDto, or null if deserialization fails</returns>
+        /// <remarks>
+        /// Handles deserialization errors gracefully by logging and returning null.
+        /// Validates: Requirements 4.1
+        /// </remarks>
+        public static TargetingRulesDto? DeserializeTargetingRules(string? json)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    return null;
+                }
+
+                var rules = JsonSerializer.Deserialize<TargetingRulesDto>(json, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = false,
+                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                });
+
+                return rules;
+            }
+            catch (JsonException ex)
+            {
+                // Log deserialization error
+                System.Diagnostics.Debug.WriteLine($"Error deserializing targeting rules: {ex.Message}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                // Log unexpected error
+                System.Diagnostics.Debug.WriteLine($"Unexpected error during targeting rules deserialization: {ex.Message}");
+                return null;
             }
         }
     }
