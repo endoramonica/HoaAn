@@ -42,6 +42,9 @@
 - ✅ Analytics tracking
 - ✅ Pagination support
 - ✅ Current user context
+- ✅ **[NEW] Marketing post mapping với TaggedProduct**
+- ✅ **[NEW] Chuẩn hóa response format theo marketing feed API**
+- ✅ **[NEW] Sử dụng TaggedProductHelper cho consistency**
 
 ### 4. API Controller
 **File**: `VietCommerce.Api/Controllers/MixedFeedController.cs`
@@ -421,6 +424,10 @@ curl -X POST "https://localhost:7001/api/v1/posts/{postId}/interactions/view?pos
 - [x] Algorithm explained
 - [x] Use cases documented
 - [x] Testing guide provided
+- [x] **[NEW] Marketing post mapping cập nhật**
+- [x] **[NEW] TaggedProduct integration**
+- [x] **[NEW] Response format chuẩn hóa**
+- [x] **[NEW] TaggedProductHelper integration**
 
 ---
 

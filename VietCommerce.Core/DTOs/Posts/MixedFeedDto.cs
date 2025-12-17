@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using VietCommerce.Core.DTOs.Products;
 
 namespace VietCommerce.Core.DTOs.Posts;
 
@@ -26,12 +27,16 @@ public class MixedFeedDto
     // Marketing Post specific
     public string? Title { get; set; }
     public string? ShortDescription { get; set; }
+    public string? Image { get; set; }
     public Guid? ProductId { get; set; }
     public string? ProductName { get; set; }
+    public TaggedProductDto? TaggedProduct { get; set; }
+    public string? Platform { get; set; }
+    public List<string>? Hashtags { get; set; }
     public int? PriorityScore { get; set; }
     public bool? IsFeatured { get; set; }
+    public string? Status { get; set; }
     public List<string>? DisplayLocation { get; set; }
-    public List<string>? Hashtags { get; set; }
 
     // Engagement metrics
     public int LikesCount { get; set; }

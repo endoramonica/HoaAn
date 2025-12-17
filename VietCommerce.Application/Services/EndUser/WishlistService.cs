@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using VietCommerce.Application.Services.EndUser.EndUser_Interfaces;
 using VietCommerce.Application.Services.Services;
 using VietCommerce.Application.Services.Services.Interfaces;
+using VietCommerce.Core.DTOs.Cart;
 using VietCommerce.Core.DTOs.Wishlist;
 using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Models;
@@ -19,17 +20,20 @@ namespace VietCommerce.Application.Services.EndUser
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper; // ✅ THÊM
+        private readonly ICartService _cartService;
         private const string CACHE_PREFIX = "wishlist";
 
         public WishlistService(
             ILogger<WishlistService> logger,
             ICacheService cacheService,
             IUnitOfWork unitOfWork,
-            IMapper mapper) // ✅ THÊM PARAMETER
+            IMapper mapper, // ✅ THÊM PARAMETER
+            ICartService cartService) // ✅ THÊM PARAMETER
             : base(logger, cacheService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper; // ✅ THÊM
+            _cartService = cartService ?? throw new ArgumentNullException(nameof(cartService));
         }
 
         public async Task<ApiResponse<List<WishlistItemDto>>> GetWishlistAsync(Guid userId)
@@ -290,13 +294,56 @@ namespace VietCommerce.Application.Services.EndUser
             {
                 ValidateId(userId, nameof(userId));
 
-                // TODO: Implement logic move to cart
-                // Cần inject ICartService và gọi AddToCartAsync cho từng item
-                // Sau đó clear wishlist
+                // Get customer for this user
+                var customer = await _unitOfWork.Customers.GetByUserIdAsync(userId);
+                ThrowIf(customer == null, "Customer not found for user");
 
-                throw new NotImplementedException(
-                    "Tính năng Move to Cart chưa được implement. " +
-                    "Vui lòng inject ICartService và implement logic.");
+                // Get all wishlist items
+                var wishlistItems = await _unitOfWork.ProductFavorites.GetByUserIdWithProductAsync(userId);
+
+                if (!wishlistItems.Any())
+                {
+                    LogInfo($"Wishlist is empty for user {userId}");
+                    return true;
+                }
+
+                LogInfo($"Moving {wishlistItems.Count()} items from wishlist to cart for customer {customer.Id}");
+
+                // Add each item to cart
+                foreach (var wishlistItem in wishlistItems)
+                {
+                    try
+                    {
+                        var addToCartDto = new AddToCartDto
+                        {
+                            ProductId = wishlistItem.ProductId,
+                            Quantity = 1 // Default quantity
+                        };
+
+                        var addResult = await _cartService.AddToCartAsync(customer.Id, addToCartDto);
+
+                        if (!addResult.Success)
+                        {
+                            LogWarning($"Failed to add product {wishlistItem.ProductId} to cart: {addResult.Message}");
+                            // Continue with next item instead of failing
+                            continue;
+                        }
+
+                        LogInfo($"Added product {wishlistItem.ProductId} to cart for customer {customer.Id}");
+                    }
+                    catch (Exception ex)
+                    {
+                        LogWarning($"Exception adding product {wishlistItem.ProductId} to cart: {ex.Message}");
+                        // Continue with next item instead of failing
+                        continue;
+                    }
+                }
+
+                // Clear wishlist after moving items
+                await ClearWishlistAsync(userId);
+
+                LogInfo($"Successfully moved all wishlist items to cart for user {userId}");
+                return true;
 
             }, "MoveAllToCart", "Đã di chuyển tất cả vào giỏ hàng");
         }

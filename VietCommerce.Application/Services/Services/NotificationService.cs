@@ -24,8 +24,9 @@ public class NotificationService : BaseService, INotificationService
         IMapper mapper,
         ICacheService? cacheService = null) : base(logger, cacheService)
     {
-        _unitOfWork = unitOfWork;
-        _mapper = mapper;
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        _notificationRepo = unitOfWork.Notifications;
     }
 
     public async Task<PaginatedResult<NotificationDto>> GetNotificationsAsync(Guid userId, PaginationParams pagination)

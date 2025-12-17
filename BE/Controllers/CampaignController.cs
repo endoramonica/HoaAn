@@ -6,7 +6,7 @@ using VietCommerce.Core.DTOs.Marketing;
 using VietCommerce.Core.Enums.Marketing;
 using VietCommerce.Core.Models;
 
-namespace VietCommerce.Api.Controllers;
+namespace VietCommerce.AdminApi.Controllers;
 
 /// <summary>
 /// Campaign Management API Controller
@@ -32,7 +32,7 @@ namespace VietCommerce.Api.Controllers;
 /// **Authentication:** Requires JWT Bearer token with admin privileges
 /// </summary>
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/[controller]")]
 [Authorize]
 [Tags("Campaign Management")]
 public class CampaignController : ControllerBase

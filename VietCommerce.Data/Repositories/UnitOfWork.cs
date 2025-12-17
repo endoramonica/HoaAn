@@ -77,7 +77,6 @@ public class UnitOfWork : IUnitOfWork
     public IGenericRepository<CartItem> CartItems => _cartItems ??= new GenericRepository<CartItem>(_context);
     public IOrderRepository Orders => _orders ??= new OrderRepository(_context, _logger);
     public IOrderItemRepository OrderItems => _orderItems ??= new OrderItemRepository(_context);
-    private IOrderShippingRepository _orderShipping;
     public IOrderShippingRepository OrderShipping => _orderShippings ??= new OrderShippingRepository(_context, null!);
     public IOrderStatusHistoryRepository OrderStatusHistories => _orderStatusHistories ??= new OrderStatusHistoryRepository(_context, null!);
     public IProductImageRepository ProductImages => _productImages ??= new ProductImageRepository(_context);

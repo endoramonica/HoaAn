@@ -6,7 +6,7 @@ using VietCommerce.Core.DTOs.Marketing;
 using VietCommerce.Core.Enums.Marketing;
 using VietCommerce.Core.Models;
 
-namespace VietCommerce.Api.Controllers;
+namespace VietCommerce.AdminApi.Controllers;
 
 /// <summary>
 /// Promotion Management API Controller
@@ -32,7 +32,7 @@ namespace VietCommerce.Api.Controllers;
 /// **Authentication:** Requires JWT Bearer token with admin privileges
 /// </summary>
 [ApiController]
-[Route("api/v1/campaigns/{campaignId}/[controller]")]
+[Route("api/campaigns/{campaignId}/[controller]")]
 [Authorize]
 [Tags("Promotion Management")]
 public class PromotionController : ControllerBase

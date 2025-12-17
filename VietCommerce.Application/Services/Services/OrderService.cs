@@ -553,18 +553,27 @@ namespace VietCommerce.Application.Services.Services
         }
 
         /// <summary>
-        /// Create an OrderItem from a CartItem, snapshotting customization data.
-        /// ✅ Preserves customizations, base price, and customization price from CartItem
-        /// ✅ Ensures historical accuracy for fulfillment and analytics
+        /// Create an OrderItem from a CartItem by copying available snapshot data.
+        /// ⚠️ Assumes CartItem pricing has been calculated beforehand.
         /// </summary>
         /// <param name="cartItem">CartItem to convert to OrderItem</param>
         /// <param name="orderId">Order ID to associate with the new OrderItem</param>
-        /// <returns>Created OrderItem with snapshotted customization data</returns>
+        /// <returns>
+        /// An OrderItem created by copying snapshot data from the CartItem.
+        /// Pricing values are copied as-is without recalculation.
+        /// </returns>
         /// <remarks>
-        /// Validates: Requirements 5.1, 5.2, 5.3
-        /// This method snapshots all customization data from the CartItem to the OrderItem,
-        /// ensuring that any future changes to the product or cart do not affect the order.
+        /// IMPORTANT:
+        /// - This method DOES NOT calculate, recalculate, or validate pricing.
+        /// - BasePrice, CustomizationPrice, UnitPrice, and FinalPrice MUST already be
+        ///   correctly populated on the CartItem before calling this method.
+        /// - This method blindly copies pricing values from the CartItem.
+        /// - If CartItem pricing data is missing, zero, or incorrect, the resulting
+        ///   OrderItem will contain the same incorrect values.
+        /// - Pricing responsibility belongs to the Cart domain / CartService, not here.
         /// </remarks>
+
+
         public async Task<OrderItem> CreateOrderItemFromCartItemAsync(
             CartItem cartItem,
             Guid orderId)
@@ -582,7 +591,7 @@ namespace VietCommerce.Application.Services.Services
                     ProductId = cartItem.ProductId,
                     ProductName = cartItem.Product?.Name ?? "Unknown Product",
                     ProductCode = cartItem.Product?.Code ?? "UNKNOWN",
-                    UnitPrice = cartItem.BasePrice,
+                    UnitPrice = cartItem.FinalPrice,
                     Quantity = cartItem.Quantity,
                     TotalPrice = cartItem.FinalPrice,
 

@@ -5,7 +5,7 @@ using VietCommerce.Application.Services.Services.Interfaces;
 using VietCommerce.Core.DTOs.Marketing;
 using VietCommerce.Core.Models;
 
-namespace VietCommerce.Api.Controllers;
+namespace VietCommerce.AdminApi.Controllers;
 
 /// <summary>
 /// Voucher Management API Controller
@@ -32,7 +32,7 @@ namespace VietCommerce.Api.Controllers;
 /// **Authentication:** Requires JWT Bearer token with admin privileges (except validation)
 /// </summary>
 [ApiController]
-[Route("api/v1/promotions/{promotionId}/[controller]")]
+[Route("api/promotions/{promotionId}/[controller]")]
 [Authorize]
 [Tags("Voucher Management")]
 public class VoucherController : ControllerBase

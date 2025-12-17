@@ -159,7 +159,7 @@ namespace VietCommerce.Application.Services.Services
                 );
 
                 // STEP 8: Generate tokens
-                
+
                 var refreshToken = GenerateRefreshToken();
 
                 // STEP 9: Extract JTI
@@ -186,8 +186,27 @@ namespace VietCommerce.Application.Services.Services
                 {
                     try
                     {
-                        LogInfo($"🛒 Merging guest cart for user {user.Id}");
-                        var mergeResult = await _cartService.MergeGuestCartToUserAsync(guestSessionId, user.Id);
+                        // Get or create customer for this user
+                        var guestCustomer = await _unitOfWork.Customers.GetByUserIdAsync(user.Id);
+                        if (guestCustomer == null)
+                        {
+                            // Create customer if doesn't exist
+                            guestCustomer = new Customer
+                            {
+                                UserId = user.Id,
+                                Email = user.Email,
+                                Name = user.Name,
+                                Phone = user.Phone ?? string.Empty,
+                                IsActive = true,
+                                StoreId = Guid.Parse("47AA5519-C503-4CFA-8101-2EDB36FD9D8C"),
+                                TenantId = Guid.Parse("F40EC7E0-FC21-4E67-831C-07D14D0B304A")
+                            };
+                            await _unitOfWork.Customers.AddAsync(guestCustomer);
+                            await _unitOfWork.SaveChangesAsync();
+                        }
+
+                        LogInfo($"🛒 Merging guest cart for customer {guestCustomer.Id}");
+                        var mergeResult = await _cartService.MergeGuestCartToUserAsync(guestSessionId, guestCustomer.Id);
 
                         if (mergeResult.Success)
                         {

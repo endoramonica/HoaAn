@@ -1,9 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using VietCommerce.Application.Helpers;
 using VietCommerce.Application.Services.Services.Interfaces;
 using VietCommerce.Application.Services.Services.Interfaces.Identities;
 using VietCommerce.Core.DTOs.Posts;
+using VietCommerce.Core.DTOs.Products;
 using VietCommerce.Core.Entities.Marketing;
+using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Enums.Marketing;
 using VietCommerce.Core.Models;
 using VietCommerce.Data.Repositories.Interfaces;
@@ -262,7 +265,22 @@ public class MixedFeedService : IMixedFeedService
             sortBy: "priority",
             sortOrder: "desc");
 
-        return result.Items.Select(m => MapMarketingPostToDto(m, currentUserId)).ToList();
+        var dtos = new List<MixedFeedDto>();
+        foreach (var post in result.Items)
+        {
+            var dto = MapMarketingPostToDto(post, currentUserId);
+
+            // Populate TaggedProduct if productId exists
+            if (post.ProductId.HasValue)
+            {
+                var product = await _unitOfWork.Products.GetByIdAsync(post.ProductId.Value);
+                dto.TaggedProduct = TaggedProductHelper.BuildTaggedProductDto(product);
+            }
+
+            dtos.Add(dto);
+        }
+
+        return dtos;
     }
 
     private List<MixedFeedDto> MixPosts(
@@ -324,16 +342,20 @@ public class MixedFeedService : IMixedFeedService
             Title = post.Title,
             Content = post.Content,
             ShortDescription = post.ShortDescription,
+            Image = post.ImageUrl,
             ImageUrl = post.ImageUrl,
             ImageUrls = ParseJsonArray(post.ImageUrls),
             CreatedAt = post.CreatedAt,
             PublishedDate = post.PublishedDate,
             ProductId = post.ProductId,
             ProductName = post.ProductName,
+            TaggedProduct = null, // Will be populated by caller if needed
+            Platform = post.Platform,
+            Hashtags = ParseJsonArray(post.Hashtags),
             PriorityScore = post.PriorityScore,
             IsFeatured = post.IsFeatured,
+            Status = post.Status.ToString(),
             DisplayLocation = ParseJsonArray(post.DisplayLocation),
-            Hashtags = ParseJsonArray(post.Hashtags),
             ViewsCount = post.Views,
             ClicksCount = post.Clicks,
             SharesCount = post.Shares,
@@ -355,6 +377,8 @@ public class MixedFeedService : IMixedFeedService
             return null;
         }
     }
+
+
 
     private async Task<ApiResponse<PostInteractionResult>> TrackMarketingInteractionAsync(
         Guid postId,

@@ -514,9 +514,8 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             product.Stock = newQty;
 
         await _context.SaveChangesAsync();
-        return true;
         Console.WriteLine($"Check Inventory for ProductId: {productId}");
-
+        return true;
     }
 
 
