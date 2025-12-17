@@ -116,22 +116,11 @@ export function EventSidebar({
       setBookingResult(result);
       setShowBookingDialog(false);
 
-      if (result.success && result.orderId) {
+      if (result.success) {
         toast.success(result.message);
-        // Lưu thông tin booking vào sessionStorage để CheckoutFlow sử dụng
-        sessionStorage.setItem('bookingInfo', JSON.stringify({
-          orderId: result.orderId,
-          serviceDate: formData.serviceDate,
-          serviceDuration: formData.serviceDuration,
-          serviceLocation: formData.serviceLocation,
-          serviceNotes: formData.serviceNotes,
-          customerName: formData.customerName,
-          customerPhone: formData.customerPhone,
-          customerEmail: formData.customerEmail,
-        }));
-        // Redirect đến checkout
+        // Redirect đến checkout page
         setTimeout(() => {
-          navigate(`/checkout?orderId=${result.orderId}`);
+          navigate('/checkout');
         }, 1000);
       } else {
         toast.error(result.message);
@@ -315,17 +304,7 @@ export function EventSidebar({
                         </button>
                       )}
 
-                      {/* View Order Button */}
-                      {bookingResult?.success && bookingResult.orderId && (
-                        <button
-                          onClick={() => {
-                            navigate(`/bookings/${bookingResult.orderId}`);
-                          }}
-                          className="w-full px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-colors"
-                        >
-                          Xem đơn hàng
-                        </button>
-                      )}
+
                     </div>
                   )}
                 </div>

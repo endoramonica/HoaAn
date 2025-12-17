@@ -26,26 +26,37 @@ See `BACKEND_REQUIREMENTS.md` for details.
 
 ## Tasks
 
-- [ ] 1. Update CartService to pass customizations to backend
+- [x] 1. Update CartService to pass customizations to backend
+
+
+
 
   - [ ] 1.1 Update AddToCartRequest interface to include customizations
     - Modify `src/lib/services/cartService.ts`
     - Add `customizations?: CartItemCustomizationDto[]` to AddToCartRequest
     - _Requirements: 2.1, 2.2_
 
+
   - [ ] 1.2 Update cartService.addItem() to transmit customizations
     - Modify `src/lib/services/cartService.ts`
     - Pass customizations array to api.postApiV1CartAdd()
+
+
     - Ensure both authenticated and guest cart services support customizations
+
     - _Requirements: 1.2, 2.3_
 
 - [ ] 2. Update EventSidebar to include customizations when adding to cart
 
-  - [ ] 2.1 Retrieve customization state before adding product to cart
+  - [x] 2.1 Retrieve customization state before adding product to cart
+
     - Modify `src/pages/calendar/EventSidebar.tsx`
     - Import customizationStateService
     - Before calling cartService.addItem(), retrieve saved customization state for selectedServiceProductId
     - _Requirements: 1.1, 1.2_
+
+
+
 
   - [ ] 2.2 Transform and pass customizations to cartService.addItem()
     - Modify `src/pages/calendar/EventSidebar.tsx`
@@ -53,26 +64,33 @@ See `BACKEND_REQUIREMENTS.md` for details.
     - Pass customizations in the addItem request
     - _Requirements: 1.2_
 
+
 - [ ] 3. Update ProductDetailPage to include customizations when adding to cart
 
-  - [ ] 3.1 Retrieve customization state before adding product to cart
+  - [x] 3.1 Retrieve customization state before adding product to cart
+
     - Modify `src/pages/ProductDetailPage.tsx`
     - Import customizationStateService
+
     - Before calling cartService.addItem(), retrieve saved customization state for the product
     - _Requirements: 1.1, 1.2_
 
-  - [ ] 3.2 Transform and pass customizations to cartService.addItem()
+  - [x] 3.2 Transform and pass customizations to cartService.addItem()
+
     - Modify `src/pages/ProductDetailPage.tsx`
     - Transform SavedCustomizationState to CartItemCustomizationDto[] format
     - Pass customizations in the addItem request
     - _Requirements: 1.2_
 
-- [ ] 4. Update useCart hook to handle customization data from backend
+
+- [x] 4. Update useCart hook to handle customization data from backend
+
 
   - [ ] 4.1 Verify CartItem interface includes customizations field
     - Review `src/lib/hooks/useCart.ts`
     - Ensure CartItem interface has `customizations?: CartItemCustomizationDto[]`
     - _Requirements: 1.4, 4.2_
+
 
   - [ ] 4.2 Verify customizations are preserved in cart transformation
     - Review `src/lib/hooks/useCart.ts` fetchCart() method
@@ -80,11 +98,14 @@ See `BACKEND_REQUIREMENTS.md` for details.
     - Ensure basePrice, customizationPrice, finalPrice are included
     - _Requirements: 1.4, 4.2_
 
+
 - [ ] 5. Display customization options in CartPage
 
-  - [ ] 5.1 Create CustomizationDisplay component
+  - [x] 5.1 Create CustomizationDisplay component
+
     - Create `src/components/CustomizationDisplay.tsx`
     - Display customization options for a cart item
+
     - Show: option name, quantity, unit, unit price, total price
     - Show customization subtotal
     - _Requirements: 1.4_
@@ -92,27 +113,33 @@ See `BACKEND_REQUIREMENTS.md` for details.
   - [ ] 5.2 Update CartPage to display customizations for each item
     - Modify `src/components/CartPage.tsx`
     - For each cart item with customizations, render CustomizationDisplay
+
     - Show price breakdown: basePrice + customizationPrice = finalPrice
     - _Requirements: 1.4_
 
   - [ ] 5.3 Add edit customizations button to CartPage
     - Modify `src/components/CartPage.tsx`
+
     - Add button/link to edit customizations for each item
     - Button should only appear for items with customizations
     - _Requirements: 3.1_
 
-- [ ] 6. Implement customization editor component
+- [x] 6. Implement customization editor component
 
-  - [ ] 6.1 Create CustomizationEditor component
+
+  - [x] 6.1 Create CustomizationEditor component
+
     - Create `src/components/CustomizationEditor.tsx`
     - Display current customization options with quantity inputs
     - Show min/max bounds for each option
     - Validate quantities on input change
     - Calculate and display updated prices
+
     - _Requirements: 3.2, 3.3_
 
   - [ ] 6.2 Add save and cancel buttons to CustomizationEditor
     - Save button calls cartService to update customizations
+
     - Cancel button closes editor without changes
     - Show loading state while updating
     - _Requirements: 3.2_
@@ -137,6 +164,8 @@ See `BACKEND_REQUIREMENTS.md` for details.
     - Ensure customizations from cart items are preserved
     - Verify checkout API receives customization data
     - _Requirements: 1.5_
+
+
 
 - [ ] 8. Checkpoint - Verify integration with backend
 

@@ -119,6 +119,7 @@ export const cartService = {
 
   /**
    * Thêm sản phẩm vào giỏ hàng
+   * Tự động chọn endpoint dựa trên có customizations hay không
    */
   addItem: async (request: AddToCartRequest): Promise<any> => {
     const dto: AddToCartDto = {
@@ -126,6 +127,11 @@ export const cartService = {
       quantity: request.quantity,
       customizations: request.customizations,
     };
+
+    // Route to correct endpoint based on customizations
+    if (request.customizations && request.customizations.length > 0) {
+      return api.postApiV1CartAddWithCustomizations(dto);
+    }
     return api.postApiV1CartAdd(dto);
   },
 
@@ -231,6 +237,7 @@ export const guestCartService = {
 
   /**
    * Thêm sản phẩm vào giỏ hàng guest
+   * Tự động chọn endpoint dựa trên có customizations hay không
    */
   addItem: async (request: AddToCartRequest): Promise<any> => {
     const dto: AddToCartDto = {
@@ -238,6 +245,13 @@ export const guestCartService = {
       quantity: request.quantity,
       customizations: request.customizations,
     };
+
+    // Route to correct endpoint based on customizations
+    if (request.customizations && request.customizations.length > 0) {
+      // Guest cart doesn't have a separate add-with-customizations endpoint yet
+      // Use the standard endpoint which should handle customizations
+      return api.postApiV1CartGuestAdd(dto);
+    }
     return api.postApiV1CartGuestAdd(dto);
   },
 

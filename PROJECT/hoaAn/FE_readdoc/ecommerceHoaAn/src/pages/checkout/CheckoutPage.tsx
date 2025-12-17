@@ -76,6 +76,7 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodType>(PaymentMethod.cod);
   const [showAddAddressForm, setShowAddAddressForm] = useState(false);
   const [orderNote, setOrderNote] = useState('');
+  const [bookingInfo, setBookingInfo] = useState<any>(null);
 
   // ✅ New address form - Using correct Orval structure
   const [newAddress, setNewAddress] = useState<CreateAddressDto>({
@@ -96,6 +97,25 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
   useEffect(() => {
     loadAddresses();
   }, [loadAddresses]);
+
+  // ✅ Load booking info from sessionStorage if available (from calendar booking)
+  useEffect(() => {
+    const savedBookingInfo = sessionStorage.getItem('bookingInfo');
+    if (savedBookingInfo) {
+      try {
+        const booking = JSON.parse(savedBookingInfo);
+        setBookingInfo(booking);
+        console.log('[CheckoutPage] 📅 Booking info loaded from sessionStorage:', booking);
+        
+        // Pre-fill order note with booking details if available
+        if (booking.bookingNotes && !orderNote) {
+          setOrderNote(booking.bookingNotes);
+        }
+      } catch (err) {
+        console.error('[CheckoutPage] Error parsing booking info:', err);
+      }
+    }
+  }, []);
 
   // ✅ Auto-select default address
   useEffect(() => {

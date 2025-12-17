@@ -9,13 +9,10 @@ import { toast } from 'sonner';
 import { productService } from '../lib/services/productService';
 import { useCart } from '../lib/hooks/useCart';
 import { useWishlist } from '../lib/hooks/useWishlist';
-import { useAuth } from '../lib/hooks/useAuth';
 import { customizationStateService } from '../lib/services/customizationStateService';
+import { cartService } from '../lib/services/cartService';
 import type { ProductDetailDto } from '../../Api/generated-orval/schemas';
 import type { AddToCartDto } from '../../Api/generated-orval/schemas';
-import { getVietCommerceAPI } from '../../Api/generated-orval';
-
-const api = getVietCommerceAPI();
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -35,7 +32,6 @@ export function ProductDetailPage() {
   const [isCustomizationSaved, setIsCustomizationSaved] = useState(false);
 
   const { isInWishlist, toggleWishlist, loadWishlist } = useWishlist();
-  const { isAuthenticated } = useAuth();
   const { refreshCart } = useCart();
 
   useEffect(() => {
@@ -147,11 +143,12 @@ export function ProductDetailPage() {
 
       console.log('[ProductDetailPage] Request DTO:', JSON.stringify(dto, null, 2));
 
-      if (isAuthenticated) {
-        await api.postApiV1CartAdd(dto);
-      } else {
-        await api.postApiV1CartGuestAdd(dto);
-      }
+      // Use cart service which automatically routes to correct endpoint
+      await cartService.addItem({
+        productId: product.id,
+        quantity,
+        customizations
+      });
 
       await refreshCart();
       toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
