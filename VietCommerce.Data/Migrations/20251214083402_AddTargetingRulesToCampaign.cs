@@ -1,5 +1,4 @@
-using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -28,4 +27,5 @@ namespace VietCommerce.Data.Migrations
                 table: "Campaigns");
         }
     }
+
 }
