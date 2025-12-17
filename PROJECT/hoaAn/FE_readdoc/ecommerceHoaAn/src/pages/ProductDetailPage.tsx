@@ -4,12 +4,13 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
-import { Star, ShoppingCart, Heart, Minus, Plus, Loader2, ChevronLeft, ChevronRight, ArrowLeft, Package, Shield, Truck, RotateCcw, Eye, Sparkles } from 'lucide-react';
+import { Star, ShoppingCart, Heart, Minus, Plus, Loader2, ChevronLeft, ChevronRight, ArrowLeft, Package, Shield, Truck, RotateCcw, Eye, Sparkles, Tag, Save, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { productService } from '../lib/services/productService';
 import { useCart } from '../lib/hooks/useCart';
 import { useWishlist } from '../lib/hooks/useWishlist';
 import { useAuth } from '../lib/hooks/useAuth';
+import { customizationStateService } from '../lib/services/customizationStateService';
 import type { ProductDetailDto } from '../../Api/generated-orval/schemas';
 import type { AddToCartDto } from '../../Api/generated-orval/schemas';
 import { getVietCommerceAPI } from '../../Api/generated-orval';
@@ -29,6 +30,9 @@ export function ProductDetailPage() {
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [selectedTab, setSelectedTab] = useState<'description' | 'details'>('description');
+  const [customizationQuantities, setCustomizationQuantities] = useState<Record<string, number>>({});
+  const [isSavingCustomization, setIsSavingCustomization] = useState(false);
+  const [isCustomizationSaved, setIsCustomizationSaved] = useState(false);
 
   const { isInWishlist, toggleWishlist, loadWishlist } = useWishlist();
   const { isAuthenticated } = useAuth();
@@ -46,8 +50,36 @@ export function ProductDetailPage() {
         setLoading(true);
         setError(null);
         const data = await productService.getProductById(id);
+        console.log('[ProductDetailPage] Product loaded:', data);
+        console.log('[ProductDetailPage] Customizable options:', data.customizableOptions);
         setProduct(data);
         setCurrentImageIndex(0);
+        
+        // Initialize customization quantities with baseQuantity or saved state
+        if (data.customizableOptions && data.customizableOptions.length > 0) {
+          console.log('[ProductDetailPage] Initializing customization quantities');
+          
+          // Kiểm tra xem có trạng thái đã lưu không
+          const savedState = customizationStateService.getCustomizationState(id);
+          let quantities: Record<string, number> = {};
+          
+          if (savedState) {
+            console.log('[ProductDetailPage] Loading saved customization state');
+            quantities = customizationStateService.stateToQuantitiesMap(savedState);
+            setIsCustomizationSaved(true);
+          } else {
+            // Sử dụng baseQuantity mặc định
+            data.customizableOptions.forEach(option => {
+              quantities[option.id] = option.baseQuantity || 0;
+            });
+          }
+          
+          setCustomizationQuantities(quantities);
+          console.log('[ProductDetailPage] Customization quantities:', quantities);
+        } else {
+          console.log('[ProductDetailPage] No customizable options found');
+        }
+        
         await productService.recordProductView(id);
 
         if (data.categoryId) {
@@ -88,10 +120,32 @@ export function ProductDetailPage() {
 
     try {
       setIsAddingToCart(true);
+      
+      // Build customizations array from user selections
+      const customizations = product.customizableOptions?.map(option => {
+        const qty = customizationQuantities[option.id] || 0;
+        return {
+          optionId: option.id,
+          quantity: qty,
+          unitPrice: option.unitPrice || 0,
+          totalPrice: qty * (option.unitPrice || 0)
+        };
+      }) || undefined;
+
+      console.log('[ProductDetailPage] Add to cart:', {
+        productId: product.id,
+        quantity,
+        customizationsCount: customizations?.length || 0,
+        customizations: customizations
+      });
+
       const dto: AddToCartDto = {
         productId: product.id,
-        quantity
+        quantity,
+        customizations
       };
+
+      console.log('[ProductDetailPage] Request DTO:', JSON.stringify(dto, null, 2));
 
       if (isAuthenticated) {
         await api.postApiV1CartAdd(dto);
@@ -107,6 +161,56 @@ export function ProductDetailPage() {
       toast.error(error.message || 'Không thể thêm vào giỏ hàng');
     } finally {
       setIsAddingToCart(false);
+    }
+  };
+
+  const handleUpdateCustomization = (optionId: string, newQuantity: number) => {
+    const option = product?.customizableOptions?.find(o => o.id === optionId);
+    if (!option) return;
+
+    // Validate quantity within min/max bounds
+    const min = option.minQuantity || 0;
+    const max = option.maxQuantity || Infinity;
+    const validQuantity = Math.max(min, Math.min(max, newQuantity));
+
+    setCustomizationQuantities(prev => ({
+      ...prev,
+      [optionId]: validQuantity
+    }));
+    
+    // Reset saved state indicator when user modifies
+    setIsCustomizationSaved(false);
+  };
+
+  const handleSaveCustomization = async () => {
+    if (!product?.id || !product.customizableOptions) {
+      toast.error('Không thể lưu tùy chọn');
+      return;
+    }
+
+    try {
+      setIsSavingCustomization(true);
+      
+      customizationStateService.saveCustomizationState(
+        product.id || '',
+        product.name || '',
+        (product as any).type,
+        product.customizableOptions || [],
+        customizationQuantities
+      );
+
+      setIsCustomizationSaved(true);
+      toast.success('Đã lưu tùy chọn thêm!');
+      
+      // Reset indicator after 2 seconds
+      setTimeout(() => {
+        setIsCustomizationSaved(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Error saving customization:', error);
+      toast.error('Không thể lưu tùy chọn');
+    } finally {
+      setIsSavingCustomization(false);
     }
   };
 
@@ -301,7 +405,7 @@ export function ProductDetailPage() {
             )}
           </div>
 
-          {/* Enhanced Product Info
+          {/* Enhanced Product Info */}
           <div className="space-y-6">
             {/* Category & Brand */}
             <div className="flex flex-wrap items-center gap-2">
@@ -413,6 +517,90 @@ export function ProductDetailPage() {
               </div>
             </div>
 
+            {/* Customization Options */}
+            {product.customizableOptions && product.customizableOptions.length > 0 && (
+              <div className="bg-white rounded-xl border-2 border-gray-100 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-gray-900 font-semibold">Tùy chọn thêm</h3>
+                  {(product as any).type === 'service' && (
+                    <Button
+                      size="sm"
+                      onClick={handleSaveCustomization}
+                      disabled={isSavingCustomization}
+                      className={`transition-all ${
+                        isCustomizationSaved
+                          ? 'bg-green-600 hover:bg-green-700 text-white'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                    >
+                      {isSavingCustomization ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Đang lưu...
+                        </>
+                      ) : isCustomizationSaved ? (
+                        <>
+                          <Check className="w-4 h-4 mr-2" />
+                          Đã lưu
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Lưu tùy chọn
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+                <div className="space-y-4">
+                  {product.customizableOptions.map(option => (
+                    <div key={option.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="font-medium text-gray-900">{option.name}</p>
+                          <p className="text-sm text-gray-600">
+                            {formatPrice(option.unitPrice)} / {option.unit}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600">Cộng thêm</p>
+                          <p className="font-semibold text-rose-600">
+                            {formatPrice((customizationQuantities[option.id] || 0) * option.unitPrice)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUpdateCustomization(option.id, (customizationQuantities[option.id] || 0) - 1)}
+                          disabled={isAddingToCart || (customizationQuantities[option.id] || 0) <= (option.minQuantity || 0)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </Button>
+                        <span className="flex-1 text-center font-semibold">
+                          {customizationQuantities[option.id] || 0}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUpdateCustomization(option.id, (customizationQuantities[option.id] || 0) + 1)}
+                          disabled={isAddingToCart || (customizationQuantities[option.id] || 0) >= (option.maxQuantity || Infinity)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Tối thiểu: {option.minQuantity}, Tối đa: {option.maxQuantity || 'Không giới hạn'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="grid grid-cols-5 gap-3">
               <Button
@@ -491,9 +679,9 @@ export function ProductDetailPage() {
               </div>
             </div>
           </div>
-        </div>*/
+        </div>
 
-        {/* Tabbed Content Section
+        {/* Tabbed Content Section */}
         <div className="mt-12">
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
             <div className="flex border-b border-gray-200">
@@ -561,7 +749,7 @@ export function ProductDetailPage() {
               )}
             </div>
           </div>
-        </div> */}
+        </div>
         {/* Category/Brand & Benefits - Two Column Layout */}
             <div className="grid md:grid-cols-2 gap-6">
               {/* Left: Category & Brand Info */}
@@ -695,7 +883,7 @@ export function ProductDetailPage() {
             </div>
           </div>
         )}
-      
+      </div>
 
       {/* Fixed Bottom Action Bar (Mobile) */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 p-4 shadow-2xl z-40">

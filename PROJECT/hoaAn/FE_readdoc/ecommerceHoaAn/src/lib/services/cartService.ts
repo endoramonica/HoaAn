@@ -10,6 +10,7 @@ import type {
   ApplyCouponDto,
   MergeCartDto,
   OrderShippingDto,
+  CartItemCustomizationDto,
 } from '../../../Api/generated-orval/schemas';
 
 const api = getVietCommerceAPI();
@@ -60,6 +61,26 @@ export interface CartSummaryDto {
 export interface AddToCartRequest {
   productId: string;
   quantity: number;
+  customizations?: CartItemCustomizationDto[];
+}
+
+/**
+ * Transform SavedCustomizationState to CartItemCustomizationDto[] format
+ * Used when adding products with customizations to cart
+ */
+export function transformCustomizationState(
+  customizationState: any
+): CartItemCustomizationDto[] | undefined {
+  if (!customizationState || !customizationState.customizations) {
+    return undefined;
+  }
+
+  return customizationState.customizations.map((custom: any) => ({
+    optionId: custom.optionId,
+    quantity: custom.quantity,
+    unitPrice: custom.unitPrice,
+    totalPrice: custom.quantity * custom.unitPrice,
+  }));
 }
 
 export interface UpdateCartItemRequest {
@@ -103,6 +124,7 @@ export const cartService = {
     const dto: AddToCartDto = {
       productId: request.productId,
       quantity: request.quantity,
+      customizations: request.customizations,
     };
     return api.postApiV1CartAdd(dto);
   },
@@ -214,6 +236,7 @@ export const guestCartService = {
     const dto: AddToCartDto = {
       productId: request.productId,
       quantity: request.quantity,
+      customizations: request.customizations,
     };
     return api.postApiV1CartGuestAdd(dto);
   },

@@ -2,6 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * DTO preview ngắn gọn cho comment (dùng trong PostFeedDto)
+ */
 export type CommentPreviewDto = {
     commentId?: string;
     customerId?: string;

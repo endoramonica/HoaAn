@@ -1,10 +1,9 @@
 /**
  * PostActions Component
+ * Handles like and bookmark API calls with optimistic UI updates
  */
 import { useState } from 'react';
 import { Heart, MessageCircle, Share2, Check, Bookmark } from 'lucide-react';
-import { useLikePost, useBookmarkPost } from '../../hooks/usePosts';
-import { ProtectedAction } from '../ProtectedAction';
 import { toast } from 'sonner';
 
 interface PostActionsProps {
@@ -16,6 +15,10 @@ interface PostActionsProps {
   isBookmarked?: boolean;
   showComments: boolean;
   onToggleComments: () => void;
+  onLike: () => void | Promise<void>;
+  onBookmark: () => void | Promise<void>;
+  isLikeLoading?: boolean;
+  isBookmarkLoading?: boolean;
 }
 
 export const PostActions = ({
@@ -27,18 +30,30 @@ export const PostActions = ({
   isBookmarked = false,
   showComments,
   onToggleComments,
+  onLike,
+  onBookmark,
+  isLikeLoading = false,
+  isBookmarkLoading = false,
 }: PostActionsProps) => {
-  const likePostMutation = useLikePost();
-  const bookmarkPostMutation = useBookmarkPost();
   const [sharesCount, setSharesCount] = useState(initialShares);
   const [isShared, setIsShared] = useState(false);
 
-  const handleLike = async () => {
-    await likePostMutation.mutateAsync(postId);
+  const handleLikeClick = async () => {
+    try {
+      await onLike();
+    } catch (error) {
+      console.error('Error liking post:', error);
+      toast.error('Không thể like bài viết. Vui lòng thử lại.');
+    }
   };
 
-  const handleBookmark = async () => {
-    await bookmarkPostMutation.mutateAsync(postId);
+  const handleBookmarkClick = async () => {
+    try {
+      await onBookmark();
+    } catch (error) {
+      console.error('Error bookmarking post:', error);
+      toast.error('Không thể bookmark bài viết. Vui lòng thử lại.');
+    }
   };
 
   const handleShare = async () => {
@@ -82,20 +97,20 @@ export const PostActions = ({
     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
       <div className="flex gap-6">
         {/* Like Button */}
-        <ProtectedAction onAction={handleLike}>
-          {(onClick) => (
-            <button
-              onClick={onClick}
-              disabled={likePostMutation.isPending}
-              className={`flex items-center gap-2 text-sm font-medium transition-colors ${
-                isLiked ? 'text-red-600' : 'text-gray-500 hover:text-red-600'
-              }`}
-            >
-              <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-              <span>{likesCount}</span>
-            </button>
+        <button
+          onClick={handleLikeClick}
+          disabled={isLikeLoading}
+          className={`flex items-center gap-2 text-sm font-medium transition-colors ${
+            isLiked ? 'text-red-600' : 'text-gray-500 hover:text-red-600'
+          }`}
+        >
+          {isLiked ? (
+            <Heart className="w-5 h-5 fill-red-600 text-red-600" />
+          ) : (
+            <Heart className="w-5 h-5" />
           )}
-        </ProtectedAction>
+          <span>{likesCount}</span>
+        </button>
 
         {/* Comment Button */}
         <button
@@ -121,19 +136,19 @@ export const PostActions = ({
       </div>
 
       {/* Bookmark Button */}
-      <ProtectedAction onAction={handleBookmark}>
-        {(onClick) => (
-          <button
-            onClick={onClick}
-            disabled={bookmarkPostMutation.isPending}
-            className={`transition-colors ${
-              isBookmarked ? 'text-amber-600' : 'text-gray-400 hover:text-gray-700'
-            }`}
-          >
-            <Bookmark className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} />
-          </button>
+      <button
+        onClick={handleBookmarkClick}
+        disabled={isBookmarkLoading}
+        className={`transition-colors ${
+          isBookmarked ? 'text-amber-600' : 'text-gray-400 hover:text-gray-700'
+        }`}
+      >
+        {isBookmarked ? (
+          <Bookmark className="w-5 h-5 fill-amber-600 text-amber-600" />
+        ) : (
+          <Bookmark className="w-5 h-5" />
         )}
-      </ProtectedAction>
+      </button>
     </div>
   );
 };

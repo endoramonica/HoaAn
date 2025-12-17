@@ -15,6 +15,7 @@ import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class PostsService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
+     * Tạo post mới (yêu cầu authentication)
      * @param formData
      * @returns PostResponseDtoApiResponse Created
      * @throws ApiError
@@ -37,8 +38,9 @@ export class PostsService {
         });
     }
     /**
-     * @param postId
-     * @param requestBody
+     * Cập nhật post (chỉ owner được phép)
+     * @param postId ID của post cần update
+     * @param requestBody Dữ liệu cập nhật
      * @returns PostResponseDtoApiResponse OK
      * @throws ApiError
      */
@@ -63,7 +65,8 @@ export class PostsService {
         });
     }
     /**
-     * @param postId
+     * Xóa post (soft delete, chỉ owner được phép)
+     * @param postId ID của post cần xóa
      * @returns BooleanApiResponse OK
      * @throws ApiError
      */
@@ -85,7 +88,8 @@ export class PostsService {
         });
     }
     /**
-     * @param postId
+     * Lấy chi tiết một post (public, guest có thể xem)
+     * @param postId ID của post
      * @returns PostDetailDtoApiResponse OK
      * @throws ApiError
      */
@@ -104,8 +108,9 @@ export class PostsService {
         });
     }
     /**
-     * @param pageNumber
-     * @param pageSize
+     * Lấy feed posts với pagination (public, guest có thể xem)
+     * @param pageNumber Số trang (default: 1)
+     * @param pageSize Số items mỗi trang (default: 20)
      * @returns PostFeedDtoPaginatedResultApiResponse OK
      * @throws ApiError
      */
@@ -126,9 +131,10 @@ export class PostsService {
         });
     }
     /**
-     * @param customerId
-     * @param pageNumber
-     * @param pageSize
+     * Lấy danh sách posts của một customer (public profile)
+     * @param customerId ID của customer
+     * @param pageNumber Số trang (default: 1)
+     * @param pageSize Số items mỗi trang (default: 20)
      * @returns PostResponseDtoPaginatedResultApiResponse OK
      * @throws ApiError
      */
@@ -153,11 +159,12 @@ export class PostsService {
         });
     }
     /**
-     * @param keyword
-     * @param fromDate
-     * @param toDate
-     * @param pageNumber
-     * @param pageSize
+     * Tìm kiếm posts theo keyword và date range
+     * @param keyword Từ khóa tìm kiếm
+     * @param fromDate Từ ngày (nullable)
+     * @param toDate Đến ngày (nullable)
+     * @param pageNumber Số trang (default: 1)
+     * @param pageSize Số items mỗi trang (default: 20)
      * @returns PostResponseDtoPaginatedResultApiResponse OK
      * @throws ApiError
      */
@@ -184,7 +191,8 @@ export class PostsService {
         });
     }
     /**
-     * @param postId
+     * Toggle like/unlike post (yêu cầu authentication)
+     * @param postId ID của post
      * @returns PostLikeResultApiResponse OK
      * @throws ApiError
      */
@@ -205,7 +213,8 @@ export class PostsService {
         });
     }
     /**
-     * @param postId
+     * Toggle bookmark/unbookmark post (yêu cầu authentication)
+     * @param postId ID của post
      * @returns PostBookmarkResultApiResponse OK
      * @throws ApiError
      */

@@ -37,11 +37,29 @@ export type OrderDetailDto = {
     paymentMethod?: string | null;
     paidAt?: string | null;
     transactionId?: string | null;
+    /**
+     * Type discriminator: "product" or "service"
+     */
     type?: string | null;
+    /**
+     * Service category (only for type='service')
+     */
     serviceCategory?: string | null;
+    /**
+     * Service duration (only for type='service')
+     */
     serviceDuration?: string | null;
+    /**
+     * Service location/address (only for type='service')
+     */
     serviceLocation?: string | null;
+    /**
+     * Scheduled service date (only for type='service')
+     */
     serviceDate?: string | null;
+    /**
+     * Scheduled service time (only for type='service')
+     */
     serviceNotes?: string | null;
 };
 

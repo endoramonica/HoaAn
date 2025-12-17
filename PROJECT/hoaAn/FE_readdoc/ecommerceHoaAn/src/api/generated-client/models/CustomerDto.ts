@@ -11,5 +11,9 @@ export type CustomerDto = {
     tier?: string | null;
     email?: string | null;
     isActive?: boolean;
+    userId?: string | null;
+    userProvider?: string | null;
+    lastLogin?: string | null;
+    userStatus?: string | null;
 };
 

@@ -23,6 +23,15 @@ interface CartItem {
   category: string;
   inStock: boolean;
   maxQuantity: number;
+  basePrice?: number;
+  customizationPrice?: number;
+  finalPrice?: number;
+  customizations?: Array<{
+    optionId?: string;
+    quantity?: number;
+    unitPrice?: number;
+    totalPrice?: number;
+  }>;
 }
 
 interface Cart {
@@ -145,6 +154,10 @@ export function useCart(): UseCartReturn {
           category: "",
           inStock: item.availableStock > 0,
           maxQuantity: item.availableStock,
+          basePrice: item.basePrice,
+          customizationPrice: item.customizationPrice,
+          finalPrice: item.finalPrice,
+          customizations: item.customizations,
         }))
         : [];
 

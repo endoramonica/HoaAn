@@ -2,6 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * Interaction result
+ */
 export type PostInteractionResult = {
     success?: boolean;
     action?: string | null;

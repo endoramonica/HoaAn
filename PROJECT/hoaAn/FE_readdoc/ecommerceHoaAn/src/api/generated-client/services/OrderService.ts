@@ -18,7 +18,9 @@ import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class OrderService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * @param id
+     * Get order by ID
+     * ✅ Service automatically checks if user has permission to view this order
+     * @param id Order ID
      * @returns OrderDetailDtoApiResponse OK
      * @throws ApiError
      */
@@ -38,20 +40,25 @@ export class OrderService {
         });
     }
     /**
+     * Get current user's orders (paginated)
+     * ✅ Service automatically uses CustomerId from JWT token
      * @param page
      * @param pageSize
-     * @param keyword
-     * @param customerId
-     * @param storeId
-     * @param status
-     * @param fromDate
-     * @param toDate
-     * @param minAmount
-     * @param maxAmount
-     * @param sortBy
-     * @param sortDescending
-     * @param type
-     * @param serviceCategory
+     * @param keyword Search by OrderNumber or CustomerName (partial match, case-insensitive)
+     * @param customerId Filter by specific customer
+     * @param storeId Filter by specific store
+     * @param status Filter by order status (enum)
+     * Example: 1 (Pending), 2 (Confirmed), etc.
+     * @param fromDate Filter orders created on or after this date
+     * @param toDate Filter orders created on or before this date
+     * @param minAmount Filter by minimum order amount
+     * @param maxAmount Filter by maximum order amount
+     * @param sortBy Sort by field: "CreatedAt", "TotalAmount", "OrderNumber", "Status", "CustomerName"
+     * @param sortDescending Sort descending (true) or ascending (false)
+     * @param type Filter by type: "product" or "service"
+     * If null, returns all types (backward compatible)
+     * @param serviceCategory Filter by service category (only applies when type='service')
+     * Values: ancestor-worship, opening-ceremony, wedding, buddha-worship, new-house, feng-shui-consultation
      * @returns OrderDetailDtoPaginatedResultApiResponse OK
      * @throws ApiError
      */
@@ -96,20 +103,25 @@ export class OrderService {
         });
     }
     /**
+     * Get all orders (admin/seller only)
+     * ✅ Service enforces admin check internally
      * @param page
      * @param pageSize
-     * @param keyword
-     * @param customerId
-     * @param storeId
-     * @param status
-     * @param fromDate
-     * @param toDate
-     * @param minAmount
-     * @param maxAmount
-     * @param sortBy
-     * @param sortDescending
-     * @param type
-     * @param serviceCategory
+     * @param keyword Search by OrderNumber or CustomerName (partial match, case-insensitive)
+     * @param customerId Filter by specific customer
+     * @param storeId Filter by specific store
+     * @param status Filter by order status (enum)
+     * Example: 1 (Pending), 2 (Confirmed), etc.
+     * @param fromDate Filter orders created on or after this date
+     * @param toDate Filter orders created on or before this date
+     * @param minAmount Filter by minimum order amount
+     * @param maxAmount Filter by maximum order amount
+     * @param sortBy Sort by field: "CreatedAt", "TotalAmount", "OrderNumber", "Status", "CustomerName"
+     * @param sortDescending Sort descending (true) or ascending (false)
+     * @param type Filter by type: "product" or "service"
+     * If null, returns all types (backward compatible)
+     * @param serviceCategory Filter by service category (only applies when type='service')
+     * Values: ancestor-worship, opening-ceremony, wedding, buddha-worship, new-house, feng-shui-consultation
      * @returns OrderDetailDtoPaginatedResultApiResponse OK
      * @throws ApiError
      */
@@ -154,7 +166,9 @@ export class OrderService {
         });
     }
     /**
-     * @param status
+     * Get orders by status
+     * ✅ Service automatically filters based on user role
+     * @param status Order status
      * @returns OrderDetailDtoListApiResponse OK
      * @throws ApiError
      */
@@ -170,7 +184,9 @@ export class OrderService {
         });
     }
     /**
-     * @param orderId
+     * Get order status history
+     * ✅ Service checks permission before returning history
+     * @param orderId Order ID
      * @returns OrderStatusHistoryDTOListApiResponse OK
      * @throws ApiError
      */
@@ -190,8 +206,10 @@ export class OrderService {
         });
     }
     /**
-     * @param orderId
-     * @param requestBody
+     * Update order status
+     * ✅ Service automatically uses current UserId as changedBy
+     * @param orderId Order ID
+     * @param requestBody Status update request
      * @returns BooleanApiResponse OK
      * @throws ApiError
      */
@@ -213,8 +231,11 @@ export class OrderService {
         });
     }
     /**
-     * @param orderId
-     * @param requestBody
+     * Cancel an order
+     * ✅ Service automatically uses current UserId as changedBy
+     * ✅ Service checks if user has permission to cancel
+     * @param orderId Order ID
+     * @param requestBody Cancel request with reason
      * @returns BooleanApiResponse OK
      * @throws ApiError
      */
@@ -238,8 +259,9 @@ export class OrderService {
         });
     }
     /**
-     * @param orderId
-     * @param newStatus
+     * Check if order status can be changed
+     * @param orderId Order ID
+     * @param newStatus Desired new status
      * @returns BooleanApiResponse OK
      * @throws ApiError
      */
@@ -259,9 +281,11 @@ export class OrderService {
         });
     }
     /**
-     * @param storeId
-     * @param fromDate
-     * @param toDate
+     * Get order statistics - total count
+     * ✅ Service automatically filters based on user role
+     * @param storeId Optional store filter
+     * @param fromDate Optional start date
+     * @param toDate Optional end date
      * @returns Int32ApiResponse OK
      * @throws ApiError
      */
@@ -281,9 +305,11 @@ export class OrderService {
         });
     }
     /**
-     * @param storeId
-     * @param fromDate
-     * @param toDate
+     * Get order statistics - total revenue
+     * ✅ ADMIN ONLY - Service enforces this
+     * @param storeId Optional store filter
+     * @param fromDate Optional start date
+     * @param toDate Optional end date
      * @returns DecimalApiResponse OK
      * @throws ApiError
      */
@@ -306,7 +332,10 @@ export class OrderService {
         });
     }
     /**
-     * @param requestBody
+     * Bulk update order statuses
+     * ✅ ADMIN ONLY - Service enforces this
+     * ✅ Service automatically uses current UserId as changedBy
+     * @param requestBody Bulk update request
      * @returns Int32ApiResponse OK
      * @throws ApiError
      */

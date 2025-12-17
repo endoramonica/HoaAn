@@ -691,6 +691,13 @@ export interface FileUploadResponse {
 // Cart Types
 // ============================================================================
 
+export interface CartItemCustomization {
+  optionId?: string;
+  quantity?: number;
+  unitPrice?: number;
+  totalPrice?: number;
+}
+
 export interface CartItemDto {
   cartItemId: string;
   productId: string;
@@ -709,6 +716,7 @@ export interface CartItemDto {
   basePrice: number;
   customizationPrice: number;
   finalPrice: number;
+  customizations?: CartItemCustomization[];
   createdAt: string;
   updatedAt: string;
 }
@@ -768,4 +776,47 @@ export interface SendMessageRequest {
 export interface SendMessageResponse {
   conversationId: string;
   message: ChatMessageDto;
+}
+
+// ============================================================================
+// Marketing Post Types
+// ============================================================================
+
+export interface TaggedProductDto {
+  id: string;
+  name: string;
+  price: number;
+  currency: string;
+  formattedPrice: string;
+  thumbnailUrl: string;
+  hasDiscount: boolean;
+  discountPercentage: number;
+}
+
+export interface MarketingPost {
+  id: string;
+  title: string;
+  shortDescription: string;
+  content: string;
+  image: string;
+  imageUrls?: string[];
+  taggedProduct?: TaggedProductDto;
+  hashtags?: string[];
+  platform?: string;
+  status: 'Draft' | 'Published' | 'Scheduled';
+  isFeatured: boolean;
+  views: number;
+  clicks: number;
+  shares: number;
+  createdAt: string;
+  publishedDate?: string;
+  productId?: string;
+}
+
+export interface GetMarketingPostsQuery {
+  status?: 'Draft' | 'Published' | 'Scheduled';
+  isFeatured?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+  search?: string;
 }

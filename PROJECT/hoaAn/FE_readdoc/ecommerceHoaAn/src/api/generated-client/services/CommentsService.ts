@@ -15,7 +15,8 @@ import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class CommentsService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * @param requestBody
+     * Tạo comment mới (root comment hoặc reply)
+     * @param requestBody Thông tin comment cần tạo
      * @returns CommentDtoApiResponse OK
      * @throws ApiError
      */
@@ -34,8 +35,9 @@ export class CommentsService {
         });
     }
     /**
-     * @param commentId
-     * @param requestBody
+     * Cập nhật comment (chỉ owner có quyền)
+     * @param commentId ID của comment cần update
+     * @param requestBody Thông tin cập nhật
      * @returns CommentDtoApiResponse OK
      * @throws ApiError
      */
@@ -60,7 +62,8 @@ export class CommentsService {
         });
     }
     /**
-     * @param commentId
+     * Xóa comment (soft delete, chỉ owner có quyền)
+     * @param commentId ID của comment cần xóa
      * @returns BooleanApiResponse OK
      * @throws ApiError
      */
@@ -81,7 +84,8 @@ export class CommentsService {
         });
     }
     /**
-     * @param commentId
+     * Lấy chi tiết một comment kèm replies
+     * @param commentId ID của comment
      * @returns CommentDetailDtoApiResponse OK
      * @throws ApiError
      */
@@ -100,9 +104,10 @@ export class CommentsService {
         });
     }
     /**
-     * @param postId
-     * @param pageNumber
-     * @param pageSize
+     * Lấy danh sách comments của một post với pagination
+     * @param postId ID của post
+     * @param pageNumber Số trang (default: 1)
+     * @param pageSize Số lượng items trên mỗi trang (default: 20)
      * @returns CommentDtoPaginatedResponseApiResponse OK
      * @throws ApiError
      */
@@ -127,7 +132,8 @@ export class CommentsService {
         });
     }
     /**
-     * @param commentId
+     * Lấy danh sách replies của một comment
+     * @param commentId ID của comment cha
      * @returns CommentDtoListApiResponse OK
      * @throws ApiError
      */
@@ -146,7 +152,8 @@ export class CommentsService {
         });
     }
     /**
-     * @param requestBody
+     * Save comment (Create hoặc Update dựa trên CommentId)
+     * @param requestBody Thông tin comment
      * @returns CommentDtoApiResponse OK
      * @throws ApiError
      */

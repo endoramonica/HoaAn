@@ -13,8 +13,17 @@ export type OrderItemDTO = {
     quantity?: number;
     totalPrice?: number;
     readonly subtotal?: number;
+    /**
+     * Type discriminator: "product" or "service"
+     */
     type?: string | null;
+    /**
+     * Service category (only for type='service')
+     */
     serviceCategory?: string | null;
+    /**
+     * Service duration (only for type='service')
+     */
     serviceDuration?: string | null;
 };
 

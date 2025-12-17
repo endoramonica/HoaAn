@@ -2,6 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * DTO for customer list view
+ */
 export type CustomerListDto = {
     id?: string;
     name?: string | null;

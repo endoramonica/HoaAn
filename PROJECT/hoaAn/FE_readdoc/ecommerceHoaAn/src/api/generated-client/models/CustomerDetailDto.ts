@@ -3,11 +3,15 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { CustomerAddressDto } from './CustomerAddressDto';
+/**
+ * DTO for detailed customer information
+ */
 export type CustomerDetailDto = {
     id?: string;
     name?: string | null;
     email?: string | null;
     phone?: string | null;
+    avatar?: string | null;
     loyaltyPoints?: number;
     tier?: string | null;
     isActive?: boolean;
@@ -22,6 +26,9 @@ export type CustomerDetailDto = {
     totalOrders?: number;
     totalSpent?: number;
     totalInteractions?: number;
+    userProvider?: string | null;
+    lastLogin?: string | null;
+    userStatus?: string | null;
     addresses?: Array<CustomerAddressDto> | null;
 };
 

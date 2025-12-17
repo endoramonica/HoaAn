@@ -14,6 +14,7 @@ import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class WishlistService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
+     * Lấy danh sách wishlist của user hiện tại
      * @returns WishlistItemDtoListApiResponse OK
      * @throws ApiError
      */
@@ -24,6 +25,7 @@ export class WishlistService {
         });
     }
     /**
+     * Thêm sản phẩm vào wishlist
      * @param requestBody
      * @returns WishlistItemDtoApiResponse OK
      * @throws ApiError
@@ -39,6 +41,7 @@ export class WishlistService {
         });
     }
     /**
+     * Xóa wishlist item theo ID
      * @param id
      * @returns BooleanApiResponse OK
      * @throws ApiError
@@ -55,6 +58,7 @@ export class WishlistService {
         });
     }
     /**
+     * Xóa sản phẩm khỏi wishlist theo ProductId
      * @param productId
      * @returns BooleanApiResponse OK
      * @throws ApiError
@@ -71,6 +75,7 @@ export class WishlistService {
         });
     }
     /**
+     * Kiểm tra sản phẩm có trong wishlist không
      * @param productId
      * @returns IsInWishlistResponseApiResponse OK
      * @throws ApiError
@@ -87,6 +92,7 @@ export class WishlistService {
         });
     }
     /**
+     * Toggle wishlist - thêm nếu chưa có, xóa nếu đã có
      * @param requestBody
      * @returns ToggleWishlistResponseApiResponse OK
      * @throws ApiError
@@ -102,6 +108,7 @@ export class WishlistService {
         });
     }
     /**
+     * Xóa toàn bộ wishlist
      * @returns BooleanApiResponse OK
      * @throws ApiError
      */
@@ -112,6 +119,8 @@ export class WishlistService {
         });
     }
     /**
+     * Di chuyển tất cả wishlist items vào giỏ hàng
+     * TODO: Implement khi cần
      * @returns BooleanApiResponse OK
      * @throws ApiError
      */

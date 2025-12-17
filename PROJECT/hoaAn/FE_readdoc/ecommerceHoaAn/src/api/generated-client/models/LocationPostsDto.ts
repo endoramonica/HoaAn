@@ -3,6 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { MixedFeedDto } from './MixedFeedDto';
+/**
+ * Result cho location-based posts
+ */
 export type LocationPostsDto = {
     location?: string | null;
     posts?: Array<MixedFeedDto> | null;

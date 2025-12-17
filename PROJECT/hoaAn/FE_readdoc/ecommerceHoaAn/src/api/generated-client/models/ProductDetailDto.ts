@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { CustomizableOptionDto } from './CustomizableOptionDto';
 import type { DisplayPriceResult } from './DisplayPriceResult';
 import type { ProductImageDto } from './ProductImageDto';
 export type ProductDetailDto = {
@@ -23,8 +24,8 @@ export type ProductDetailDto = {
     categoryName?: string | null;
     brandId?: string | null;
     brandName?: string | null;
+    primaryImage?: string | null;
     images?: Array<ProductImageDto> | null;
-    readonly primaryImage?: string | null;
     tags?: Array<string> | null;
     metaTitle?: string | null;
     metaDescription?: string | null;
@@ -41,5 +42,16 @@ export type ProductDetailDto = {
     updatedAt?: string | null;
     createdBy?: string;
     createdByName?: string | null;
+    /**
+     * List of fixed items included in the package product (e.g., "Cá chép (3 con)", "Mũ giấy (3 cái)").
+     * Null if this is not a package product.
+     */
+    details?: Array<string> | null;
+    /**
+     * List of customizable options available for this package product.
+     * Customers can modify quantities of these options when adding to cart.
+     * Null if this is not a customizable package product.
+     */
+    customizableOptions?: Array<CustomizableOptionDto> | null;
 };
 

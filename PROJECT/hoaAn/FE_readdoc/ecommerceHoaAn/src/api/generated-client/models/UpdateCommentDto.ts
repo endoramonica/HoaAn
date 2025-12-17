@@ -2,6 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * DTO để update comment
+ */
 export type UpdateCommentDto = {
     content?: string | null;
 };

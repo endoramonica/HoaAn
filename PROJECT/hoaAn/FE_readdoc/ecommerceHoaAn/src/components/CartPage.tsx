@@ -23,11 +23,14 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useCart } from "../lib/hooks/useCart";
+import { CartItemCustomizations } from "./CartItemCustomizations";
+import { CustomizationEditor } from "./CustomizationEditor";
 import { toast } from "sonner";
 
 export function CartPage() {
   const navigate = useNavigate();
   const [promoCode, setPromoCode] = useState("");
+  const [editingCustomizationId, setEditingCustomizationId] = useState<string | null>(null);
   
   // ✅ useCart tự động xử lý guest/user dựa trên useAuth
   // ✅ Backend tự động lấy sessionId từ HTTP-only cookie
@@ -252,10 +255,18 @@ export function CartPage() {
 
                           {/* Price */}
                           <div className="text-right">
+                            {/* Display finalPrice if customizations exist, otherwise unitPrice */}
                             <div className="text-lg text-red-600">
-                              {formatPrice(item.price)}
+                              {formatPrice(item.finalPrice || item.price)}
                             </div>
-                            {item.originalPrice && item.originalPrice > item.price && (
+                            {/* Show price breakdown if customizations exist */}
+                            {item.customizations && item.customizations.some(c => (c.quantity || 0) > 0) && (
+                              <div className="text-xs text-gray-600 mt-1">
+                                <div>Base: {formatPrice(item.basePrice || item.price)}</div>
+                                <div className="text-amber-600">+Custom: {formatPrice(item.customizationPrice || 0)}</div>
+                              </div>
+                            )}
+                            {item.originalPrice && item.originalPrice > (item.finalPrice || item.price) && (
                               <div className="text-sm text-gray-500 line-through">
                                 {formatPrice(item.originalPrice)}
                               </div>
@@ -322,6 +333,25 @@ export function CartPage() {
                             Xóa
                           </Button>
                         </div>
+
+                        {/* Customizations */}
+                        {item.customizations && item.customizations.length > 0 && (
+                          <>
+                            <CartItemCustomizations
+                              customizations={item.customizations}
+                              productName={item.name}
+                            />
+                            {/* Edit Customizations Button */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mt-3 w-full border-amber-300 text-amber-700 hover:bg-amber-50"
+                              onClick={() => setEditingCustomizationId(item.id)}
+                            >
+                              Chỉnh sửa tùy chọn
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -504,6 +534,27 @@ export function CartPage() {
             </Card>
           </div>
         </div>
+
+        {/* Customization Editor Modal */}
+        {editingCustomizationId && (
+          <CustomizationEditor
+            open={!!editingCustomizationId}
+            onOpenChange={(open) => {
+              if (!open) setEditingCustomizationId(null);
+            }}
+            customizations={
+              cartItems.find(item => item.id === editingCustomizationId)?.customizations || []
+            }
+            productName={
+              cartItems.find(item => item.id === editingCustomizationId)?.name || 'Sản phẩm'
+            }
+            onSave={async (updatedCustomizations) => {
+              // TODO: Call API to update customizations
+              // For now, just show a message
+              toast.info('Chức năng cập nhật tùy chọn sẽ được hoàn thành');
+            }}
+          />
+        )}
       </div>
     </div>
   );

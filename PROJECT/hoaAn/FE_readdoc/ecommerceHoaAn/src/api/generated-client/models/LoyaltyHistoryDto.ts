@@ -2,6 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * Loyalty points history
+ */
 export type LoyaltyHistoryDto = {
     id?: string;
     customerId?: string;

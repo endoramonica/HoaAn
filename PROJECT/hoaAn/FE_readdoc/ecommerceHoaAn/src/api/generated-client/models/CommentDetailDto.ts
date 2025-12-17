@@ -3,6 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { CommentDto } from './CommentDto';
+/**
+ * DTO chi tiết với replies
+ */
 export type CommentDetailDto = {
     commentId?: string;
     postId?: string;

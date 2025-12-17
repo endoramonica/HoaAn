@@ -4,6 +4,9 @@
 /* eslint-disable */
 import type { CRMInteractionStatus } from './CRMInteractionStatus';
 import type { CRMInteractionType } from './CRMInteractionType';
+/**
+ * DTO for CRM Interaction list view
+ */
 export type CRMInteractionListDto = {
     id?: string;
     customerId?: string;

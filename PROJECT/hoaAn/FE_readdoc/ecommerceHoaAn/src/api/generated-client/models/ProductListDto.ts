@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { DisplayPriceResult } from './DisplayPriceResult';
+import type { ProductImageDto } from './ProductImageDto';
 export type ProductListDto = {
     id?: string;
     name?: string | null;
@@ -16,6 +17,7 @@ export type ProductListDto = {
     stockQuantity?: number;
     readonly inStock?: boolean;
     primaryImage?: string | null;
+    images?: Array<ProductImageDto> | null;
     isActive?: boolean;
     isFeatured?: boolean;
     categoryId?: string | null;
@@ -24,9 +26,21 @@ export type ProductListDto = {
     favoriteCount?: number;
     averageRating?: number;
     createdAt?: string;
+    /**
+     * Type discriminator: "product" or "service"
+     */
     type?: string | null;
+    /**
+     * Service category (only for type='service')
+     */
     serviceCategory?: string | null;
+    /**
+     * Service duration (only for type='service')
+     */
     serviceDuration?: string | null;
+    /**
+     * Service rating (0-5 stars)
+     */
     serviceRating?: number | null;
 };
 

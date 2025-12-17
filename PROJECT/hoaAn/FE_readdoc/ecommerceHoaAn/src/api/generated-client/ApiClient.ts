@@ -5,6 +5,7 @@
 import type { BaseHttpRequest } from './core/BaseHttpRequest';
 import type { OpenAPIConfig } from './core/OpenAPI';
 import { FetchHttpRequest } from './core/FetchHttpRequest';
+import { AnalyticsService } from './services/AnalyticsService';
 import { AuthService } from './services/AuthService';
 import { CartService } from './services/CartService';
 import { CategoryService } from './services/CategoryService';
@@ -14,15 +15,16 @@ import { CustomerAddressService } from './services/CustomerAddressService';
 import { CustomerAdminService } from './services/CustomerAdminService';
 import { MixedFeedService } from './services/MixedFeedService';
 import { OrderService } from './services/OrderService';
+import { OtherService } from './services/OtherService';
 import { PaymentWebhookService } from './services/PaymentWebhookService';
 import { PostsService } from './services/PostsService';
 import { ProductService } from './services/ProductService';
 import { UsersService } from './services/UsersService';
-import { VietCommerceApiService } from './services/VietCommerceApiService';
 import { WeatherForecastService } from './services/WeatherForecastService';
 import { WishlistService } from './services/WishlistService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class ApiClient {
+    public readonly analytics: AnalyticsService;
     public readonly auth: AuthService;
     public readonly cart: CartService;
     public readonly category: CategoryService;
@@ -32,11 +34,11 @@ export class ApiClient {
     public readonly customerAdmin: CustomerAdminService;
     public readonly mixedFeed: MixedFeedService;
     public readonly order: OrderService;
+    public readonly other: OtherService;
     public readonly paymentWebhook: PaymentWebhookService;
     public readonly posts: PostsService;
     public readonly product: ProductService;
     public readonly users: UsersService;
-    public readonly vietCommerceApi: VietCommerceApiService;
     public readonly weatherForecast: WeatherForecastService;
     public readonly wishlist: WishlistService;
     public readonly request: BaseHttpRequest;
@@ -52,6 +54,7 @@ export class ApiClient {
             HEADERS: config?.HEADERS,
             ENCODE_PATH: config?.ENCODE_PATH,
         });
+        this.analytics = new AnalyticsService(this.request);
         this.auth = new AuthService(this.request);
         this.cart = new CartService(this.request);
         this.category = new CategoryService(this.request);
@@ -61,11 +64,11 @@ export class ApiClient {
         this.customerAdmin = new CustomerAdminService(this.request);
         this.mixedFeed = new MixedFeedService(this.request);
         this.order = new OrderService(this.request);
+        this.other = new OtherService(this.request);
         this.paymentWebhook = new PaymentWebhookService(this.request);
         this.posts = new PostsService(this.request);
         this.product = new ProductService(this.request);
         this.users = new UsersService(this.request);
-        this.vietCommerceApi = new VietCommerceApiService(this.request);
         this.weatherForecast = new WeatherForecastService(this.request);
         this.wishlist = new WishlistService(this.request);
     }

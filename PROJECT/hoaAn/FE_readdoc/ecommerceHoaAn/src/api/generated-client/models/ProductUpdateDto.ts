@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { CustomizableOptionDto } from './CustomizableOptionDto';
 export type ProductUpdateDto = {
     name?: string | null;
     shortDescription?: string | null;
@@ -21,5 +22,16 @@ export type ProductUpdateDto = {
     metaTitle?: string | null;
     metaDescription?: string | null;
     metaKeywords?: string | null;
+    /**
+     * List of fixed items included in the package product (e.g., "Cá chép (3 con)", "Mũ giấy (3 cái)").
+     * Only applicable for package products. Null for regular products.
+     */
+    details?: Array<string> | null;
+    /**
+     * List of customizable options for the package product.
+     * Allows customers to modify quantities of specific items within the package.
+     * Only applicable for package products. Null for regular products.
+     */
+    customizableOptions?: Array<CustomizableOptionDto> | null;
 };
 

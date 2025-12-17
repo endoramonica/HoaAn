@@ -3,6 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AddressType } from './AddressType';
+/**
+ * DTO for customer address details
+ */
 export type CustomerAddressDto = {
     id?: string;
     customerId?: string;

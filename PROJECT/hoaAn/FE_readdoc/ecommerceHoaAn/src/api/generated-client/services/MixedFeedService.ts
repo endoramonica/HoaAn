@@ -13,13 +13,17 @@ import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class MixedFeedService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
+     * Lấy mixed feed với thuật toán trộn thông minh
+     * Marketing posts xuất hiện mỗi N community posts (default: 1 marketing mỗi 4 community posts)
      * @param pageNumber
      * @param pageSize
-     * @param marketingRatio
-     * @param location
-     * @param featuredOnly
-     * @param productId
-     * @param minPriorityScore
+     * @param marketingRatio Tỷ lệ marketing posts trong feed (1-10)
+     * Ví dụ: 3 = 1 marketing post mỗi 3 community posts
+     * @param location Vị trí hiển thị cụ thể (homepage_banner, product_section, featured_section)
+     * @param featuredOnly Chỉ lấy featured posts (priority > 80)
+     * @param productId Filter theo productId
+     * @param minPriorityScore Minimum priority score cho marketing posts
+     * ///
      * @returns MixedFeedDtoPaginatedResultApiResponse OK
      * @throws ApiError
      */
@@ -50,9 +54,11 @@ export class MixedFeedService {
         });
     }
     /**
-     * @param location
-     * @param pageNumber
-     * @param pageSize
+     * Lấy posts theo vị trí hiển thị cụ thể
+     * Ví dụ: homepage_banner, product_section, featured_section, sidebar
+     * @param location Display location
+     * @param pageNumber Page number (default: 1)
+     * @param pageSize Page size (default: 20)
      * @returns LocationPostsDtoApiResponse OK
      * @throws ApiError
      */
@@ -77,8 +83,10 @@ export class MixedFeedService {
         });
     }
     /**
-     * @param pageNumber
-     * @param pageSize
+     * Lấy featured posts (priority score > 80)
+     * Dành cho banner, highlight sections
+     * @param pageNumber Page number (default: 1)
+     * @param pageSize Page size (default: 10)
      * @returns FeaturedPostsDtoApiResponse OK
      * @throws ApiError
      */
@@ -99,9 +107,11 @@ export class MixedFeedService {
         });
     }
     /**
-     * @param productId
-     * @param pageNumber
-     * @param pageSize
+     * Lấy posts liên quan đến một product
+     * Bao gồm cả marketing posts và community posts mention product đó
+     * @param productId Product ID
+     * @param pageNumber Page number (default: 1)
+     * @param pageSize Page size (default: 20)
      * @returns RelatedPostsDtoApiResponse OK
      * @throws ApiError
      */
@@ -126,9 +136,11 @@ export class MixedFeedService {
         });
     }
     /**
-     * @param postId
-     * @param postType
-     * @param requestBody
+     * Track interaction với post (view, click, share)
+     * Public endpoint - không cần authentication
+     * @param postId Post ID
+     * @param postType Post type: "community" hoặc "marketing"
+     * @param requestBody Interaction details
      * @returns PostInteractionResultApiResponse OK
      * @throws ApiError
      */

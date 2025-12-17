@@ -2,6 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { TaggedProductDto } from './TaggedProductDto';
+/**
+ * DTO cho Mixed Feed - kết hợp Community Posts và Marketing Posts
+ */
 export type MixedFeedDto = {
     id?: string;
     postType?: string | null;
@@ -15,12 +19,16 @@ export type MixedFeedDto = {
     customerAvatar?: string | null;
     title?: string | null;
     shortDescription?: string | null;
+    image?: string | null;
     productId?: string | null;
     productName?: string | null;
+    taggedProduct?: TaggedProductDto;
+    platform?: string | null;
+    hashtags?: Array<string> | null;
     priorityScore?: number | null;
     isFeatured?: boolean | null;
+    status?: string | null;
     displayLocation?: Array<string> | null;
-    hashtags?: Array<string> | null;
     likesCount?: number;
     commentsCount?: number;
     sharesCount?: number;

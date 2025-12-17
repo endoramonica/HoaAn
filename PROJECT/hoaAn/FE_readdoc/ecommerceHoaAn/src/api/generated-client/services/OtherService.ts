@@ -5,7 +5,7 @@
 import type { StringDateTime_f__AnonymousType8 } from '../models/StringDateTime_f__AnonymousType8';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
-export class VietCommerceApiService {
+export class OtherService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
      * @returns StringDateTime_f__AnonymousType8 OK

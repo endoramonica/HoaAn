@@ -19,6 +19,7 @@ import type { CustomerListDtoListApiResponse } from '../models/CustomerListDtoLi
 import type { CustomerListDtoPaginatedResponseApiResponse } from '../models/CustomerListDtoPaginatedResponseApiResponse';
 import type { CustomerOrderSummaryDtoApiResponse } from '../models/CustomerOrderSummaryDtoApiResponse';
 import type { CustomerStatisticsDtoApiResponse } from '../models/CustomerStatisticsDtoApiResponse';
+import type { CustomerWithUserDtoApiResponse } from '../models/CustomerWithUserDtoApiResponse';
 import type { DeductPointsRequest } from '../models/DeductPointsRequest';
 import type { LoyaltyHistoryDtoListApiResponse } from '../models/LoyaltyHistoryDtoListApiResponse';
 import type { OrderDetailDtoPaginatedResponseApiResponse } from '../models/OrderDetailDtoPaginatedResponseApiResponse';
@@ -33,18 +34,18 @@ export class CustomerAdminService {
     /**
      * @param page
      * @param pageSize
-     * @param sortBy
-     * @param sortDescending
-     * @param skip
-     * @param searchTerm
-     * @param tier
-     * @param isActive
-     * @param fromDate
-     * @param toDate
-     * @param minLoyaltyPoints
-     * @param maxLoyaltyPoints
-     * @param hasEmail
-     * @param hasPhone
+     * @param sortBy Sort by field: "Name", "Email", "CreatedAt", "LoyaltyPoints", "Tier"
+     * @param sortDescending Sort descending (true) or ascending (false)
+     * @param skip Calculate skip count for pagination
+     * @param searchTerm Search by Name, Email or Phone (partial match, case-insensitive)
+     * @param tier Filter by customer tier
+     * @param isActive Filter by active status
+     * @param fromDate Filter customers created on or after this date
+     * @param toDate Filter customers created on or before this date
+     * @param minLoyaltyPoints Filter by minimum loyalty points
+     * @param maxLoyaltyPoints Filter by maximum loyalty points
+     * @param hasEmail Filter by email existence
+     * @param hasPhone Filter by phone existence
      * @returns CustomerListDtoPaginatedResponseApiResponse OK
      * @throws ApiError
      */
@@ -102,12 +103,12 @@ export class CustomerAdminService {
     }
     /**
      * @param id
-     * @returns CustomerDetailDtoApiResponse OK
+     * @returns CustomerWithUserDtoApiResponse OK
      * @throws ApiError
      */
     public getApiV1CustomerAdmin1(
         id: string,
-    ): CancelablePromise<CustomerDetailDtoApiResponse> {
+    ): CancelablePromise<CustomerWithUserDtoApiResponse> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/api/v1/CustomerAdmin/{id}',
@@ -188,9 +189,9 @@ export class CustomerAdminService {
      * @param id
      * @param page
      * @param pageSize
-     * @param sortBy
-     * @param sortDescending
-     * @param skip
+     * @param sortBy Sort by field: "Name", "Email", "CreatedAt", "LoyaltyPoints", "Tier"
+     * @param sortDescending Sort descending (true) or ascending (false)
+     * @param skip Calculate skip count for pagination
      * @returns OrderDetailDtoPaginatedResponseApiResponse OK
      * @throws ApiError
      */
@@ -339,19 +340,19 @@ export class CustomerAdminService {
      * @param id
      * @param page
      * @param pageSize
-     * @param sortBy
-     * @param sortDescending
-     * @param skip
-     * @param customerId
-     * @param type
-     * @param status
-     * @param searchTerm
-     * @param fromDate
-     * @param toDate
-     * @param followUpFromDate
-     * @param followUpToDate
-     * @param createdBy
-     * @param hasPendingFollowUp
+     * @param sortBy Sort by field: "Name", "Email", "CreatedAt", "LoyaltyPoints", "Tier"
+     * @param sortDescending Sort descending (true) or ascending (false)
+     * @param skip Calculate skip count for pagination
+     * @param customerId Filter by customer ID
+     * @param type Filter by interaction type
+     * @param status Filter by interaction status
+     * @param searchTerm Search by Title or Description (partial match, case-insensitive)
+     * @param fromDate Filter interactions created on or after this date
+     * @param toDate Filter interactions created on or before this date
+     * @param followUpFromDate Filter by follow-up date range start
+     * @param followUpToDate Filter by follow-up date range end
+     * @param createdBy Filter by creator user ID
+     * @param hasPendingFollowUp Filter interactions with pending follow-ups
      * @returns CRMInteractionListDtoPaginatedResponseApiResponse OK
      * @throws ApiError
      */

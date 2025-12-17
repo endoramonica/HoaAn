@@ -20,10 +20,15 @@ import {
   Truck,
   RotateCcw,
   Shield,
+  Save,
+  Check,
+  Loader2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { vietCommerceProductService } from '../lib/services/vietCommerceProductService';
 import { useApp } from '../lib/contexts/AppContext';
 import { OptionSelector } from './service/OptionSelector';
+import { customizationStateService } from '../lib/services/customizationStateService';
 import type { ProductListDto, ProductDetailDto } from '../lib/services/vietCommerceProductService';
 
 export function ServiceDetailPage() {
@@ -37,6 +42,8 @@ export function ServiceDetailPage() {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({});
+  const [isSavingCustomization, setIsSavingCustomization] = useState(false);
+  const [isCustomizationSaved, setIsCustomizationSaved] = useState(false);
 
   useEffect(() => {
     const fetchService = async () => {
@@ -58,6 +65,13 @@ export function ServiceDetailPage() {
         } else {
           setService(serviceDetail);
           
+          // Load saved customization state if exists
+          const savedState = customizationStateService.getCustomizationState(id);
+          if (savedState) {
+            setSelectedOptions(customizationStateService.stateToQuantitiesMap(savedState));
+            setIsCustomizationSaved(true);
+          }
+          
           // Fetch related services
           const result = await vietCommerceProductService.getProducts({
             pageNumber: 1,
@@ -78,6 +92,38 @@ export function ServiceDetailPage() {
 
     fetchService();
   }, [id]);
+
+  const handleSaveCustomization = async () => {
+    if (!service?.id || !service.customizableOptions) {
+      toast.error('Không thể lưu tùy chọn');
+      return;
+    }
+
+    try {
+      setIsSavingCustomization(true);
+      
+      customizationStateService.saveCustomizationState(
+        service.id || '',
+        service.name || '',
+        'service',
+        service.customizableOptions || [],
+        selectedOptions
+      );
+
+      setIsCustomizationSaved(true);
+      toast.success('Đã lưu tùy chọn thêm!');
+      
+      // Reset indicator after 2 seconds
+      setTimeout(() => {
+        setIsCustomizationSaved(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Error saving customization:', error);
+      toast.error('Không thể lưu tùy chọn');
+    } finally {
+      setIsSavingCustomization(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -351,7 +397,36 @@ export function ServiceDetailPage() {
         {service.customizableOptions && service.customizableOptions.length > 0 && (
           <Card className="border-2 border-amber-200 mb-8">
             <CardContent className="p-6">
-              <h3 className="text-lg text-amber-900 font-semibold mb-4">Tùy chọn bổ sung</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg text-amber-900 font-semibold">Tùy chọn bổ sung</h3>
+                <Button
+                  size="sm"
+                  onClick={handleSaveCustomization}
+                  disabled={isSavingCustomization}
+                  className={`transition-all ${
+                    isCustomizationSaved
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
+                >
+                  {isSavingCustomization ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Đang lưu...
+                    </>
+                  ) : isCustomizationSaved ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Đã lưu
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      Lưu tùy chọn
+                    </>
+                  )}
+                </Button>
+              </div>
               <div className="space-y-3">
                 {service.customizableOptions.map((option) => (
                   <OptionSelector
@@ -363,6 +438,8 @@ export function ServiceDetailPage() {
                         ...prev,
                         [optionId]: newQuantity,
                       }));
+                      // Reset saved state indicator when user modifies
+                      setIsCustomizationSaved(false);
                     }}
                   />
                 ))}

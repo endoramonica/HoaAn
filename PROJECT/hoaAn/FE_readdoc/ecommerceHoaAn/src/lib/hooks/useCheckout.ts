@@ -149,7 +149,13 @@ export const useCheckout = (): UseCheckoutReturn => {
 
       // Show user-friendly error messages based on error type
       if (errorMessage.includes('EMPTY_CART') || errorMessage.toLowerCase().includes('empty cart')) {
-        toast.error('Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi thanh toán.');
+        console.error('[useCheckout] 🔴 EMPTY_CART Error - This means backend found cart empty');
+        console.error('[useCheckout] 💡 Possible causes:');
+        console.error('  1. Cart items were not saved to database');
+        console.error('  2. Cart belongs to different user/session');
+        console.error('  3. Cart was cleared between requests');
+        console.error('[useCheckout] 🔧 Solution: Refresh cart and try again');
+        toast.error('Giỏ hàng trống trên server. Vui lòng tải lại trang và thử lại.');
       } else if (errorMessage.includes('CART_NOT_FOUND') || errorMessage.toLowerCase().includes('cart not found')) {
         toast.error('Không tìm thấy giỏ hàng. Vui lòng thử lại.');
       } else if (errorMessage.includes('INVALID') || errorMessage.toLowerCase().includes('invalid')) {

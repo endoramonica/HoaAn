@@ -3,6 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { MixedFeedDto } from './MixedFeedDto';
+/**
+ * Related posts by product
+ */
 export type RelatedPostsDto = {
     productId?: string;
     productName?: string | null;

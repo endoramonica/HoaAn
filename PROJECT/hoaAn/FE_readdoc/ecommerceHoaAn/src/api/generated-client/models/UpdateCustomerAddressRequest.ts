@@ -3,6 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AddressType } from './AddressType';
+/**
+ * Request for updating customer address
+ */
 export type UpdateCustomerAddressRequest = {
     streetAddress?: string | null;
     city?: string | null;

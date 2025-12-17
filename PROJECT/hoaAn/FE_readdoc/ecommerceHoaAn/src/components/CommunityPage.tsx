@@ -3,7 +3,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -14,11 +13,8 @@ import {
 import { Label } from "@/components/ui/label";
 import {
   MessageCircle,
-  Heart,
-  Share,
   Plus,
   Search,
-  Clock,
   Users,
   Send,
   X,
@@ -26,6 +22,7 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import { PostCard } from "@/components/community/components/PostCard";
 
 interface CommunityPageProps {
   onBack: () => void;
@@ -150,76 +147,13 @@ export default function CommunityPage({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const handleLikePost = async (postId: string) => {
-    try {
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.id === postId
-            ? {
-                ...post,
-                likesCount: post.isLikedByCurrentUser
-                  ? post.likesCount - 1
-                  : post.likesCount + 1,
-                isLikedByCurrentUser: !post.isLikedByCurrentUser,
-              }
-            : post
-        )
-      );
-
-      const response = await postsService.postApiV1PostsPostIdLike(postId);
-
-      if (response.data) {
-        setPosts((prev) =>
-          prev.map((post) =>
-            post.id === postId
-              ? {
-                  ...post,
-                  likesCount: response.data.totalLikes,
-                  isLikedByCurrentUser: response.data.isLiked,
-                }
-              : post
-          )
-        );
-      }
-    } catch (err: any) {
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.id === postId
-            ? {
-                ...post,
-                likesCount: post.isLikedByCurrentUser
-                  ? post.likesCount + 1
-                  : post.likesCount - 1,
-                isLikedByCurrentUser: !post.isLikedByCurrentUser,
-              }
-            : post
-        )
-      );
-      console.error("Error liking post:", err);
-    }
-  };
-
-  const handleBookmarkPost = async (postId: string) => {
-    try {
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.id === postId
-            ? { ...post, isBookmarkedByCurrentUser: !post.isBookmarkedByCurrentUser }
-            : post
-        )
-      );
-
-      await postsService.postApiV1PostsPostIdBookmark(postId);
-    } catch (err: any) {
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.id === postId
-            ? { ...post, isBookmarkedByCurrentUser: !post.isBookmarkedByCurrentUser }
-            : post
-        )
-      );
-      console.error("Error bookmarking post:", err);
-    }
+  // Handle post updates from PostCard
+  const handlePostUpdate = (postId: string, updates: any) => {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId ? { ...post, ...updates } : post
+      )
+    );
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -286,19 +220,6 @@ export default function CommunityPage({
     if (!isLoading && hasMore) {
       fetchPosts(currentPage + 1, true);
     }
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
-
-    if (hours < 1) return "Vừa xong";
-    if (hours < 24) return `${hours} giờ trước`;
-    if (days < 7) return `${days} ngày trước`;
-    return date.toLocaleDateString("vi-VN");
   };
 
   return (
@@ -480,89 +401,14 @@ export default function CommunityPage({
         )}
 
         <div className="space-y-6">
-          {posts.map((post) => {
-            // Get photo URLs from MixedFeedDto structure
-            const photoUrls = post.imageUrls?.length ? post.imageUrls : (post.imageUrl ? [post.imageUrl] : []);
-            
-            return (
-            <Card
+          {posts.map((post, index) => (
+            <PostCard
               key={post.id}
-              className="p-6 bg-white shadow-md hover:shadow-lg transition-shadow"
-            >
-              {/* Updated to use MixedFeedDto field names */}
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-amber-200 to-orange-300 rounded-full flex items-center justify-center text-xl">
-                  {post.customerAvatar || "👤"}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-gray-800">
-                      {post.customerName || "Người dùng ẩn danh"}
-                    </span>
-                    {posts.indexOf(post) === 0 && (
-                      <Badge className="bg-green-100 text-green-800 text-xs">
-                        Mới nhất
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Clock className="w-3 h-3" />
-                    <span>{formatTime(post.createdAt)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {post.content}
-                </p>
-              </div>
-
-              {/* Updated to use MixedFeedDto imageUrls/imageUrl */}
-              {photoUrls.length > 0 && (
-                <div className="mb-4">
-                  <img
-                    src={photoUrls[0]}
-                    alt="Post"
-                    className="w-full h-64 object-cover rounded-lg"
-                    onError={(e) => {
-                      e.currentTarget.src =
-                        "https://via.placeholder.com/500x300?text=Image+Not+Available";
-                    }}
-                  />
-                </div>
-              )}
-
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                <div className="flex gap-6">
-                  <button
-                    onClick={() => handleLikePost(post.id)}
-                    className={`flex items-center gap-2 text-sm transition-colors ${
-                      post.isLikedByCurrentUser
-                        ? "text-red-600"
-                        : "text-gray-500 hover:text-red-600"
-                    }`}
-                  >
-                    <Heart
-                      className={`w-5 h-5 ${
-                        post.isLikedByCurrentUser ? "fill-current" : ""
-                      }`}
-                    />
-                    {post.likesCount}
-                  </button>
-                  <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-amber-600">
-                    <MessageCircle className="w-5 h-5" />
-                    {post.commentsCount}
-                  </button>
-                  <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600">
-                    <Share className="w-5 h-5" />
-                    {post.sharesCount}
-                  </button>
-                </div>
-              </div>
-            </Card>
-          );
-          })}
+              post={post}
+              isNewest={index === 0}
+              onPostUpdate={handlePostUpdate}
+            />
+          ))}
         </div>
 
         {hasMore && posts.length > 0 && (

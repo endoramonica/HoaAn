@@ -9,7 +9,9 @@ import { useCart } from '../../lib/hooks/useCart';
 import { useHybridNavigate } from '../../lib/hooks/useHybridNavigate';
 import { useCustomerAddress } from '../../lib/hooks/useCustomerAddress';
 import { useCheckout } from '../../lib/hooks/useCheckout';
+import { useAuth } from '../../lib/hooks/useAuth';
 import { paymentService } from '../../lib/services/paymentService';
+import { CartService } from '../../api/services/CartService';
 // ✅ Use Orval-generated types
 import type { 
   CreateAddressDto,
@@ -44,6 +46,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageWithFallback } from '../../components/figma/ImageWithFallback';
+import { CartItemCustomizations } from '../../components/CartItemCustomizations';
 
 interface CheckoutPageProps {
   onNavigate: (step: 'success' | 'failed', data?: any) => void;
@@ -52,6 +55,8 @@ interface CheckoutPageProps {
 export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
   const navigate = useHybridNavigate();
   const { cart, isLoading: cartLoading } = useCart();
+  const { isAuthenticated } = useAuth();
+  const isGuest = !isAuthenticated;
   
   // ✅ Sử dụng custom hooks
   const { 
@@ -145,6 +150,25 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
   const handlePlaceOrder = async () => {
     try {
       // ============================================================================
+      // STEP 0: Refresh Cart to Ensure Latest Data
+      // ============================================================================
+      console.log('[CheckoutPage] 🔄 Refreshing cart before checkout...');
+      
+      try {
+        // Force refresh cart from backend
+        const freshCart = await (isGuest 
+          ? CartService.getApiV1CartGuest()
+          : CartService.getApiV1Cart());
+        
+        console.log('[CheckoutPage] ✅ Cart refreshed:', {
+          itemCount: freshCart?.data?.totalItems,
+          items: freshCart?.data?.items?.length
+        });
+      } catch (refreshErr) {
+        console.warn('[CheckoutPage] ⚠️ Cart refresh failed, using current state:', refreshErr);
+      }
+
+      // ============================================================================
       // STEP 1: Validate Cart
       // ============================================================================
       console.log('[CheckoutPage] 🔍 Validating cart...');
@@ -166,6 +190,24 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
         navigate('/cart');
         return;
       }
+
+      // ✅ Log detailed cart information for debugging
+      console.log('[CheckoutPage] 📦 Cart Details:', {
+        cartId: cart.id,
+        itemCount: cart.items.length,
+        totalAmount: cart.totalAmount,
+        items: cart.items.map(item => ({
+          id: item.id,
+          productId: item.productId,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          basePrice: item.basePrice,
+          customizationPrice: item.customizationPrice,
+          finalPrice: item.finalPrice,
+          hasCustomizations: (item.customizations?.length || 0) > 0
+        }))
+      });
 
       console.log('[CheckoutPage] ✅ Cart valid:', {
         cartId: cart.id,
@@ -231,13 +273,29 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
         notes: orderNote || null,
       };
 
+      // ✅ Validate checkout data before sending
+      console.log('[CheckoutPage] 🔍 Validating checkout payload...');
+      if (!checkoutData.cartId) {
+        throw new Error('Cart ID is missing');
+      }
+      if (!checkoutData.shippingInfo.recipientName) {
+        throw new Error('Recipient name is missing');
+      }
+      if (!checkoutData.shippingInfo.phoneNumber) {
+        throw new Error('Phone number is missing');
+      }
+      if (!checkoutData.shippingInfo.address) {
+        throw new Error('Address is missing');
+      }
+
       console.log('[CheckoutPage] ✅ Checkout data prepared:', {
         cartId: checkoutData.cartId,
         itemCount: cart.items.length,
         totalAmount: cart.totalAmount,
         paymentMethod: checkoutData.paymentMethod,
         recipientName: checkoutData.shippingInfo.recipientName,
-        phoneNumber: checkoutData.shippingInfo.phoneNumber
+        phoneNumber: checkoutData.shippingInfo.phoneNumber,
+        address: checkoutData.shippingInfo.address
       });
 
       // ============================================================================
@@ -684,23 +742,34 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
                     {/* Items */}
                     <div className="space-y-3 max-h-64 overflow-y-auto">
                       {cart.items.map((item) => (
-                        <div key={item.id} className="flex space-x-3">
-                          <div className="relative">
-                            <ImageWithFallback
-                              src={item.image || '/placeholder.jpg'}
-                              alt={item.name}
-                              className="w-16 h-16 object-cover rounded-lg border border-[#92400E]/20"
+                        <div key={item.id} className="border-b border-[#92400E]/10 pb-3 last:border-b-0">
+                          <div className="flex space-x-3">
+                            <div className="relative">
+                              <ImageWithFallback
+                                src={item.image || '/placeholder.jpg'}
+                                alt={item.name}
+                                className="w-16 h-16 object-cover rounded-lg border border-[#92400E]/20"
+                              />
+                              <Badge className="absolute -top-2 -right-2 w-6 h-6 p-0 flex items-center justify-center bg-[#DC2626] text-white">
+                                {item.quantity}
+                              </Badge>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm text-[#92400E] line-clamp-2">{item.name}</h4>
+                              <p className="text-sm text-[#DC2626]">
+                                {(item.price || 0).toLocaleString('vi-VN')}₫
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Customizations */}
+                          {item.customizations && item.customizations.length > 0 && (
+                            <CartItemCustomizations
+                              customizations={item.customizations}
+                              productName={item.name}
+                              compact={true}
                             />
-                            <Badge className="absolute -top-2 -right-2 w-6 h-6 p-0 flex items-center justify-center bg-[#DC2626] text-white">
-                              {item.quantity}
-                            </Badge>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-sm text-[#92400E] line-clamp-2">{item.name}</h4>
-                            <p className="text-sm text-[#DC2626]">
-                              {(item.price || 0).toLocaleString('vi-VN')}₫
-                            </p>
-                          </div>
+                          )}
                         </div>
                       ))}
                     </div>

@@ -6,7 +6,8 @@ import { toast } from 'sonner';
 import type { CalendarEvent } from './types';
 import { type LunarDateResult } from '../../lib/services/lunarCalendarService';
 import { calendarBookingService } from '../../lib/services/calendarBookingService';
-import { cartService } from '../../lib/services/cartService';
+import { cartService, transformCustomizationState } from '../../lib/services/cartService';
+import { customizationStateService } from '../../lib/services/customizationStateService';
 import { BookingDialog, type BookingFormData } from './BookingDialog';
 import { useApp } from '../../lib/contexts/AppContext';
 
@@ -58,15 +59,21 @@ export function EventSidebar({
 
     setIsBooking(true);
     try {
-      // Step 1: Add service product to cart
+      // Step 1: Retrieve customization state if available
+      const customizationState = customizationStateService.getCustomizationState(selectedServiceProductId);
+      const customizations = transformCustomizationState(customizationState);
+
+      // Step 2: Add service product to cart with customizations
       console.log('[EventSidebar] Adding product to cart:', selectedServiceProductId);
+      console.log('[EventSidebar] Customizations:', customizations);
       await cartService.addItem({
         productId: selectedServiceProductId,
         quantity: 1,
+        customizations,
       });
       console.log('[EventSidebar] Product added to cart successfully');
 
-      // Step 2: Get updated cart to get cart ID
+      // Step 3: Get updated cart to get cart ID
       const cartResponse = await cartService.getCart();
       const cartId = cartResponse?.data?.id || cartResponse?.data?.cartId;
       
@@ -78,7 +85,7 @@ export function EventSidebar({
 
       console.log('[EventSidebar] Cart ID:', cartId);
 
-      // Step 3: Create booking
+      // Step 4: Create booking
       const event = selectedEvent || {
         id: `event-${selectedDate.toISOString()}`,
         title: 'Đặt lịch tư vấn',
@@ -103,6 +110,7 @@ export function EventSidebar({
         serviceNotes: formData.serviceNotes,
         serviceProductId: selectedServiceProductId,
         cartId: cartId,
+        customizationState: formData.customizationState,
       });
 
       setBookingResult(result);
@@ -163,8 +171,9 @@ export function EventSidebar({
         onOpenChange={setShowBookingDialog}
         onConfirm={handleBookingConfirm}
         isLoading={isBooking}
-        eventTitle={selectedEvent?.title}
+        eventTitle={selectedEvent?.title || undefined}
         selectedDate={selectedDate || undefined}
+        serviceProductId={selectedServiceProductId || undefined}
       />
       <div className="space-y-4">
       {/* Lunar Info Card */}

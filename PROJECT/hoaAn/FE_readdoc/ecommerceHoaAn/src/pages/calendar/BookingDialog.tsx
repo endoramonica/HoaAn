@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,6 +11,7 @@ import {
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Loader2 } from 'lucide-react';
+import { customizationStateService, type SavedCustomizationState } from '../../lib/services/customizationStateService';
 
 interface BookingDialogProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface BookingDialogProps {
   isLoading?: boolean;
   eventTitle?: string;
   selectedDate?: Date;
+  serviceProductId?: string;
 }
 
 export interface BookingFormData {
@@ -32,6 +34,9 @@ export interface BookingFormData {
   serviceDuration: string;
   serviceLocation: string;
   serviceNotes: string;
+  
+  // Customization options (nếu có)
+  customizationState?: SavedCustomizationState;
 }
 
 export function BookingDialog({
@@ -41,6 +46,7 @@ export function BookingDialog({
   isLoading = false,
   eventTitle = 'Sự kiện',
   selectedDate,
+  serviceProductId,
 }: BookingDialogProps) {
   const [formData, setFormData] = useState<BookingFormData>({
     customerName: localStorage.getItem('customerName') || '',
@@ -53,6 +59,21 @@ export function BookingDialog({
   });
 
   const [errors, setErrors] = useState<Partial<BookingFormData>>({});
+  const [savedCustomization, setSavedCustomization] = useState<SavedCustomizationState | null>(null);
+
+  // Load saved customization state when dialog opens
+  useEffect(() => {
+    if (open && serviceProductId) {
+      const state = customizationStateService.getCustomizationState(serviceProductId);
+      setSavedCustomization(state);
+      if (state) {
+        setFormData(prev => ({
+          ...prev,
+          customizationState: state,
+        }));
+      }
+    }
+  }, [open, serviceProductId]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<BookingFormData> = {};
@@ -97,12 +118,39 @@ export function BookingDialog({
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle>Đặt lịch - {eventTitle}</AlertDialogTitle>
-          <AlertDialogDescription>
+          {/* <AlertDialogDescription>
             Vui lòng nhập thông tin liên hệ để nhân viên có thể gọi lại tư vấn
-          </AlertDialogDescription>
+          </AlertDialogDescription> */}
         </AlertDialogHeader>
 
         <div className="py-4 max-h-[70vh] overflow-y-auto">
+          {/* Saved Customization Options */}
+          {savedCustomization && savedCustomization.customizations.length > 0 && (
+            <div className="mb-6 pb-4 border-b bg-blue-50 rounded-lg p-4">
+              {/* <h3 className="text-sm font-semibold text-slate-900 mb-3">Tùy chọn thêm đã lưu</h3> */}
+              {/* <div className="space-y-2">
+                {savedCustomization.customizations.map(custom => (
+                  <div key={custom.optionId} className="flex justify-between items-center text-sm">
+                    <span className="text-slate-700">
+                      {custom.optionName}: <span className="font-semibold">{custom.quantity}</span> {custom.unit}
+                    </span>
+                    <span className="text-slate-900 font-semibold">
+                      {new Intl.NumberFormat('vi-VN').format(custom.quantity * custom.unitPrice)}₫
+                    </span>
+                  </div>
+                ))}
+              </div> */}
+              <div className="mt-3 pt-3 border-t border-blue-200 flex justify-between">
+                <span className="text-sm font-semibold text-slate-900">Tổng cộng thêm:</span>
+                <span className="text-sm font-bold text-blue-600">
+                  {new Intl.NumberFormat('vi-VN').format(
+                    customizationStateService.calculateTotalCustomizationPrice(savedCustomization)
+                  )}₫
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Thông tin khách hàng */}
           <div className="mb-6 pb-4 border-b">
             <h3 className="text-sm font-semibold text-slate-900 mb-4">Thông tin khách hàng</h3>

@@ -2,6 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * Request for creating new customer
+ */
 export type CreateCustomerRequest = {
     name: string;
     email?: string | null;

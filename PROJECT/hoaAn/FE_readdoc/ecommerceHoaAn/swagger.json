@@ -2,10 +2,317 @@
   "openapi": "3.0.4",
   "info": {
     "title": "VietCommerce API",
-    "description": "VietCommerce E-commerce Platform API",
+    "description": "VietCommerce E-commerce Platform API - Campaign & Promotion Management System",
+    "contact": {
+      "name": "VietCommerce Development Team",
+      "email": "dev@vietcommerce.com"
+    },
+    "license": {
+      "name": "MIT License"
+    },
     "version": "v1"
   },
   "paths": {
+    "/api/v1/Analytics/{campaignId}/track-impression": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Track a campaign impression (when campaign is shown to user)\r\n\r\nRecords an impression event when a campaign is displayed to a user. This endpoint is called\r\nby the frontend when the AdPopup component renders a campaign. Multiple impressions from the\r\nsame session on the same page are tracked separately (frequency rules are enforced on frontend).\r\n\r\n**Validation Rules:**\r\n- Campaign must exist and be ACTIVE\r\n- SessionId: Required, max 100 characters (typically browser session ID)\r\n- Page: Required, max 100 characters (e.g., 'home', 'products', 'checkout')\r\n\r\n**Requirements:** 7.1\r\n\r\n**Example Request:**\r\n```json\r\n{\r\n  \"sessionId\": \"sess_abc123def456\",\r\n  \"page\": \"home\",\r\n  \"timestamp\": \"2025-01-15T10:30:00Z\"\r\n}\r\n```\r\n\r\n**Note:** This endpoint is public (no authentication required) to allow frontend tracking.",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "in": "path",
+            "description": "Campaign ID (GUID format)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Impression tracking data (sessionId, page, timestamp)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackImpressionDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackImpressionDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackImpressionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Impression tracked successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (missing sessionId, page, etc.)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Campaign not found with the specified ID",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/Analytics/{campaignId}/track-click": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Track a campaign click (when user clicks on campaign)\r\n\r\nRecords a click event when a user interacts with a campaign (e.g., clicks the CTA button).\r\nThis endpoint is called by the frontend when the user engages with the AdPopup component.\r\n\r\n**Validation Rules:**\r\n- Campaign must exist and be ACTIVE\r\n- SessionId: Required, max 100 characters (typically browser session ID)\r\n- Page: Required, max 100 characters (e.g., 'home', 'products', 'checkout')\r\n\r\n**Requirements:** 7.2\r\n\r\n**Example Request:**\r\n```json\r\n{\r\n  \"sessionId\": \"sess_abc123def456\",\r\n  \"page\": \"home\",\r\n  \"timestamp\": \"2025-01-15T10:30:15Z\"\r\n}\r\n```\r\n\r\n**Note:** This endpoint is public (no authentication required) to allow frontend tracking.",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "in": "path",
+            "description": "Campaign ID (GUID format)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Click tracking data (sessionId, page, timestamp)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackClickDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackClickDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackClickDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Click tracked successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (missing sessionId, page, etc.)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Campaign not found with the specified ID",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BooleanApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/Analytics/{campaignId}/stats": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "parameters": [
+          {
+            "name": "campaignId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fromDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignStatsDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignStatsDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignStatsDtoApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignStatsDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignStatsDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignStatsDtoApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignStatsDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignStatsDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignStatsDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/Auth/register": {
       "post": {
         "tags": [
@@ -431,6 +738,40 @@
         }
       }
     },
+    "/api/v1/Cart/add-with-customizations": {
+      "post": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Add a package product to cart with customizations.\r\nValidates customization quantities against product constraints and calculates final price.",
+        "description": "Requirements: 3.1, 3.3\r\n- Validates customizations using ProductService.ValidateCustomizationsAsync\r\n- Calculates final price: basePrice + sum(customization quantities × unit prices)\r\n- Stores customizations as JSON in CartItem\r\n- Returns CartItemDetailDto with BasePrice, CustomizationPrice, and FinalPrice breakdown",
+        "requestBody": {
+          "description": "The add to cart request containing product ID and customizations",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddToCartDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddToCartDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddToCartDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/Cart/update-item": {
       "put": {
         "tags": [
@@ -451,6 +792,61 @@
             "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/UpdateCartItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/Cart/items/{cartItemId}/customizations": {
+      "put": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Update the customizations for an existing cart item.\r\nValidates new customization quantities and recalculates the final price.",
+        "description": "Requirements: 4.1, 4.2\r\n- Validates new customizations against product constraints\r\n- Recalculates final price based on new customizations\r\n- Updates CartItem with new customizationsJson, customizationPrice, and finalPrice\r\n- Returns CartItemDetailDto with updated price breakdown",
+        "parameters": [
+          {
+            "name": "cartItemId",
+            "in": "path",
+            "description": "The unique identifier of the cart item to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The new list of customizations to apply",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CartItemCustomizationDto"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CartItemCustomizationDto"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CartItemCustomizationDto"
+                }
               }
             }
           }
@@ -547,6 +943,7 @@
         "tags": [
           "Cart"
         ],
+        "summary": "Get guest cart - session ID from cookie/header automatically",
         "responses": {
           "200": {
             "description": "OK"
@@ -559,6 +956,7 @@
         "tags": [
           "Cart"
         ],
+        "summary": "Get guest cart summary",
         "responses": {
           "200": {
             "description": "OK"
@@ -571,6 +969,7 @@
         "tags": [
           "Cart"
         ],
+        "summary": "Add item to guest cart",
         "requestBody": {
           "content": {
             "application/json": {
@@ -602,6 +1001,7 @@
         "tags": [
           "Cart"
         ],
+        "summary": "Update guest cart item",
         "parameters": [
           {
             "name": "cartItemId",
@@ -642,6 +1042,7 @@
         "tags": [
           "Cart"
         ],
+        "summary": "Remove item from guest cart",
         "parameters": [
           {
             "name": "cartItemId",
@@ -665,6 +1066,7 @@
         "tags": [
           "Cart"
         ],
+        "summary": "Clear all items from guest cart",
         "responses": {
           "200": {
             "description": "OK"
@@ -677,6 +1079,7 @@
         "tags": [
           "Cart"
         ],
+        "summary": "Validate guest cart before checkout",
         "responses": {
           "200": {
             "description": "OK"
@@ -689,6 +1092,7 @@
         "tags": [
           "Cart"
         ],
+        "summary": "Get guest cart item count",
         "responses": {
           "200": {
             "description": "OK"
@@ -701,6 +1105,7 @@
         "tags": [
           "Cart"
         ],
+        "summary": "Manually merge guest cart to user cart (usually done automatically on login)",
         "requestBody": {
           "content": {
             "application/json": {
@@ -723,6 +1128,406 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/Cart/apply-voucher": {
+      "post": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Apply a voucher code to user's cart\r\nRequirements: 3.2, 3.3, 3.4, 3.5",
+        "requestBody": {
+          "description": "Voucher code to apply",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyVoucherDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyVoucherDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyVoucherDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Voucher applied successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or invalid voucher",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cart or voucher not found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business rule violation (expired, usage limit exceeded, etc.)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/Cart/remove-voucher": {
+      "post": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Remove applied voucher from user's cart\r\nRequirements: 3.2",
+        "responses": {
+          "200": {
+            "description": "Voucher removed successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error removing voucher",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cart not found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/Cart/guest/apply-voucher": {
+      "post": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Apply a voucher code to guest's cart\r\nRequirements: 3.2, 3.3, 3.4, 3.5",
+        "requestBody": {
+          "description": "Voucher code to apply",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyVoucherDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyVoucherDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyVoucherDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Voucher applied successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or invalid voucher",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cart or voucher not found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business rule violation (expired, usage limit exceeded, etc.)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/Cart/guest/remove-voucher": {
+      "post": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Remove applied voucher from guest's cart\r\nRequirements: 3.2",
+        "responses": {
+          "200": {
+            "description": "Voucher removed successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error removing voucher",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cart not found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCartResponseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1449,7 +2254,10 @@
         "tags": [
           "Checkout"
         ],
+        "summary": "Process checkout and create order from cart",
+        "description": "Flow:\r\n1. Validate cart exists and belongs to user\r\n2. Validate cart has items and products are available\r\n3. Create order with items, shipping, and calculate totals\r\n4. Clear cart after successful order creation\r\n\r\nExample Request:\r\nPOST /api/v1/checkout/process\r\n{\r\n  \"cartId\": \"guid\",\r\n  \"shippingInfo\": {\r\n    \"recipientName\": \"Nguyễn Văn A\",\r\n    \"phoneNumber\": \"0123456789\",\r\n    \"address\": \"123 Đường ABC\",\r\n    \"ward\": \"Phường 1\",\r\n    \"district\": \"Quận 1\",\r\n    \"city\": \"TP. Hồ Chí Minh\",\r\n    \"postalCode\": \"70000\",\r\n    \"shippingMethod\": \"STANDARD\"\r\n  },\r\n  \"notes\": \"Please ring doorbell twice\"\r\n}",
         "requestBody": {
+          "description": "Checkout request containing cart ID and shipping info",
           "content": {
             "application/json": {
               "schema": {
@@ -1537,10 +2345,12 @@
         "tags": [
           "Checkout"
         ],
+        "summary": "Get order by ID (customer can only see their own orders)",
         "parameters": [
           {
             "name": "orderId",
             "in": "path",
+            "description": "Order ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -1641,6 +2451,7 @@
           {
             "name": "Keyword",
             "in": "query",
+            "description": "Search by OrderNumber or CustomerName (partial match, case-insensitive)",
             "schema": {
               "maxLength": 100,
               "type": "string"
@@ -1649,6 +2460,7 @@
           {
             "name": "CustomerId",
             "in": "query",
+            "description": "Filter by specific customer",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -1657,6 +2469,7 @@
           {
             "name": "StoreId",
             "in": "query",
+            "description": "Filter by specific store",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -1665,6 +2478,7 @@
           {
             "name": "Status",
             "in": "query",
+            "description": "Filter by order status (enum)\r\nExample: 1 (Pending), 2 (Confirmed), etc.",
             "schema": {
               "$ref": "#/components/schemas/OrderStatus"
             }
@@ -1672,6 +2486,7 @@
           {
             "name": "FromDate",
             "in": "query",
+            "description": "Filter orders created on or after this date",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -1680,6 +2495,7 @@
           {
             "name": "ToDate",
             "in": "query",
+            "description": "Filter orders created on or before this date",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -1688,6 +2504,7 @@
           {
             "name": "MinAmount",
             "in": "query",
+            "description": "Filter by minimum order amount",
             "schema": {
               "minimum": 0,
               "type": "number",
@@ -1697,6 +2514,7 @@
           {
             "name": "MaxAmount",
             "in": "query",
+            "description": "Filter by maximum order amount",
             "schema": {
               "minimum": 0,
               "type": "number",
@@ -1706,6 +2524,7 @@
           {
             "name": "SortBy",
             "in": "query",
+            "description": "Sort by field: \"CreatedAt\", \"TotalAmount\", \"OrderNumber\", \"Status\", \"CustomerName\"",
             "schema": {
               "maxLength": 50,
               "type": "string"
@@ -1714,6 +2533,7 @@
           {
             "name": "SortDescending",
             "in": "query",
+            "description": "Sort descending (true) or ascending (false)",
             "schema": {
               "type": "boolean"
             }
@@ -1721,6 +2541,7 @@
           {
             "name": "Type",
             "in": "query",
+            "description": "Filter by type: \"product\" or \"service\"\r\nIf null, returns all types (backward compatible)",
             "schema": {
               "maxLength": 50,
               "type": "string"
@@ -1729,6 +2550,7 @@
           {
             "name": "ServiceCategory",
             "in": "query",
+            "description": "Filter by service category (only applies when type='service')\r\nValues: ancestor-worship, opening-ceremony, wedding, buddha-worship, new-house, feng-shui-consultation",
             "schema": {
               "maxLength": 100,
               "type": "string"
@@ -1784,10 +2606,13 @@
         "tags": [
           "Checkout"
         ],
+        "summary": "Cancel an order (customer can only cancel their own orders)",
+        "description": "Business Rules:\r\n- Only orders with status Pending or Confirmed can be cancelled\r\n- User must own the order\r\n- Provides reason for cancellation (tracked in status history)\r\n- Automatically restores product stock (if implemented)\r\n\r\nExample Request:\r\nPOST /api/v1/checkout/{orderId}/cancel\r\n{\r\n  \"reason\": \"Changed my mind about this order\"\r\n}",
         "parameters": [
           {
             "name": "orderId",
             "in": "path",
+            "description": "Order ID to cancel",
             "required": true,
             "schema": {
               "type": "string",
@@ -1796,6 +2621,7 @@
           }
         ],
         "requestBody": {
+          "description": "Cancellation request with reason",
           "content": {
             "application/json": {
               "schema": {
@@ -1903,7 +2729,9 @@
         "tags": [
           "Comments"
         ],
+        "summary": "Tạo comment mới (root comment hoặc reply)",
         "requestBody": {
+          "description": "Thông tin comment cần tạo",
           "content": {
             "application/json": {
               "schema": {
@@ -1961,10 +2789,12 @@
         "tags": [
           "Comments"
         ],
+        "summary": "Cập nhật comment (chỉ owner có quyền)",
         "parameters": [
           {
             "name": "commentId",
             "in": "path",
+            "description": "ID của comment cần update",
             "required": true,
             "schema": {
               "type": "string",
@@ -1973,6 +2803,7 @@
           }
         ],
         "requestBody": {
+          "description": "Thông tin cập nhật",
           "content": {
             "application/json": {
               "schema": {
@@ -2048,10 +2879,12 @@
         "tags": [
           "Comments"
         ],
+        "summary": "Xóa comment (soft delete, chỉ owner có quyền)",
         "parameters": [
           {
             "name": "commentId",
             "in": "path",
+            "description": "ID của comment cần xóa",
             "required": true,
             "schema": {
               "type": "string",
@@ -2106,10 +2939,12 @@
         "tags": [
           "Comments"
         ],
+        "summary": "Lấy chi tiết một comment kèm replies",
         "parameters": [
           {
             "name": "commentId",
             "in": "path",
+            "description": "ID của comment",
             "required": true,
             "schema": {
               "type": "string",
@@ -2146,10 +2981,12 @@
         "tags": [
           "Comments"
         ],
+        "summary": "Lấy danh sách comments của một post với pagination",
         "parameters": [
           {
             "name": "postId",
             "in": "path",
+            "description": "ID của post",
             "required": true,
             "schema": {
               "type": "string",
@@ -2159,6 +2996,7 @@
           {
             "name": "pageNumber",
             "in": "query",
+            "description": "Số trang (default: 1)",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -2168,6 +3006,7 @@
           {
             "name": "pageSize",
             "in": "query",
+            "description": "Số lượng items trên mỗi trang (default: 20)",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -2204,10 +3043,12 @@
         "tags": [
           "Comments"
         ],
+        "summary": "Lấy danh sách replies của một comment",
         "parameters": [
           {
             "name": "commentId",
             "in": "path",
+            "description": "ID của comment cha",
             "required": true,
             "schema": {
               "type": "string",
@@ -2244,7 +3085,9 @@
         "tags": [
           "Comments"
         ],
+        "summary": "Save comment (Create hoặc Update dựa trên CommentId)",
         "requestBody": {
+          "description": "Thông tin comment",
           "content": {
             "application/json": {
               "schema": {
@@ -2686,6 +3529,7 @@
           {
             "name": "SortBy",
             "in": "query",
+            "description": "Sort by field: \"Name\", \"Email\", \"CreatedAt\", \"LoyaltyPoints\", \"Tier\"",
             "schema": {
               "maxLength": 50,
               "type": "string"
@@ -2694,6 +3538,7 @@
           {
             "name": "SortDescending",
             "in": "query",
+            "description": "Sort descending (true) or ascending (false)",
             "schema": {
               "type": "boolean"
             }
@@ -2701,6 +3546,7 @@
           {
             "name": "Skip",
             "in": "query",
+            "description": "Calculate skip count for pagination",
             "schema": {
               "type": "integer",
               "format": "int32"
@@ -2709,6 +3555,7 @@
           {
             "name": "SearchTerm",
             "in": "query",
+            "description": "Search by Name, Email or Phone (partial match, case-insensitive)",
             "schema": {
               "maxLength": 100,
               "type": "string"
@@ -2717,6 +3564,7 @@
           {
             "name": "Tier",
             "in": "query",
+            "description": "Filter by customer tier",
             "schema": {
               "maxLength": 50,
               "type": "string"
@@ -2725,6 +3573,7 @@
           {
             "name": "IsActive",
             "in": "query",
+            "description": "Filter by active status",
             "schema": {
               "type": "boolean"
             }
@@ -2732,6 +3581,7 @@
           {
             "name": "FromDate",
             "in": "query",
+            "description": "Filter customers created on or after this date",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -2740,6 +3590,7 @@
           {
             "name": "ToDate",
             "in": "query",
+            "description": "Filter customers created on or before this date",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -2748,6 +3599,7 @@
           {
             "name": "MinLoyaltyPoints",
             "in": "query",
+            "description": "Filter by minimum loyalty points",
             "schema": {
               "maximum": 2147483647,
               "minimum": 0,
@@ -2758,6 +3610,7 @@
           {
             "name": "MaxLoyaltyPoints",
             "in": "query",
+            "description": "Filter by maximum loyalty points",
             "schema": {
               "maximum": 2147483647,
               "minimum": 0,
@@ -2768,6 +3621,7 @@
           {
             "name": "HasEmail",
             "in": "query",
+            "description": "Filter by email existence",
             "schema": {
               "type": "boolean"
             }
@@ -2775,6 +3629,7 @@
           {
             "name": "HasPhone",
             "in": "query",
+            "description": "Filter by phone existence",
             "schema": {
               "type": "boolean"
             }
@@ -2872,17 +3727,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomerDetailDtoApiResponse"
+                  "$ref": "#/components/schemas/CustomerWithUserDtoApiResponse"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomerDetailDtoApiResponse"
+                  "$ref": "#/components/schemas/CustomerWithUserDtoApiResponse"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomerDetailDtoApiResponse"
+                  "$ref": "#/components/schemas/CustomerWithUserDtoApiResponse"
                 }
               }
             }
@@ -3101,6 +3956,7 @@
           {
             "name": "SortBy",
             "in": "query",
+            "description": "Sort by field: \"Name\", \"Email\", \"CreatedAt\", \"LoyaltyPoints\", \"Tier\"",
             "schema": {
               "maxLength": 50,
               "type": "string"
@@ -3109,6 +3965,7 @@
           {
             "name": "SortDescending",
             "in": "query",
+            "description": "Sort descending (true) or ascending (false)",
             "schema": {
               "type": "boolean"
             }
@@ -3116,6 +3973,7 @@
           {
             "name": "Skip",
             "in": "query",
+            "description": "Calculate skip count for pagination",
             "schema": {
               "type": "integer",
               "format": "int32"
@@ -3496,6 +4354,7 @@
           {
             "name": "SortBy",
             "in": "query",
+            "description": "Sort by field: \"Name\", \"Email\", \"CreatedAt\", \"LoyaltyPoints\", \"Tier\"",
             "schema": {
               "maxLength": 50,
               "type": "string"
@@ -3504,6 +4363,7 @@
           {
             "name": "SortDescending",
             "in": "query",
+            "description": "Sort descending (true) or ascending (false)",
             "schema": {
               "type": "boolean"
             }
@@ -3511,6 +4371,7 @@
           {
             "name": "Skip",
             "in": "query",
+            "description": "Calculate skip count for pagination",
             "schema": {
               "type": "integer",
               "format": "int32"
@@ -3519,6 +4380,7 @@
           {
             "name": "CustomerId",
             "in": "query",
+            "description": "Filter by customer ID",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -3527,6 +4389,7 @@
           {
             "name": "Type",
             "in": "query",
+            "description": "Filter by interaction type",
             "schema": {
               "$ref": "#/components/schemas/CRMInteractionType"
             }
@@ -3534,6 +4397,7 @@
           {
             "name": "Status",
             "in": "query",
+            "description": "Filter by interaction status",
             "schema": {
               "$ref": "#/components/schemas/CRMInteractionStatus"
             }
@@ -3541,6 +4405,7 @@
           {
             "name": "SearchTerm",
             "in": "query",
+            "description": "Search by Title or Description (partial match, case-insensitive)",
             "schema": {
               "maxLength": 100,
               "type": "string"
@@ -3549,6 +4414,7 @@
           {
             "name": "FromDate",
             "in": "query",
+            "description": "Filter interactions created on or after this date",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -3557,6 +4423,7 @@
           {
             "name": "ToDate",
             "in": "query",
+            "description": "Filter interactions created on or before this date",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -3565,6 +4432,7 @@
           {
             "name": "FollowUpFromDate",
             "in": "query",
+            "description": "Filter by follow-up date range start",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -3573,6 +4441,7 @@
           {
             "name": "FollowUpToDate",
             "in": "query",
+            "description": "Filter by follow-up date range end",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -3581,6 +4450,7 @@
           {
             "name": "CreatedBy",
             "in": "query",
+            "description": "Filter by creator user ID",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -3589,6 +4459,7 @@
           {
             "name": "HasPendingFollowUp",
             "in": "query",
+            "description": "Filter interactions with pending follow-ups",
             "schema": {
               "type": "boolean"
             }
@@ -4110,6 +4981,7 @@
         "tags": [
           "MixedFeed"
         ],
+        "summary": "Lấy mixed feed với thuật toán trộn thông minh\r\nMarketing posts xuất hiện mỗi N community posts (default: 1 marketing mỗi 4 community posts)",
         "parameters": [
           {
             "name": "PageNumber",
@@ -4130,6 +5002,7 @@
           {
             "name": "MarketingRatio",
             "in": "query",
+            "description": "Tỷ lệ marketing posts trong feed (1-10)\r\nVí dụ: 3 = 1 marketing post mỗi 3 community posts",
             "schema": {
               "type": "integer",
               "format": "int32"
@@ -4138,6 +5011,7 @@
           {
             "name": "Location",
             "in": "query",
+            "description": "Vị trí hiển thị cụ thể (homepage_banner, product_section, featured_section)",
             "schema": {
               "type": "string"
             }
@@ -4145,6 +5019,7 @@
           {
             "name": "FeaturedOnly",
             "in": "query",
+            "description": "Chỉ lấy featured posts (priority > 80)",
             "schema": {
               "type": "boolean"
             }
@@ -4152,6 +5027,7 @@
           {
             "name": "ProductId",
             "in": "query",
+            "description": "Filter theo productId",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -4160,6 +5036,7 @@
           {
             "name": "MinPriorityScore",
             "in": "query",
+            "description": "Minimum priority score cho marketing posts\r\n  ///",
             "schema": {
               "type": "integer",
               "format": "int32"
@@ -4215,10 +5092,12 @@
         "tags": [
           "MixedFeed"
         ],
+        "summary": "Lấy posts theo vị trí hiển thị cụ thể\r\nVí dụ: homepage_banner, product_section, featured_section, sidebar",
         "parameters": [
           {
             "name": "location",
             "in": "path",
+            "description": "Display location",
             "required": true,
             "schema": {
               "type": "string"
@@ -4227,6 +5106,7 @@
           {
             "name": "pageNumber",
             "in": "query",
+            "description": "Page number (default: 1)",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -4236,6 +5116,7 @@
           {
             "name": "pageSize",
             "in": "query",
+            "description": "Page size (default: 20)",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -4292,10 +5173,12 @@
         "tags": [
           "MixedFeed"
         ],
+        "summary": "Lấy featured posts (priority score > 80)\r\nDành cho banner, highlight sections",
         "parameters": [
           {
             "name": "pageNumber",
             "in": "query",
+            "description": "Page number (default: 1)",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -4305,6 +5188,7 @@
           {
             "name": "pageSize",
             "in": "query",
+            "description": "Page size (default: 10)",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -4361,10 +5245,12 @@
         "tags": [
           "MixedFeed"
         ],
+        "summary": "Lấy posts liên quan đến một product\r\nBao gồm cả marketing posts và community posts mention product đó",
         "parameters": [
           {
             "name": "productId",
             "in": "path",
+            "description": "Product ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -4374,6 +5260,7 @@
           {
             "name": "pageNumber",
             "in": "query",
+            "description": "Page number (default: 1)",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -4383,6 +5270,7 @@
           {
             "name": "pageSize",
             "in": "query",
+            "description": "Page size (default: 20)",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -4439,10 +5327,12 @@
         "tags": [
           "MixedFeed"
         ],
+        "summary": "Track interaction với post (view, click, share)\r\nPublic endpoint - không cần authentication",
         "parameters": [
           {
             "name": "postId",
             "in": "path",
+            "description": "Post ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -4452,12 +5342,14 @@
           {
             "name": "postType",
             "in": "query",
+            "description": "Post type: \"community\" hoặc \"marketing\"",
             "schema": {
               "type": "string"
             }
           }
         ],
         "requestBody": {
+          "description": "Interaction details",
           "content": {
             "application/json": {
               "schema": {
@@ -4525,10 +5417,12 @@
         "tags": [
           "Order"
         ],
+        "summary": "Get order by ID\r\n✅ Service automatically checks if user has permission to view this order",
         "parameters": [
           {
             "name": "id",
             "in": "path",
+            "description": "Order ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -4605,6 +5499,7 @@
         "tags": [
           "Order"
         ],
+        "summary": "Get current user's orders (paginated)\r\n✅ Service automatically uses CustomerId from JWT token",
         "parameters": [
           {
             "name": "Page",
@@ -4629,6 +5524,7 @@
           {
             "name": "Keyword",
             "in": "query",
+            "description": "Search by OrderNumber or CustomerName (partial match, case-insensitive)",
             "schema": {
               "maxLength": 100,
               "type": "string"
@@ -4637,6 +5533,7 @@
           {
             "name": "CustomerId",
             "in": "query",
+            "description": "Filter by specific customer",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -4645,6 +5542,7 @@
           {
             "name": "StoreId",
             "in": "query",
+            "description": "Filter by specific store",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -4653,6 +5551,7 @@
           {
             "name": "Status",
             "in": "query",
+            "description": "Filter by order status (enum)\r\nExample: 1 (Pending), 2 (Confirmed), etc.",
             "schema": {
               "$ref": "#/components/schemas/OrderStatus"
             }
@@ -4660,6 +5559,7 @@
           {
             "name": "FromDate",
             "in": "query",
+            "description": "Filter orders created on or after this date",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -4668,6 +5568,7 @@
           {
             "name": "ToDate",
             "in": "query",
+            "description": "Filter orders created on or before this date",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -4676,6 +5577,7 @@
           {
             "name": "MinAmount",
             "in": "query",
+            "description": "Filter by minimum order amount",
             "schema": {
               "minimum": 0,
               "type": "number",
@@ -4685,6 +5587,7 @@
           {
             "name": "MaxAmount",
             "in": "query",
+            "description": "Filter by maximum order amount",
             "schema": {
               "minimum": 0,
               "type": "number",
@@ -4694,6 +5597,7 @@
           {
             "name": "SortBy",
             "in": "query",
+            "description": "Sort by field: \"CreatedAt\", \"TotalAmount\", \"OrderNumber\", \"Status\", \"CustomerName\"",
             "schema": {
               "maxLength": 50,
               "type": "string"
@@ -4702,6 +5606,7 @@
           {
             "name": "SortDescending",
             "in": "query",
+            "description": "Sort descending (true) or ascending (false)",
             "schema": {
               "type": "boolean"
             }
@@ -4709,6 +5614,7 @@
           {
             "name": "Type",
             "in": "query",
+            "description": "Filter by type: \"product\" or \"service\"\r\nIf null, returns all types (backward compatible)",
             "schema": {
               "maxLength": 50,
               "type": "string"
@@ -4717,6 +5623,7 @@
           {
             "name": "ServiceCategory",
             "in": "query",
+            "description": "Filter by service category (only applies when type='service')\r\nValues: ancestor-worship, opening-ceremony, wedding, buddha-worship, new-house, feng-shui-consultation",
             "schema": {
               "maxLength": 100,
               "type": "string"
@@ -4772,6 +5679,7 @@
         "tags": [
           "Order"
         ],
+        "summary": "Get all orders (admin/seller only)\r\n✅ Service enforces admin check internally",
         "parameters": [
           {
             "name": "Page",
@@ -4796,6 +5704,7 @@
           {
             "name": "Keyword",
             "in": "query",
+            "description": "Search by OrderNumber or CustomerName (partial match, case-insensitive)",
             "schema": {
               "maxLength": 100,
               "type": "string"
@@ -4804,6 +5713,7 @@
           {
             "name": "CustomerId",
             "in": "query",
+            "description": "Filter by specific customer",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -4812,6 +5722,7 @@
           {
             "name": "StoreId",
             "in": "query",
+            "description": "Filter by specific store",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -4820,6 +5731,7 @@
           {
             "name": "Status",
             "in": "query",
+            "description": "Filter by order status (enum)\r\nExample: 1 (Pending), 2 (Confirmed), etc.",
             "schema": {
               "$ref": "#/components/schemas/OrderStatus"
             }
@@ -4827,6 +5739,7 @@
           {
             "name": "FromDate",
             "in": "query",
+            "description": "Filter orders created on or after this date",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -4835,6 +5748,7 @@
           {
             "name": "ToDate",
             "in": "query",
+            "description": "Filter orders created on or before this date",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -4843,6 +5757,7 @@
           {
             "name": "MinAmount",
             "in": "query",
+            "description": "Filter by minimum order amount",
             "schema": {
               "minimum": 0,
               "type": "number",
@@ -4852,6 +5767,7 @@
           {
             "name": "MaxAmount",
             "in": "query",
+            "description": "Filter by maximum order amount",
             "schema": {
               "minimum": 0,
               "type": "number",
@@ -4861,6 +5777,7 @@
           {
             "name": "SortBy",
             "in": "query",
+            "description": "Sort by field: \"CreatedAt\", \"TotalAmount\", \"OrderNumber\", \"Status\", \"CustomerName\"",
             "schema": {
               "maxLength": 50,
               "type": "string"
@@ -4869,6 +5786,7 @@
           {
             "name": "SortDescending",
             "in": "query",
+            "description": "Sort descending (true) or ascending (false)",
             "schema": {
               "type": "boolean"
             }
@@ -4876,6 +5794,7 @@
           {
             "name": "Type",
             "in": "query",
+            "description": "Filter by type: \"product\" or \"service\"\r\nIf null, returns all types (backward compatible)",
             "schema": {
               "maxLength": 50,
               "type": "string"
@@ -4884,6 +5803,7 @@
           {
             "name": "ServiceCategory",
             "in": "query",
+            "description": "Filter by service category (only applies when type='service')\r\nValues: ancestor-worship, opening-ceremony, wedding, buddha-worship, new-house, feng-shui-consultation",
             "schema": {
               "maxLength": 100,
               "type": "string"
@@ -4939,10 +5859,12 @@
         "tags": [
           "Order"
         ],
+        "summary": "Get orders by status\r\n✅ Service automatically filters based on user role",
         "parameters": [
           {
             "name": "status",
             "in": "path",
+            "description": "Order status",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/OrderStatus"
@@ -4978,10 +5900,12 @@
         "tags": [
           "Order"
         ],
+        "summary": "Get order status history\r\n✅ Service checks permission before returning history",
         "parameters": [
           {
             "name": "orderId",
             "in": "path",
+            "description": "Order ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -5058,10 +5982,12 @@
         "tags": [
           "Order"
         ],
+        "summary": "Update order status\r\n✅ Service automatically uses current UserId as changedBy",
         "parameters": [
           {
             "name": "orderId",
             "in": "path",
+            "description": "Order ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -5070,6 +5996,7 @@
           }
         ],
         "requestBody": {
+          "description": "Status update request",
           "content": {
             "application/json": {
               "schema": {
@@ -5137,10 +6064,12 @@
         "tags": [
           "Order"
         ],
+        "summary": "Cancel an order\r\n✅ Service automatically uses current UserId as changedBy\r\n✅ Service checks if user has permission to cancel",
         "parameters": [
           {
             "name": "orderId",
             "in": "path",
+            "description": "Order ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -5149,6 +6078,7 @@
           }
         ],
         "requestBody": {
+          "description": "Cancel request with reason",
           "content": {
             "application/json": {
               "schema": {
@@ -5256,10 +6186,12 @@
         "tags": [
           "Order"
         ],
+        "summary": "Check if order status can be changed",
         "parameters": [
           {
             "name": "orderId",
             "in": "path",
+            "description": "Order ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -5269,6 +6201,7 @@
           {
             "name": "newStatus",
             "in": "query",
+            "description": "Desired new status",
             "schema": {
               "$ref": "#/components/schemas/OrderStatus"
             }
@@ -5303,10 +6236,12 @@
         "tags": [
           "Order"
         ],
+        "summary": "Get order statistics - total count\r\n✅ Service automatically filters based on user role",
         "parameters": [
           {
             "name": "storeId",
             "in": "query",
+            "description": "Optional store filter",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -5315,6 +6250,7 @@
           {
             "name": "fromDate",
             "in": "query",
+            "description": "Optional start date",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -5323,6 +6259,7 @@
           {
             "name": "toDate",
             "in": "query",
+            "description": "Optional end date",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -5358,10 +6295,12 @@
         "tags": [
           "Order"
         ],
+        "summary": "Get order statistics - total revenue\r\n✅ ADMIN ONLY - Service enforces this",
         "parameters": [
           {
             "name": "storeId",
             "in": "query",
+            "description": "Optional store filter",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -5370,6 +6309,7 @@
           {
             "name": "fromDate",
             "in": "query",
+            "description": "Optional start date",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -5378,6 +6318,7 @@
           {
             "name": "toDate",
             "in": "query",
+            "description": "Optional end date",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -5433,7 +6374,9 @@
         "tags": [
           "Order"
         ],
+        "summary": "Bulk update order statuses\r\n✅ ADMIN ONLY - Service enforces this\r\n✅ Service automatically uses current UserId as changedBy",
         "requestBody": {
+          "description": "Bulk update request",
           "content": {
             "application/json": {
               "schema": {
@@ -5516,6 +6459,25 @@
         }
       }
     },
+    "/health": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StringDateTime<>f__AnonymousType8"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/payment/vnpay/ipn": {
       "get": {
         "tags": [
@@ -5533,6 +6495,7 @@
         "tags": [
           "Posts"
         ],
+        "summary": "Tạo post mới (yêu cầu authentication)",
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -5616,10 +6579,12 @@
         "tags": [
           "Posts"
         ],
+        "summary": "Cập nhật post (chỉ owner được phép)",
         "parameters": [
           {
             "name": "postId",
             "in": "path",
+            "description": "ID của post cần update",
             "required": true,
             "schema": {
               "type": "string",
@@ -5628,6 +6593,7 @@
           }
         ],
         "requestBody": {
+          "description": "Dữ liệu cập nhật",
           "content": {
             "application/json": {
               "schema": {
@@ -5753,10 +6719,12 @@
         "tags": [
           "Posts"
         ],
+        "summary": "Xóa post (soft delete, chỉ owner được phép)",
         "parameters": [
           {
             "name": "postId",
             "in": "path",
+            "description": "ID của post cần xóa",
             "required": true,
             "schema": {
               "type": "string",
@@ -5871,10 +6839,12 @@
         "tags": [
           "Posts"
         ],
+        "summary": "Lấy chi tiết một post (public, guest có thể xem)",
         "parameters": [
           {
             "name": "postId",
             "in": "path",
+            "description": "ID của post",
             "required": true,
             "schema": {
               "type": "string",
@@ -5931,10 +6901,12 @@
         "tags": [
           "Posts"
         ],
+        "summary": "Lấy feed posts với pagination (public, guest có thể xem)",
         "parameters": [
           {
             "name": "pageNumber",
             "in": "query",
+            "description": "Số trang (default: 1)",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -5944,6 +6916,7 @@
           {
             "name": "pageSize",
             "in": "query",
+            "description": "Số items mỗi trang (default: 20)",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -6000,10 +6973,12 @@
         "tags": [
           "Posts"
         ],
+        "summary": "Lấy danh sách posts của một customer (public profile)",
         "parameters": [
           {
             "name": "customerId",
             "in": "path",
+            "description": "ID của customer",
             "required": true,
             "schema": {
               "type": "string",
@@ -6013,6 +6988,7 @@
           {
             "name": "pageNumber",
             "in": "query",
+            "description": "Số trang (default: 1)",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -6022,6 +6998,7 @@
           {
             "name": "pageSize",
             "in": "query",
+            "description": "Số items mỗi trang (default: 20)",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -6078,10 +7055,12 @@
         "tags": [
           "Posts"
         ],
+        "summary": "Tìm kiếm posts theo keyword và date range",
         "parameters": [
           {
             "name": "keyword",
             "in": "query",
+            "description": "Từ khóa tìm kiếm",
             "schema": {
               "type": "string"
             }
@@ -6089,6 +7068,7 @@
           {
             "name": "fromDate",
             "in": "query",
+            "description": "Từ ngày (nullable)",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -6097,6 +7077,7 @@
           {
             "name": "toDate",
             "in": "query",
+            "description": "Đến ngày (nullable)",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -6105,6 +7086,7 @@
           {
             "name": "pageNumber",
             "in": "query",
+            "description": "Số trang (default: 1)",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -6114,6 +7096,7 @@
           {
             "name": "pageSize",
             "in": "query",
+            "description": "Số items mỗi trang (default: 20)",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -6170,10 +7153,12 @@
         "tags": [
           "Posts"
         ],
+        "summary": "Toggle like/unlike post (yêu cầu authentication)",
         "parameters": [
           {
             "name": "postId",
             "in": "path",
+            "description": "ID của post",
             "required": true,
             "schema": {
               "type": "string",
@@ -6270,10 +7255,12 @@
         "tags": [
           "Posts"
         ],
+        "summary": "Toggle bookmark/unbookmark post (yêu cầu authentication)",
         "parameters": [
           {
             "name": "postId",
             "in": "path",
+            "description": "ID của post",
             "required": true,
             "schema": {
               "type": "string",
@@ -6523,6 +7510,7 @@
           {
             "name": "Type",
             "in": "query",
+            "description": "Filter by type: \"product\" or \"service\"\r\nIf null, returns all types (backward compatible)",
             "schema": {
               "type": "string"
             }
@@ -6530,6 +7518,7 @@
           {
             "name": "ServiceCategory",
             "in": "query",
+            "description": "Filter by service category (only applies when type='service')\r\nValues: ancestor-worship, opening-ceremony, wedding, buddha-worship, new-house, feng-shui-consultation",
             "schema": {
               "type": "string"
             }
@@ -7488,25 +8477,6 @@
         }
       }
     },
-    "/health": {
-      "get": {
-        "tags": [
-          "VietCommerce.Api"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StringDateTime<>f__AnonymousType8"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/WeatherForecast": {
       "get": {
         "tags": [
@@ -7551,6 +8521,7 @@
         "tags": [
           "Wishlist"
         ],
+        "summary": "Lấy danh sách wishlist của user hiện tại",
         "responses": {
           "200": {
             "description": "OK",
@@ -7578,6 +8549,7 @@
         "tags": [
           "Wishlist"
         ],
+        "summary": "Thêm sản phẩm vào wishlist",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7626,6 +8598,7 @@
         "tags": [
           "Wishlist"
         ],
+        "summary": "Xóa wishlist item theo ID",
         "parameters": [
           {
             "name": "id",
@@ -7666,6 +8639,7 @@
         "tags": [
           "Wishlist"
         ],
+        "summary": "Xóa sản phẩm khỏi wishlist theo ProductId",
         "parameters": [
           {
             "name": "productId",
@@ -7706,6 +8680,7 @@
         "tags": [
           "Wishlist"
         ],
+        "summary": "Kiểm tra sản phẩm có trong wishlist không",
         "parameters": [
           {
             "name": "productId",
@@ -7746,6 +8721,7 @@
         "tags": [
           "Wishlist"
         ],
+        "summary": "Toggle wishlist - thêm nếu chưa có, xóa nếu đã có",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7794,6 +8770,7 @@
         "tags": [
           "Wishlist"
         ],
+        "summary": "Xóa toàn bộ wishlist",
         "responses": {
           "200": {
             "description": "OK",
@@ -7823,6 +8800,7 @@
         "tags": [
           "Wishlist"
         ],
+        "summary": "Di chuyển tất cả wishlist items vào giỏ hàng\r\nTODO: Implement khi cần",
         "responses": {
           "200": {
             "description": "OK",
@@ -7898,14 +8876,25 @@
         "properties": {
           "productId": {
             "type": "string",
+            "description": "Gets or sets the unique identifier of the product to add to cart.",
             "format": "uuid"
           },
           "quantity": {
             "type": "integer",
+            "description": "Gets or sets the quantity of the product to add.\r\nDefaults to 1 if not specified.",
             "format": "int32"
+          },
+          "customizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItemCustomizationDto"
+            },
+            "description": "Gets or sets the list of customizations for package products.\r\nNullable - only populated when adding customizable package products.\r\nEach customization specifies an option ID and desired quantity.\r\nExample: Customer adds \"Mâm Cúng Khai Trương\" with 10 dĩa xôi instead of 5.",
+            "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Data transfer object for adding a product to the shopping cart.\r\nSupports both regular products and customizable package products."
       },
       "AddToWishlistRequest": {
         "type": "object",
@@ -8061,6 +9050,18 @@
         },
         "additionalProperties": false
       },
+      "ApplyVoucherDto": {
+        "type": "object",
+        "properties": {
+          "voucherCode": {
+            "type": "string",
+            "description": "Voucher code to apply",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO for applying a voucher code to cart\r\nRequirements: 3.2, 3.3"
+      },
       "BooleanApiResponse": {
         "type": "object",
         "properties": {
@@ -8093,6 +9094,7 @@
               "type": "string",
               "format": "uuid"
             },
+            "description": "List of order IDs to update",
             "nullable": true
           },
           "newStatus": {
@@ -8100,10 +9102,12 @@
           },
           "reason": {
             "type": "string",
+            "description": "Optional reason for the update",
             "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Request to bulk update order statuses"
       },
       "CRMInteractionDto": {
         "type": "object",
@@ -8183,7 +9187,8 @@
             "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "DTO for CRM Interaction details"
       },
       "CRMInteractionDtoApiResponse": {
         "type": "object",
@@ -8257,7 +9262,8 @@
             "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "DTO for CRM Interaction list view"
       },
       "CRMInteractionListDtoListApiResponse": {
         "type": "object",
@@ -8363,6 +9369,93 @@
         ],
         "type": "string"
       },
+      "CampaignStatsDto": {
+        "type": "object",
+        "properties": {
+          "campaignId": {
+            "type": "string",
+            "description": "Campaign ID",
+            "format": "uuid"
+          },
+          "impressionCount": {
+            "type": "integer",
+            "description": "Total number of impressions",
+            "format": "int32"
+          },
+          "clickCount": {
+            "type": "integer",
+            "description": "Total number of clicks",
+            "format": "int32"
+          },
+          "clickThroughRate": {
+            "type": "number",
+            "description": "Click-through rate (clicks / impressions * 100)",
+            "format": "double"
+          },
+          "redemptionCount": {
+            "type": "integer",
+            "description": "Total number of redemptions",
+            "format": "int32"
+          },
+          "redemptionRate": {
+            "type": "number",
+            "description": "Redemption rate (redemptions / clicks * 100)",
+            "format": "double"
+          },
+          "totalRevenue": {
+            "type": "number",
+            "description": "Total revenue from redemptions",
+            "format": "double"
+          },
+          "totalDiscount": {
+            "type": "number",
+            "description": "Total discount amount",
+            "format": "double"
+          },
+          "conversionRate": {
+            "type": "number",
+            "description": "Conversion rate (redemptions / impressions * 100)",
+            "format": "double"
+          },
+          "fromDate": {
+            "type": "string",
+            "description": "Date range start for the statistics",
+            "format": "date-time",
+            "nullable": true
+          },
+          "toDate": {
+            "type": "string",
+            "description": "Date range end for the statistics",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO for campaign statistics response\r\nRequirements: 7.4, 7.5"
+      },
+      "CampaignStatsDtoApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CampaignStatsDto"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CancelOrderRequest": {
         "required": [
           "reason"
@@ -8372,7 +9465,128 @@
           "reason": {
             "maxLength": 500,
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "Reason for cancellation (required, max 500 chars)"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for cancelling order"
+      },
+      "CartItemCustomizationDto": {
+        "type": "object",
+        "properties": {
+          "optionId": {
+            "type": "string",
+            "description": "Gets or sets the unique identifier of the customizable option.\r\nExample: \"opt-xoi\" for \"Xôi gấc đậu xanh\"",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "description": "Gets or sets the quantity of this option selected by the customer.\r\nMust be within the min/max bounds defined in the product's customizable options.",
+            "format": "int32"
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "Gets or sets the unit price of this option at the time of cart addition.\r\nExample: 45,000đ per dĩa of xôi",
+            "format": "double"
+          },
+          "totalPrice": {
+            "type": "number",
+            "description": "Gets or sets the total price for this customization.\r\nCalculated as: Quantity × UnitPrice\r\nExample: 10 dĩa × 45,000đ = 450,000đ",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a customization option selected for a cart item.\r\nUsed when customers customize package products by adjusting quantities of optional items."
+      },
+      "CartItemDetailDto": {
+        "type": "object",
+        "properties": {
+          "cartItemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productName": {
+            "type": "string",
+            "nullable": true
+          },
+          "productSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "sku": {
+            "type": "string",
+            "nullable": true
+          },
+          "productImage": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "availableStock": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isProductActive": {
+            "type": "boolean"
+          },
+          "purchaseCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "avgRating": {
+            "type": "number",
+            "format": "double"
+          },
+          "reviewCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "basePrice": {
+            "type": "number",
+            "description": "Gets or sets the base price of the package product before customizations.\r\nThis is the fixed price of the package itself.\r\nExample: 3,500,000đ for a ritual package",
+            "format": "double"
+          },
+          "customizationPrice": {
+            "type": "number",
+            "description": "Gets or sets the total price of all customizations applied to this cart item.\r\nCalculated as the sum of all customization option prices.\r\nExample: 785,000đ (sum of customization surcharges)",
+            "format": "double"
+          },
+          "finalPrice": {
+            "type": "number",
+            "description": "Gets or sets the final total price for this cart item.\r\nCalculated as: BasePrice + CustomizationPrice\r\nExample: 4,285,000đ (3,500,000 + 785,000)",
+            "format": "double"
+          },
+          "customizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItemCustomizationDto"
+            },
+            "description": "Gets or sets the list of customizations applied to this cart item.\r\nContains details about which options were customized and their quantities.\r\nNull if the product is not customizable or no customizations were applied.",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -8802,7 +10016,8 @@
             "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "DTO chi tiết với replies"
       },
       "CommentDetailDtoApiResponse": {
         "type": "object",
@@ -8871,7 +10086,8 @@
             "type": "boolean"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "DTO response cơ bản cho comment"
       },
       "CommentDtoApiResponse": {
         "type": "object",
@@ -9041,7 +10257,8 @@
             "format": "date-time"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "DTO preview ngắn gọn cho comment (dùng trong PostFeedDto)"
       },
       "CreateAddressDto": {
         "required": [
@@ -9146,7 +10363,8 @@
             "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "DTO để tạo comment mới"
       },
       "CreateCustomerAddressRequest": {
         "required": [
@@ -9222,7 +10440,8 @@
             "type": "boolean"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Request for creating new customer address"
       },
       "CreateCustomerRequest": {
         "required": [
@@ -9269,7 +10488,8 @@
             "type": "boolean"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Request for creating new customer"
       },
       "CreateInteractionRequest": {
         "required": [
@@ -9307,7 +10527,8 @@
             "$ref": "#/components/schemas/CRMInteractionStatus"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Request for creating new interaction"
       },
       "CustomerAddressDto": {
         "type": "object",
@@ -9377,7 +10598,8 @@
             "format": "date-time"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "DTO for customer address details"
       },
       "CustomerAddressDtoApiResponse": {
         "type": "object",
@@ -9448,6 +10670,10 @@
             "type": "string",
             "nullable": true
           },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
           "loyaltyPoints": {
             "type": "integer",
             "format": "int32"
@@ -9506,6 +10732,19 @@
             "type": "integer",
             "format": "int32"
           },
+          "userProvider": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastLogin": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "userStatus": {
+            "type": "string",
+            "nullable": true
+          },
           "addresses": {
             "type": "array",
             "items": {
@@ -9514,7 +10753,8 @@
             "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "DTO for detailed customer information"
       },
       "CustomerDetailDtoApiResponse": {
         "type": "object",
@@ -9572,6 +10812,24 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "userProvider": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastLogin": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "userStatus": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -9619,7 +10877,8 @@
             "format": "double"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "DTO for customer list view"
       },
       "CustomerListDtoListApiResponse": {
         "type": "object",
@@ -9751,7 +11010,8 @@
             "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Customer order summary"
       },
       "CustomerOrderSummaryDtoApiResponse": {
         "type": "object",
@@ -9818,7 +11078,8 @@
             "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Customer statistics summary"
       },
       "CustomerStatisticsDtoApiResponse": {
         "type": "object",
@@ -9842,6 +11103,103 @@
           }
         },
         "additionalProperties": false
+      },
+      "CustomerWithUserDto": {
+        "type": "object",
+        "properties": {
+          "customer": {
+            "$ref": "#/components/schemas/CustomerDetailDto"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserDetailDTO"
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO for combined Customer + User information\r\nUsed in GET /api/v1/AdminCustomer/{id} endpoint"
+      },
+      "CustomerWithUserDtoApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CustomerWithUserDto"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CustomizableOptionDto": {
+        "required": [
+          "baseQuantity",
+          "id",
+          "minQuantity",
+          "name",
+          "unit",
+          "unitPrice"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "Unique identifier for the customizable option (e.g., \"opt-xoi\", \"opt-che\")."
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "description": "Display name of the customizable option (e.g., \"Xôi gấc đậu xanh\", \"Chè trôi nước\")."
+          },
+          "baseQuantity": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "type": "integer",
+            "description": "Default quantity included in the package for this option.",
+            "format": "int32"
+          },
+          "unitPrice": {
+            "minimum": 0,
+            "type": "number",
+            "description": "Price per unit of this option (e.g., 45,000đ per dĩa of xôi).",
+            "format": "double"
+          },
+          "minQuantity": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "type": "integer",
+            "description": "Minimum quantity a customer can order for this option.",
+            "format": "int32"
+          },
+          "maxQuantity": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "type": "integer",
+            "description": "Maximum quantity a customer can order for this option. Null means unlimited.",
+            "format": "int32",
+            "nullable": true
+          },
+          "unit": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Unit of measurement for this option (e.g., \"dĩa\", \"chén\", \"bộ\")."
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO representing a customizable option within a package product.\r\nCustomizable options allow customers to modify quantities of specific items in a package."
       },
       "DecimalApiResponse": {
         "type": "object",
@@ -9918,7 +11276,8 @@
             "format": "int32"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Featured posts response"
       },
       "FeaturedPostsDtoApiResponse": {
         "type": "object",
@@ -9953,6 +11312,79 @@
             "minLength": 1,
             "type": "string",
             "format": "email"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetCartResponseDto": {
+        "type": "object",
+        "properties": {
+          "cartId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItemDetailDto"
+            },
+            "description": "List of cart items with detailed information including customizations.\r\nEach item includes BasePrice, CustomizationPrice, and FinalPrice breakdown.",
+            "nullable": true
+          },
+          "totalItems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "subTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "shippingFee": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetCartResponseDtoApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "$ref": "#/components/schemas/GetCartResponseDto"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -10032,7 +11464,8 @@
             "format": "int32"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Result cho location-based posts"
       },
       "LocationPostsDtoApiResponse": {
         "type": "object",
@@ -10112,7 +11545,8 @@
             "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Loyalty points history"
       },
       "LoyaltyHistoryDtoListApiResponse": {
         "type": "object",
@@ -10140,6 +11574,14 @@
           }
         },
         "additionalProperties": false
+      },
+      "MediaTypeEnum": {
+        "enum": [
+          "image",
+          "video",
+          "other"
+        ],
+        "type": "string"
       },
       "MergeCartDto": {
         "type": "object",
@@ -10207,6 +11649,10 @@
             "type": "string",
             "nullable": true
           },
+          "image": {
+            "type": "string",
+            "nullable": true
+          },
           "productId": {
             "type": "string",
             "format": "uuid",
@@ -10214,6 +11660,20 @@
           },
           "productName": {
             "type": "string",
+            "nullable": true
+          },
+          "taggedProduct": {
+            "$ref": "#/components/schemas/TaggedProductDto"
+          },
+          "platform": {
+            "type": "string",
+            "nullable": true
+          },
+          "hashtags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
             "nullable": true
           },
           "priorityScore": {
@@ -10225,14 +11685,11 @@
             "type": "boolean",
             "nullable": true
           },
-          "displayLocation": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
+          "status": {
+            "type": "string",
             "nullable": true
           },
-          "hashtags": {
+          "displayLocation": {
             "type": "array",
             "items": {
               "type": "string"
@@ -10269,7 +11726,8 @@
             "type": "boolean"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "DTO cho Mixed Feed - kết hợp Community Posts và Marketing Posts"
       },
       "MixedFeedDtoPaginatedResult": {
         "type": "object",
@@ -10481,27 +11939,33 @@
           },
           "type": {
             "type": "string",
+            "description": "Type discriminator: \"product\" or \"service\"",
             "nullable": true
           },
           "serviceCategory": {
             "type": "string",
+            "description": "Service category (only for type='service')",
             "nullable": true
           },
           "serviceDuration": {
             "type": "string",
+            "description": "Service duration (only for type='service')",
             "nullable": true
           },
           "serviceLocation": {
             "type": "string",
+            "description": "Service location/address (only for type='service')",
             "nullable": true
           },
           "serviceDate": {
             "type": "string",
+            "description": "Scheduled service date (only for type='service')",
             "format": "date-time",
             "nullable": true
           },
           "serviceNotes": {
             "type": "string",
+            "description": "Scheduled service time (only for type='service')",
             "nullable": true
           }
         },
@@ -10716,14 +12180,17 @@
           },
           "type": {
             "type": "string",
+            "description": "Type discriminator: \"product\" or \"service\"",
             "nullable": true
           },
           "serviceCategory": {
             "type": "string",
+            "description": "Service category (only for type='service')",
             "nullable": true
           },
           "serviceDuration": {
             "type": "string",
+            "description": "Service duration (only for type='service')",
             "nullable": true
           }
         },
@@ -11227,7 +12694,8 @@
             "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Interaction tracking DTO"
       },
       "PostInteractionResult": {
         "type": "object",
@@ -11244,7 +12712,8 @@
             "format": "int32"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Interaction result"
       },
       "PostInteractionResultApiResponse": {
         "type": "object",
@@ -11581,47 +13050,21 @@
           "metaKeywords": {
             "type": "string",
             "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "ProductImageDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
           },
-          "productId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "url": {
-            "type": "string",
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of fixed items included in a package product (e.g., \"Cá chép (3 con)\", \"Mũ giấy (3 cái)\").\r\nUsed for package products to describe what's included.",
             "nullable": true
           },
-          "thumbnailUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "displayOrder": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "mediaType": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "isMain": {
-            "type": "boolean"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time",
+          "customizableOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomizableOptionDto"
+            },
+            "description": "List of customizable options for a package product.\r\nAllows customers to modify quantities of specific items in the package.",
             "nullable": true
           }
         },
@@ -11707,17 +13150,16 @@
             "type": "string",
             "nullable": true
           },
+          "primaryImage": {
+            "type": "string",
+            "nullable": true
+          },
           "images": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ProductImageDto"
             },
             "nullable": true
-          },
-          "primaryImage": {
-            "type": "string",
-            "nullable": true,
-            "readOnly": true
           },
           "tags": {
             "type": "array",
@@ -11784,6 +13226,22 @@
           "createdByName": {
             "type": "string",
             "nullable": true
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of fixed items included in the package product (e.g., \"Cá chép (3 con)\", \"Mũ giấy (3 cái)\").\r\nNull if this is not a package product.",
+            "nullable": true
+          },
+          "customizableOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomizableOptionDto"
+            },
+            "description": "List of customizable options available for this package product.\r\nCustomers can modify quantities of these options when adding to cart.\r\nNull if this is not a customizable package product.",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -11806,6 +13264,47 @@
             "items": {
               "type": "string"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProductImageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "thumbnailUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mediaType": {
+            "$ref": "#/components/schemas/MediaTypeEnum"
+          },
+          "isMain": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           }
         },
@@ -11905,6 +13404,13 @@
             "type": "string",
             "nullable": true
           },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductImageDto"
+            },
+            "nullable": true
+          },
           "isActive": {
             "type": "boolean"
           },
@@ -11938,18 +13444,22 @@
           },
           "type": {
             "type": "string",
+            "description": "Type discriminator: \"product\" or \"service\"",
             "nullable": true
           },
           "serviceCategory": {
             "type": "string",
+            "description": "Service category (only for type='service')",
             "nullable": true
           },
           "serviceDuration": {
             "type": "string",
+            "description": "Service duration (only for type='service')",
             "nullable": true
           },
           "serviceRating": {
             "type": "number",
+            "description": "Service rating (0-5 stars)",
             "format": "double",
             "nullable": true
           }
@@ -12157,6 +13667,22 @@
           "metaKeywords": {
             "type": "string",
             "nullable": true
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of fixed items included in the package product (e.g., \"Cá chép (3 con)\", \"Mũ giấy (3 cái)\").\r\nOnly applicable for package products. Null for regular products.",
+            "nullable": true
+          },
+          "customizableOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomizableOptionDto"
+            },
+            "description": "List of customizable options for the package product.\r\nAllows customers to modify quantities of specific items within the package.\r\nOnly applicable for package products. Null for regular products.",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -12244,7 +13770,8 @@
             "format": "int32"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Related posts by product"
       },
       "RelatedPostsDtoApiResponse": {
         "type": "object",
@@ -12320,7 +13847,8 @@
             "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "DTO để tạo/update comment (Save operation)\r\nNếu CommentId = Guid.Empty → Tạo mới\r\nNếu CommentId có giá trị → Update"
       },
       "ShippingMethodEnum": {
         "enum": [
@@ -12371,6 +13899,52 @@
         },
         "additionalProperties": false
       },
+      "TaggedProductDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Product unique identifier",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Product name",
+            "nullable": true
+          },
+          "price": {
+            "type": "number",
+            "description": "Current product price",
+            "format": "double"
+          },
+          "currency": {
+            "type": "string",
+            "description": "Currency code (default: VND)",
+            "nullable": true
+          },
+          "formattedPrice": {
+            "type": "string",
+            "description": "Formatted price string for display (e.g., \"45,000 VND\")",
+            "nullable": true
+          },
+          "thumbnailUrl": {
+            "type": "string",
+            "description": "Product thumbnail image URL",
+            "nullable": true
+          },
+          "hasDiscount": {
+            "type": "boolean",
+            "description": "Indicates if product has an active discount"
+          },
+          "discountPercentage": {
+            "type": "integer",
+            "description": "Discount percentage (0-100)",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Lightweight product information for marketing posts.\r\nContains live product data (price, discount, image) that is fetched at retrieval time.\r\nUsed to display current product details alongside marketing content."
+      },
       "ToggleWishlistResponse": {
         "type": "object",
         "properties": {
@@ -12402,6 +13976,52 @@
           }
         },
         "additionalProperties": false
+      },
+      "TrackClickDto": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "Session ID of the user clicking the campaign",
+            "nullable": true
+          },
+          "page": {
+            "type": "string",
+            "description": "Page where the campaign was clicked",
+            "nullable": true
+          },
+          "recordedAt": {
+            "type": "string",
+            "description": "Timestamp when the click was recorded",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO for tracking campaign click\r\nRequirements: 7.2"
+      },
+      "TrackImpressionDto": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "Session ID of the user viewing the campaign",
+            "nullable": true
+          },
+          "page": {
+            "type": "string",
+            "description": "Page where the campaign was shown",
+            "nullable": true
+          },
+          "recordedAt": {
+            "type": "string",
+            "description": "Timestamp when the impression was recorded",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO for tracking campaign impression\r\nRequirements: 7.1"
       },
       "UpdateAddressDto": {
         "type": "object",
@@ -12511,7 +14131,8 @@
             "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "DTO để update comment"
       },
       "UpdateCustomerAddressRequest": {
         "type": "object",
@@ -12582,7 +14203,8 @@
             "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Request for updating customer address"
       },
       "UpdateCustomerRequest": {
         "type": "object",
@@ -12623,14 +14245,10 @@
           "isActive": {
             "type": "boolean",
             "nullable": true
-          },
-          "storeId": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Request for updating customer"
       },
       "UpdateInteractionRequest": {
         "type": "object",
@@ -12659,7 +14277,8 @@
             "$ref": "#/components/schemas/CRMInteractionStatus"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Request for updating interaction"
       },
       "UpdatePostDto": {
         "type": "object",
@@ -12694,6 +14313,75 @@
           }
         },
         "additionalProperties": false
+      },
+      "UserDetailDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus"
+          },
+          "statusText": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastLogin": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "storeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "storeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserStatus": {
+        "enum": [
+          "active",
+          "inactive",
+          "locked",
+          "pending"
+        ],
+        "type": "string"
       },
       "UserUpdateDTO": {
         "type": "object",

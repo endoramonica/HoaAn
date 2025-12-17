@@ -3,6 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { MixedFeedDto } from './MixedFeedDto';
+/**
+ * Featured posts response
+ */
 export type FeaturedPostsDto = {
     posts?: Array<MixedFeedDto> | null;
     totalFeatured?: number;

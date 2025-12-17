@@ -43,8 +43,10 @@ export class ProductService {
      * @param maxPrice
      * @param sortBy
      * @param isDescending
-     * @param type
-     * @param serviceCategory
+     * @param type Filter by type: "product" or "service"
+     * If null, returns all types (backward compatible)
+     * @param serviceCategory Filter by service category (only applies when type='service')
+     * Values: ancestor-worship, opening-ceremony, wedding, buddha-worship, new-house, feng-shui-consultation
      * @returns ProductListDtoPaginatedResultApiResponse OK
      * @throws ApiError
      */

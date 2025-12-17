@@ -4,6 +4,9 @@
 /* eslint-disable */
 import type { CRMInteractionStatus } from './CRMInteractionStatus';
 import type { CRMInteractionType } from './CRMInteractionType';
+/**
+ * Request for creating new interaction
+ */
 export type CreateInteractionRequest = {
     customerId: string;
     type: CRMInteractionType;

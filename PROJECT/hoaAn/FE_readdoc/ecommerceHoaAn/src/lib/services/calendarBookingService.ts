@@ -13,6 +13,7 @@ import { getVietCommerceAPI } from '../../../Api/generated-orval';
 import type { CalendarEvent } from '../../pages/calendar/types';
 import type { LunarDateResult } from './lunarCalendarService';
 import type { ShippingMethodEnum } from '../../../Api/generated-orval/schemas';
+import type { SavedCustomizationState } from './customizationStateService';
 
 const api = getVietCommerceAPI();
 
@@ -29,6 +30,7 @@ export interface CalendarBookingRequest {
     serviceNotes: string;
     serviceProductId: string; // GUID of the service product from ServicePage/ServiceDetail
     cartId: string; // Cart ID from useCart hook (already has product added)
+    customizationState?: SavedCustomizationState; // Saved customization options
 }
 
 export interface CalendarBookingResponse {
@@ -61,7 +63,8 @@ class CalendarBookingService {
                 serviceLocation,
                 serviceNotes,
                 serviceProductId,
-                cartId
+                cartId,
+                customizationState
             } = request;
 
             if (!serviceProductId) {
@@ -82,6 +85,15 @@ class CalendarBookingService {
 
             console.log('Starting booking process for event:', event.id, 'with product:', serviceProductId, 'and cart:', cartId);
 
+            // Build customization details for notes
+            let customizationDetails = '';
+            if (customizationState && customizationState.customizations.length > 0) {
+                customizationDetails = '\n\n--- Tùy chọn thêm ---\n';
+                customizationState.customizations.forEach(custom => {
+                    customizationDetails += `${custom.optionName}: ${custom.quantity} ${custom.unit}\n`;
+                });
+            }
+
             // Prepare checkout request with correct schema
             // Note: Product is already added to cart via useCart hook in component
             const checkoutRequest = {
@@ -94,10 +106,10 @@ class CalendarBookingService {
                     district: 'Quận 1',
                     city: 'Hà Nội',
                     postalCode: '100000',
-                    deliveryNote: `${event.title}\nNgày âm lịch: ${lunarData.day}/${lunarData.month}\nCan Chi: ${lunarData.canChiDay}\nThời lượng: ${serviceDuration}\nĐịa điểm: ${serviceLocation}\n${serviceNotes || ''}`,
+                    deliveryNote: `${event.title}\nNgày âm lịch: ${lunarData.day}/${lunarData.month}\nCan Chi: ${lunarData.canChiDay}\nThời lượng: ${serviceDuration}\nĐịa điểm: ${serviceLocation}\n${serviceNotes || ''}${customizationDetails}`,
                     shippingMethod: 'standard' as ShippingMethodEnum,
                 },
-                notes: `${event.title}\nNgày âm lịch: ${lunarData.day}/${lunarData.month}\nCan Chi: ${lunarData.canChiDay}\nThời lượng: ${serviceDuration}\nĐịa điểm: ${serviceLocation}\n${serviceNotes || ''}`,
+                notes: `${event.title}\nNgày âm lịch: ${lunarData.day}/${lunarData.month}\nCan Chi: ${lunarData.canChiDay}\nThời lượng: ${serviceDuration}\nĐịa điểm: ${serviceLocation}\n${serviceNotes || ''}${customizationDetails}`,
             };
 
             console.log('Checkout request:', checkoutRequest);

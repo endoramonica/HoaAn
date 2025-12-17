@@ -3,6 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AddressType } from './AddressType';
+/**
+ * Request for creating new customer address
+ */
 export type CreateCustomerAddressRequest = {
     customerId: string;
     streetAddress: string;

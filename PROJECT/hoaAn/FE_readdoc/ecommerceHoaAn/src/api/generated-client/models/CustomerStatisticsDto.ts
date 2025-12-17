@@ -2,6 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * Customer statistics summary
+ */
 export type CustomerStatisticsDto = {
     customerId?: string;
     totalOrders?: number;

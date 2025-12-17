@@ -2,6 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * Request for updating customer
+ */
 export type UpdateCustomerRequest = {
     name?: string | null;
     email?: string | null;
@@ -9,6 +12,5 @@ export type UpdateCustomerRequest = {
     loyaltyPoints?: number | null;
     tier?: string | null;
     isActive?: boolean | null;
-    storeId?: string | null;
 };
 

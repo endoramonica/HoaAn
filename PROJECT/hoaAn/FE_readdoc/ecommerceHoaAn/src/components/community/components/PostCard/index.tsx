@@ -11,6 +11,8 @@ import { PostContent } from './PostContent';
 import { PostImages } from './PostImages';
 import { PostActions } from './PostActions';
 import { CommentsSection } from './CommentsSection';
+import { ProductShowcase } from '@/components/marketing';
+import { usePostLikeBookmark } from '@/lib/hooks/usePostLikeBookmark';
 
 import type { PostResponseDto, MixedFeedDto } from '../../../../../Api/generated-orval/schemas';
 
@@ -20,6 +22,8 @@ type Post = PostResponseDto | MixedFeedDto;
 interface PostCardProps {
   post: Post;
   isNewest?: boolean;
+  onProductClick?: (productId: string) => void;
+  onPostUpdate?: (postId: string, updates: any) => void;
 }
 
 // Helper to get postId from either DTO type
@@ -46,8 +50,38 @@ const getPhotoUrls = (post: Post): string[] | undefined => {
   return undefined;
 };
 
-export const PostCard = ({ post, isNewest }: PostCardProps) => {
+export const PostCard = ({ 
+  post, 
+  isNewest, 
+  onProductClick,
+  onPostUpdate,
+}: PostCardProps) => {
   const [showComments, setShowComments] = useState(false);
+
+  const postId = getPostId(post);
+  const photoUrls = getPhotoUrls(post);
+
+  // Use hook for like and bookmark
+  const {
+    isLiked,
+    isBookmarked,
+    likesCount,
+    isLikeLoading,
+    isBookmarkLoading,
+    handleLike,
+    handleBookmark,
+  } = usePostLikeBookmark({
+    postId,
+    initialLiked: post.isLikedByCurrentUser || false,
+    initialBookmarked: post.isBookmarkedByCurrentUser || false,
+    initialLikesCount: post.likesCount || 0,
+    onLikeChange: (liked, likesCount) => {
+      onPostUpdate?.(postId, { isLikedByCurrentUser: liked, likesCount });
+    },
+    onBookmarkChange: (bookmarked) => {
+      onPostUpdate?.(postId, { isBookmarkedByCurrentUser: bookmarked });
+    },
+  });
 
   const author = {
     id: post.customerId || undefined,
@@ -55,11 +89,15 @@ export const PostCard = ({ post, isNewest }: PostCardProps) => {
     avatar: post.customerAvatar || undefined,
   };
 
-  const postId = getPostId(post);
-  const photoUrls = getPhotoUrls(post);
-
   const handleToggleComments = () => {
     setShowComments((prev) => !prev);
+  };
+
+  const handleProductClick = () => {
+    const product = (post as MixedFeedDto).taggedProduct;
+    if (product && product.id && onProductClick) {
+      onProductClick(product.id);
+    }
   };
 
   return (
@@ -74,15 +112,53 @@ export const PostCard = ({ post, isNewest }: PostCardProps) => {
 
       <PostImages photoUrls={photoUrls} />
 
+      {/* Tagged Product */}
+      {(() => {
+        const product = (post as MixedFeedDto).taggedProduct;
+        if (
+          product &&
+          product.id &&
+          product.name &&
+          product.price !== undefined &&
+          product.currency &&
+          product.thumbnailUrl &&
+          product.hasDiscount !== undefined &&
+          product.discountPercentage !== undefined
+        ) {
+          return (
+            <div className="mb-4">
+              <ProductShowcase
+                product={{
+                  id: product.id,
+                  name: product.name,
+                  price: product.price,
+                  currency: product.currency,
+                  formattedPrice: product.formattedPrice,
+                  thumbnailUrl: product.thumbnailUrl,
+                  hasDiscount: product.hasDiscount,
+                  discountPercentage: product.discountPercentage,
+                }}
+                onViewDetails={handleProductClick}
+              />
+            </div>
+          );
+        }
+        return null;
+      })()}
+
       <PostActions
         postId={postId}
-        likesCount={post.likesCount || 0}
+        likesCount={likesCount}
         commentsCount={post.commentsCount || 0}
         sharesCount={(post as MixedFeedDto).sharesCount || 0}
-        isLiked={post.isLikedByCurrentUser || false}
-        isBookmarked={post.isBookmarkedByCurrentUser || false}
+        isLiked={isLiked}
+        isBookmarked={isBookmarked}
         showComments={showComments}
         onToggleComments={handleToggleComments}
+        onLike={handleLike}
+        onBookmark={handleBookmark}
+        isLikeLoading={isLikeLoading}
+        isBookmarkLoading={isBookmarkLoading}
       />
 
       {showComments && <CommentsSection postId={postId} />}
