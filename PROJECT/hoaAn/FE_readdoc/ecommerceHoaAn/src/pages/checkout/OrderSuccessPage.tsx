@@ -56,6 +56,15 @@ export const OrderSuccessPage = ({ orderData }: OrderSuccessPageProps) => {
     try {
       console.log('[OrderSuccessPage] 📋 Loading order details...');
 
+      // ============================================================================
+      // STEP 1: Clear Booking State (BACKUP - Should be cleared in CheckoutPage)
+      // ============================================================================
+      console.log('[OrderSuccessPage] 🧹 Clearing booking state (backup)...');
+      sessionStorage.removeItem('bookingInfo');
+      sessionStorage.removeItem('selectedBookingSlot');
+      sessionStorage.removeItem('bookingInfoClient');
+      console.log('[OrderSuccessPage] ✅ Booking state cleared');
+
       let orderId = orderData?.orderId;
 
       // If no orderData, check sessionStorage

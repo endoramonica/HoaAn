@@ -366,7 +366,19 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
       });
 
       // ============================================================================
-      // STEP 5: Handle Payment
+      // STEP 5: Clear Booking State (CRITICAL FIX)
+      // ============================================================================
+      console.log('[CheckoutPage] 🧹 Clearing booking state...');
+      
+      // ✅ Remove booking info from sessionStorage to prevent "sticking" to next cart
+      sessionStorage.removeItem('bookingInfo');
+      sessionStorage.removeItem('selectedBookingSlot');
+      sessionStorage.removeItem('bookingInfoClient');
+      
+      console.log('[CheckoutPage] ✅ Booking state cleared');
+
+      // ============================================================================
+      // STEP 6: Handle Payment
       // ============================================================================
       console.log('[CheckoutPage] 💳 Handling payment method:', selectedPaymentMethod);
 
