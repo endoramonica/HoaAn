@@ -348,6 +348,11 @@ builder.Services.AddLogging(logging =>
 // HTTP CLIENT
 // ============================================
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient<IGeminiExplanationService, GeminiExplanationService>()
+    .ConfigureHttpClient(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(30);
+    });
 // ============================================
 // BUILD APPLICATION
 // ============================================

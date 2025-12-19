@@ -97,6 +97,10 @@ namespace VietCommerce.Application.Extension
             services.AddScoped<IVoucherService, VoucherService>();
             services.AddScoped<IAnalyticsService, AnalyticsService>();
             services.AddScoped<ITargetingRulesService, TargetingRulesService>();
+            services.AddScoped<ISequentialPatternMatcher, SequentialPatternMatcher>();
+            services.AddScoped<IRitualManifestLoader, RitualManifestLoader>();
+            services.AddScoped<IRecommendationService, RecommendationService>();
+            services.AddScoped<IGeminiExplanationService, GeminiExplanationService>();
 
             // RBAC / Auth
             services.AddScoped<IPermissionService, PermissionService>();
@@ -154,6 +158,10 @@ namespace VietCommerce.Application.Extension
             services.AddScoped<IVoucherRedemptionRepository, VoucherRedemptionRepository>();
 
             services.AddScoped<IOrderItemRepository, OrderItemRepository>();
+
+            // RITUAL RECOMMENDATION REPOSITORIES
+            services.AddScoped<IActionRepository, ActionRepository>();
+            services.AddScoped<IRecommendationLogRepository, RecommendationLogRepository>();
 
             return services;
         }
