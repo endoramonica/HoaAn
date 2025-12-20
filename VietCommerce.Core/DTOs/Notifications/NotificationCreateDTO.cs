@@ -13,4 +13,7 @@ public class NotificationCreateDTO
     [StringLength(5000, ErrorMessage = "Message cannot exceed 5000 characters")]
     public string Message { get; set; } = string.Empty;
     public bool IsRead { get; set; } = false;
+    public Guid? PostId { get; set; }
+    public Guid? CommentId { get; set; }
+    public Guid? ActorCustomerId { get; set; }
 }

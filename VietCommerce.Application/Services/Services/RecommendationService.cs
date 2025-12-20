@@ -19,6 +19,7 @@ namespace VietCommerce.Application.Services.Services
         private readonly ISequentialPatternMatcher _patternMatcher;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IProductRepository _productRepository;
+        private readonly IUserPreferenceService _userPreferenceService;
         private readonly IMapper _mapper;
         private readonly ILogger<RecommendationService> _logger;
 
@@ -26,18 +27,22 @@ namespace VietCommerce.Application.Services.Services
             ISequentialPatternMatcher patternMatcher,
             IUnitOfWork unitOfWork,
             IProductRepository productRepository,
+            IUserPreferenceService userPreferenceService,
             IMapper mapper,
             ILogger<RecommendationService> logger)
         {
             _patternMatcher = patternMatcher ?? throw new ArgumentNullException(nameof(patternMatcher));
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _productRepository = productRepository ?? throw new ArgumentNullException(nameof(productRepository));
+            _userPreferenceService = userPreferenceService ?? throw new ArgumentNullException(nameof(userPreferenceService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
         /// Generates a recommendation based on user action sequence and cart items
+        /// Handles multiple matching patterns by selecting the highest confidence one
+        /// Filters out disabled rituals based on user preferences
         /// </summary>
         /// <param name="userId">The user ID</param>
         /// <param name="sessionId">The session ID</param>
@@ -66,13 +71,25 @@ namespace VietCommerce.Application.Services.Services
                     return null;
                 }
 
-                // Match pattern against action sequence
+                // Get all disabled rituals for this user
+                var disabledRituals = await _userPreferenceService.GetDisabledRitualsAsync(userId);
+                _logger.LogInformation($"User {userId} has {disabledRituals.Count} disabled rituals");
+
+                // Match pattern against action sequence - this returns the best match
                 var matchResult = _patternMatcher.MatchPattern(actionSequence);
 
                 // If no pattern matched, return null
                 if (!matchResult.Matched)
                 {
                     _logger.LogInformation($"No ritual pattern matched for user {userId} in session {sessionId}");
+                    return null;
+                }
+
+                // Check if the matched ritual is disabled for this user
+                if (disabledRituals.Contains(Guid.Parse(matchResult.RitualId)))
+                {
+                    _logger.LogInformation(
+                        $"Matched ritual {matchResult.RitualId} is disabled for user {userId}. Skipping recommendation.");
                     return null;
                 }
 

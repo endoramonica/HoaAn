@@ -14,17 +14,24 @@ namespace VietCommerce.Application.Services.Services
 
         /// <summary>
         /// Initializes the pattern matcher with a ritual manifest
+        /// Builds internal indexes for efficient pattern lookup
         /// </summary>
         /// <param name="manifest">The ritual manifest containing all patterns to match against</param>
         public void Initialize(RitualManifest manifest)
         {
             _manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
+            
+            // Build indexes for efficient lookup
+            _manifest.RebuildIndexes();
+            
             _initialized = true;
         }
 
         /// <summary>
         /// Matches an action sequence against all ritual patterns in the manifest
         /// Uses a PrefixSpan-inspired algorithm to find the best matching ritual
+        /// Optimized to filter candidate rituals using action type indexes before matching
+        /// Handles multiple matching patterns by selecting the highest confidence one
         /// </summary>
         /// <param name="actionSequence">The sequence of user actions to analyze</param>
         /// <returns>MatchResult containing the best matching ritual and confidence score</returns>
@@ -42,11 +49,39 @@ namespace VietCommerce.Application.Services.Services
 
             var bestMatch = new MatchResultDto { Matched = false };
             decimal bestConfidence = 0;
+            var allMatches = new List<MatchResultDto>();
 
-            // Iterate through all active rituals in the manifest
-            foreach (var ritual in _manifest.GetActiveRituals())
+            // Extract action types from the sequence for efficient filtering
+            var userActionTypes = actionSequence.Select(a => a.Type).ToList();
+
+            // Use indexed lookup to get candidate rituals that contain the first action type
+            // This reduces the number of rituals we need to check
+            List<RitualDto> candidateRituals;
+            if (userActionTypes.Count > 0)
+            {
+                candidateRituals = _manifest.GetRitualsByActionSequence(userActionTypes);
+                
+                // If no candidates found by sequence, fall back to all active rituals
+                if (candidateRituals.Count == 0)
+                {
+                    candidateRituals = _manifest.GetActiveRituals();
+                }
+            }
+            else
+            {
+                candidateRituals = _manifest.GetActiveRituals();
+            }
+
+            // Iterate through candidate rituals (filtered by indexes)
+            foreach (var ritual in candidateRituals)
             {
                 var matchResult = MatchRitualPattern(ritual, actionSequence);
+
+                // Track all matches for logging
+                if (matchResult.Matched)
+                {
+                    allMatches.Add(matchResult);
+                }
 
                 // Update best match if this ritual has higher confidence
                 if (matchResult.Matched && matchResult.ConfidenceScore > bestConfidence)
@@ -54,6 +89,15 @@ namespace VietCommerce.Application.Services.Services
                     bestConfidence = matchResult.ConfidenceScore;
                     bestMatch = matchResult;
                 }
+            }
+
+            // Log pattern matching results for debugging
+            if (allMatches.Count > 1)
+            {
+                var matchSummary = string.Join(", ", 
+                    allMatches.OrderByDescending(m => m.ConfidenceScore)
+                        .Select(m => $"{m.RitualName}({m.ConfidenceScore:P})"));
+                // Note: Logging would be done at service level, not here
             }
 
             return bestMatch;

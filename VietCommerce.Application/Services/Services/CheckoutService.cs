@@ -1,4 +1,4 @@
-﻿// File: VietCommerce.Application.Services/Services/CheckoutService.cs
+// File: VietCommerce.Application.Services/Services/CheckoutService.cs
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -27,6 +27,7 @@ namespace VietCommerce.Application.Services.Services
         private readonly IHttpContextAccessor _httpContext;
         private readonly ICurrentUser _currentUser;
         private readonly IOrderService _orderService;
+        private readonly IRealtimeService? _realtime;
 
         public CheckoutService(
             IOrderRepository orderRepository,
@@ -39,7 +40,8 @@ namespace VietCommerce.Application.Services.Services
             IOrderService orderService,
             IMapper mapper,
             ILogger<CheckoutService> logger,
-            ICacheService cacheService)
+            ICacheService cacheService,
+            IRealtimeService? realtime = null)
             : base(logger, cacheService)
         {
             _orderRepository = orderRepository;
@@ -51,6 +53,7 @@ namespace VietCommerce.Application.Services.Services
             _httpContext = httpContext;
             _currentUser = currentUser;
             _orderService = orderService;
+            _realtime = realtime;
         }
 
         // ========================================
@@ -308,6 +311,39 @@ namespace VietCommerce.Application.Services.Services
 
                 LogInfo("✅ Transaction committed. Order {OrderNumber} created for user {UserId}, CustomerId={CustomerId}",
                     order.OrderNumber, userId, customerId);
+
+                if (_realtime != null)
+                {
+                    var orderDetail = new OrderDetailDto
+                    {
+                        OrderId = order.Id,
+                        OrderNumber = order.OrderNumber,
+                        StoreId = order.StoreId,
+                        CustomerId = customerId,
+                        Status = order.Status,
+                        SubTotal = order.SubTotal,
+                        ShippingFee = order.ShippingFee,
+                        TaxAmount = order.TaxAmount,
+                        DiscountAmount = order.DiscountAmount,
+                        TotalAmount = order.TotalAmount,
+                        Notes = order.Notes ?? string.Empty,
+                        CreatedAt = order.CreatedAt,
+                        UpdatedAt = order.UpdatedAt,
+                        Items = orderItems.Select(oi => new OrderItemDTO
+                        {
+                            Id = oi.Id,
+                            OrderId = oi.OrderId,
+                            ProductId = oi.ProductId,
+                            ProductName = oi.ProductName,
+                            ProductSKU = oi.ProductCode,
+                            UnitPrice = oi.UnitPrice,
+                            Quantity = oi.Quantity,
+                            TotalPrice = oi.TotalPrice
+                        }).ToList(),
+                        Shipping = _mapper.Map<OrderShippingDto>(orderShipping)
+                    };
+                    await _realtime.BroadcastOrderCreatedAsync(orderDetail);
+                }
 
                 var responseDto = new CheckoutResponseDto
                 {

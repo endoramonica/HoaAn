@@ -22,6 +22,7 @@ namespace VietCommerce.Tests.Services
         private readonly Mock<ISequentialPatternMatcher> _mockPatternMatcher;
         private readonly Mock<IUnitOfWork> _mockUnitOfWork;
         private readonly Mock<IProductRepository> _mockProductRepository;
+        private readonly Mock<IUserPreferenceService> _mockUserPreferenceService;
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<ILogger<RecommendationService>> _mockLogger;
         private readonly RecommendationService _service;
@@ -31,6 +32,7 @@ namespace VietCommerce.Tests.Services
             _mockPatternMatcher = new Mock<ISequentialPatternMatcher>();
             _mockUnitOfWork = new Mock<IUnitOfWork>();
             _mockProductRepository = new Mock<IProductRepository>();
+            _mockUserPreferenceService = new Mock<IUserPreferenceService>();
             _mockMapper = new Mock<IMapper>();
             _mockLogger = new Mock<ILogger<RecommendationService>>();
 
@@ -38,6 +40,7 @@ namespace VietCommerce.Tests.Services
                 _mockPatternMatcher.Object,
                 _mockUnitOfWork.Object,
                 _mockProductRepository.Object,
+                _mockUserPreferenceService.Object,
                 _mockMapper.Object,
                 _mockLogger.Object
             );
@@ -171,6 +174,8 @@ namespace VietCommerce.Tests.Services
             _mockPatternMatcher.Setup(m => m.IsInitialized()).Returns(true);
             _mockPatternMatcher.Setup(m => m.MatchPattern(It.IsAny<List<ActionDto>>()))
                 .Returns(new MatchResultDto { Matched = false });
+            _mockUserPreferenceService.Setup(u => u.GetDisabledRitualsAsync(userId))
+                .ReturnsAsync(new List<Guid>());
 
             // Act
             var result = await _service.GenerateRecommendationAsync(userId, sessionId, actionSequence, cartItems);
@@ -367,6 +372,8 @@ namespace VietCommerce.Tests.Services
                 .Returns(matchResult);
             _mockPatternMatcher.Setup(m => m.GetRitualById(ritualId))
                 .Returns(ritual);
+            _mockUserPreferenceService.Setup(u => u.GetDisabledRitualsAsync(userId))
+                .ReturnsAsync(new List<Guid>());
 
             var mockRecommendationLogRepo = new Mock<IRecommendationLogRepository>();
             _mockUnitOfWork.Setup(u => u.RecommendationLogs).Returns(mockRecommendationLogRepo.Object);
@@ -406,6 +413,8 @@ namespace VietCommerce.Tests.Services
             _mockPatternMatcher.Setup(m => m.IsInitialized()).Returns(true);
             _mockPatternMatcher.Setup(m => m.MatchPattern(It.IsAny<List<ActionDto>>()))
                 .Returns(new MatchResultDto { Matched = false });
+            _mockUserPreferenceService.Setup(u => u.GetDisabledRitualsAsync(userId))
+                .ReturnsAsync(new List<Guid>());
 
             // Act
             var result = await _service.GenerateRecommendationAsync(userId, sessionId, actionSequence, cartItems);

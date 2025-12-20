@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -30,6 +30,7 @@ namespace VietCommerce.Application.Services.Services
         private readonly IMapper _mapper;
         private readonly IPermissionService _permissionService;
         private readonly ICurrentUser _currentUser;
+        private readonly IRealtimeService? _realtime;
 
         // Cache TTL constants
         private const int CACHE_MINUTES_LIST = 10;
@@ -41,13 +42,15 @@ namespace VietCommerce.Application.Services.Services
             IPermissionService permissionService,
             ICurrentUser currentUser,
             ILogger<TaskService> logger,
-            ICacheService cacheService)
+            ICacheService cacheService,
+            IRealtimeService? realtime = null)
             : base(logger, cacheService)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
             _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
+            _realtime = realtime;
         }
 
         #region GetTasksAsync - Lấy danh sách tasks với phân trang
@@ -208,6 +211,8 @@ namespace VietCommerce.Application.Services.Services
                 var taskDto = _mapper.Map<TaskDto>(createdTask);
 
                 LogInfo("✅ CreateTaskAsync thành công - TaskId: {TaskId}", task.Id);
+                if (_realtime != null)
+                    await _realtime.BroadcastTaskUpdatedAsync(taskDto);
                 return taskDto;
 
             }, "CreateTaskAsync");
@@ -289,6 +294,8 @@ namespace VietCommerce.Application.Services.Services
                 var taskDto = _mapper.Map<TaskDto>(updatedTask);
 
                 LogInfo("✅ UpdateTaskAsync thành công - TaskId: {TaskId}", taskId);
+                if (_realtime != null)
+                    await _realtime.BroadcastTaskUpdatedAsync(taskDto);
                 return taskDto;
 
             }, "UpdateTaskAsync");
@@ -350,6 +357,8 @@ namespace VietCommerce.Application.Services.Services
 
                 LogInfo("✅ UpdateTaskStatusAsync thành công - TaskId: {TaskId}, Status: {Status}",
                     taskId, status);
+                if (_realtime != null)
+                    await _realtime.BroadcastTaskUpdatedAsync(taskDto);
                 return taskDto;
 
             }, "UpdateTaskStatusAsync");

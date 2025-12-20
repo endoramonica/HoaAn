@@ -1,4 +1,4 @@
-﻿// File: VietCommerce.Api/Services/OrderService.cs
+// File: VietCommerce.Api/Services/OrderService.cs
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 using VietCommerce.Application.Services.Services.Interfaces;
@@ -19,19 +19,22 @@ namespace VietCommerce.Application.Services.Services
         private readonly IMapper _mapper;
         private readonly ILogger<OrderService> _logger;
         private readonly ICurrentUser _currentUser; // ✅ THÊM dependency
+        private readonly IRealtimeService? _realtime;
 
         public OrderService(
             IOrderRepository orderRepository,
             IUnitOfWork unitOfWork,
             IMapper mapper,
             ILogger<OrderService> logger,
-            ICurrentUser currentUser) // ✅ THÊM vào constructor
+            ICurrentUser currentUser,
+            IRealtimeService? realtime = null) // ✅ THÊM vào constructor
         {
             _orderRepository = orderRepository;
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
             _currentUser = currentUser; // ✅ INJECT service
+            _realtime = realtime;
         }
 
         /// <summary>
@@ -357,6 +360,8 @@ namespace VietCommerce.Application.Services.Services
                 }
 
                 _logger.LogInformation("Order {OrderId} status updated successfully", orderId);
+                if (_realtime != null)
+                    await _realtime.BroadcastOrderStatusUpdatedAsync(orderId, (int)newStatus);
                 return ApiResponse<bool>.SuccessResponse(true, "Order status updated successfully");
             }
             catch (Exception ex)

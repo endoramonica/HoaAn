@@ -1,4 +1,4 @@
-﻿// ================================================================
+// ================================================================
 // FILE: Program.cs
 // PROJECT: VietCommerce.AdminAPI
 // DESCRIPTION: Entry point configuration for Admin API
@@ -16,6 +16,9 @@ using StackExchange.Redis;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.SignalR;
+using VietCommerce.AdminApi.Hubs;
+using VietCommerce.AdminApi.Services;
 using VietCommerce.Application.Extension;
 using VietCommerce.Application.Helpers;
 using VietCommerce.Application.Mappings;
@@ -222,6 +225,9 @@ builder.Services.AddHealthChecks()
         }
     });
 
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IRealtimeService, AdminSignalRRealtimeService>();
+
 // ================================================================
 // 5️⃣ JWT AUTHENTICATION & AUTHORIZATION
 // ================================================================
@@ -388,6 +394,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseStaticFiles();
 app.MapControllers();
+app.MapHub<AdminRealtimeHub>("/admin/hubs/realtime");
 //app.MapGet("/health", () => new { Status = "Healthy", Timestamp = DateTime.UtcNow });
 //app.MapHealthChecks("/health/redis");
 

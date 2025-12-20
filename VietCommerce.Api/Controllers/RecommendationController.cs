@@ -4,6 +4,7 @@ using System.Security.Claims;
 using VietCommerce.Application.Helpers;
 using VietCommerce.Application.Services.Services.Interfaces;
 using VietCommerce.Core.DTOs.Rituals;
+using VietCommerce.Core.Models;
 
 namespace VietCommerce.Api.Controllers
 {
@@ -317,19 +318,4 @@ namespace VietCommerce.Api.Controllers
         public string Message { get; set; } = string.Empty;
     }
 
-    /// <summary>
-    /// Generic error response
-    /// </summary>
-    public class ErrorResponse
-    {
-        /// <summary>
-        /// Whether the request was successful
-        /// </summary>
-        public bool Success { get; set; }
-
-        /// <summary>
-        /// Error message
-        /// </summary>
-        public string Message { get; set; } = string.Empty;
-    }
 }

@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -24,6 +24,7 @@ namespace VietCommerce.Application.Services.Admin_Staff_Manager;
     private readonly IMapper _mapper;
     private readonly ICurrentUser _currentUser;
     private readonly ILogger<InventoryService> _logger;
+    private readonly IRealtimeService? _realtime;
 
 
     private const string CACHE_PREFIX_INVENTORY = "inv";
@@ -35,13 +36,15 @@ namespace VietCommerce.Application.Services.Admin_Staff_Manager;
         IMapper mapper,
         ICurrentUser currentUser,
         ILogger<InventoryService> logger,
-        ICacheService? cacheService = null)
+        ICacheService? cacheService = null,
+        IRealtimeService? realtime = null)
         : base(logger, cacheService)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
         _logger = logger;
+        _realtime = realtime;
     }
 
     #region Cache Helper
@@ -109,6 +112,11 @@ namespace VietCommerce.Application.Services.Admin_Staff_Manager;
                     await InvalidateInventoryCacheAsync(storeId, productId);
 
                     LogInfo($"✅ Reserved {quantity} units for order {orderId}");
+                    if (_realtime != null)
+                    {
+                        var dto = _mapper.Map<InventoryDto>(inventory);
+                        await _realtime.BroadcastInventoryUpdatedAsync(dto);
+                    }
                     return inventory;
                 }
                 catch (Exception ex)
@@ -178,6 +186,11 @@ namespace VietCommerce.Application.Services.Admin_Staff_Manager;
                     await InvalidateInventoryCacheAsync(storeId, productId);
 
                     LogInfo($"✅ Confirmed {quantity} units for order {orderId}");
+                    if (_realtime != null)
+                    {
+                        var dto = _mapper.Map<InventoryDto>(inventory);
+                        await _realtime.BroadcastInventoryUpdatedAsync(dto);
+                    }
                     return inventory;
                 }
                 catch (Exception ex)
@@ -239,6 +252,11 @@ namespace VietCommerce.Application.Services.Admin_Staff_Manager;
                     await InvalidateInventoryCacheAsync(storeId, productId);
 
                     LogInfo($"✅ Released {quantity} units for order {orderId}");
+                    if (_realtime != null)
+                    {
+                        var dto = _mapper.Map<InventoryDto>(inventory);
+                        await _realtime.BroadcastInventoryUpdatedAsync(dto);
+                    }
                     return inventory;
                 }
                 catch (Exception ex)

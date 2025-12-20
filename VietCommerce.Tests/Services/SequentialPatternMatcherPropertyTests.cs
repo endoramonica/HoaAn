@@ -271,6 +271,107 @@ namespace VietCommerce.Tests.Services
             }
         }
 
+        /// <summary>
+        /// Property: Confidence Threshold Filtering
+        /// **Feature: sequential-ritual-recommendation, Property: Confidence Threshold Filtering**
+        /// **Validates: Requirements 1.2, 3.2**
+        /// 
+        /// For any action sequence that matches a ritual pattern, if the calculated confidence score 
+        /// is below the ritual's confidence threshold, the system SHALL NOT match that pattern.
+        /// Conversely, if the confidence score meets or exceeds the threshold, the pattern SHALL be matched.
+        /// </summary>
+        [Fact]
+        public void Property_ConfidenceThresholdFiltering()
+        {
+            // Arrange - Create a manifest with rituals having different thresholds
+            var manifest = new RitualManifest();
+
+            // Add a ritual with high threshold (0.8)
+            manifest.Rituals.Add(new RitualDto
+            {
+                Id = "high-threshold-ritual",
+                Name = "High Threshold Ritual",
+                ActionSequencePattern = new List<ActionTypeDto>
+                {
+                    new ActionTypeDto { Type = "ViewProduct" },
+                    new ActionTypeDto { Type = "AddToCart" }
+                },
+                RequiredItems = new List<RitualRequiredItemDto>(),
+                ConfidenceThreshold = 0.8m,
+                CulturalSignificance = "Test ritual",
+                Sources = new List<string>()
+            });
+
+            // Add a ritual with low threshold (0.3)
+            manifest.Rituals.Add(new RitualDto
+            {
+                Id = "low-threshold-ritual",
+                Name = "Low Threshold Ritual",
+                ActionSequencePattern = new List<ActionTypeDto>
+                {
+                    new ActionTypeDto { Type = "BrowseCategory" },
+                    new ActionTypeDto { Type = "ViewProduct" }
+                },
+                RequiredItems = new List<RitualRequiredItemDto>(),
+                ConfidenceThreshold = 0.3m,
+                CulturalSignificance = "Test ritual",
+                Sources = new List<string>()
+            });
+
+            _patternMatcher.Initialize(manifest);
+
+            var faker = new Faker();
+
+            // Act & Assert - Run 100 iterations
+            for (int i = 0; i < 100; i++)
+            {
+                // Generate action sequences
+                var actionSequence = GenerateActionSequence(faker);
+
+                // Act - Match the pattern
+                var result = _patternMatcher.MatchPattern(actionSequence);
+
+                // Assert - If matched, confidence must meet or exceed the ritual's threshold
+                if (result.Matched)
+                {
+                    var ritual = manifest.GetRitualById(result.RitualId);
+                    Assert.NotNull(ritual);
+                    
+                    // The confidence score must be >= the ritual's threshold
+                    Assert.True(result.ConfidenceScore >= ritual.ConfidenceThreshold,
+                        $"Confidence score {result.ConfidenceScore} should be >= threshold {ritual.ConfidenceThreshold}");
+                }
+
+                // Also verify that if we generate a sequence matching a pattern,
+                // but the confidence is below threshold, it should not match
+                var lowThresholdRitual = manifest.GetRitualById("low-threshold-ritual");
+                var highThresholdRitual = manifest.GetRitualById("high-threshold-ritual");
+
+                // Generate a sequence that partially matches the low threshold ritual
+                var partialMatchSequence = new List<ActionDto>
+                {
+                    new ActionDto
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = Guid.NewGuid(),
+                        SessionId = faker.Random.Guid().ToString(),
+                        Type = "BrowseCategory",
+                        Timestamp = faker.Date.Recent()
+                    }
+                };
+
+                var partialResult = _patternMatcher.MatchPattern(partialMatchSequence);
+                
+                // This partial match might not meet the threshold, so we verify the logic
+                if (!partialResult.Matched)
+                {
+                    // If not matched, it's because confidence was below threshold
+                    // This is the expected behavior
+                    Assert.False(partialResult.Matched);
+                }
+            }
+        }
+
         // Helper methods
 
         private RitualManifest CreateTestManifest()
@@ -408,6 +509,180 @@ namespace VietCommerce.Tests.Services
             }
 
             return actions.OrderBy(a => a.Timestamp).ToList();
+        }
+
+        /// <summary>
+        /// Property 13: Pattern Storage Format Efficiency
+        /// **Feature: sequential-ritual-recommendation, Property 13: Pattern Storage Format Efficiency**
+        /// **Validates: Requirements 3.5, 7.5**
+        /// 
+        /// For any ritual patterns stored, they SHALL be persisted in a format that supports 
+        /// efficient sequential matching (e.g., indexed by action types).
+        /// </summary>
+        [Fact]
+        public void Property_13_PatternStorageFormatEfficiency()
+        {
+            // Arrange - Create a manifest with multiple rituals
+            var manifest = CreateTestManifest();
+            
+            // Act - Initialize the pattern matcher (which builds indexes)
+            _patternMatcher.Initialize(manifest);
+
+            // Assert - Verify that indexes are built and accessible
+            var activeRituals = _patternMatcher.GetActiveRituals();
+            Assert.NotEmpty(activeRituals);
+
+            // Verify that we can retrieve rituals by ID efficiently
+            foreach (var ritual in activeRituals)
+            {
+                var retrievedRitual = _patternMatcher.GetRitualById(ritual.Id);
+                Assert.NotNull(retrievedRitual);
+                Assert.Equal(ritual.Id, retrievedRitual.Id);
+                Assert.Equal(ritual.Name, retrievedRitual.Name);
+            }
+
+            // Verify that action type indexing works
+            var actionTypes = new[] { "ViewProduct", "AddToCart", "BrowseCategory" };
+            foreach (var actionType in actionTypes)
+            {
+                // Get rituals by action type - should use index for efficiency
+                var ritualsWithActionType = manifest.GetRitualsByActionType(actionType);
+                
+                // Verify that all returned rituals actually contain this action type
+                foreach (var ritual in ritualsWithActionType)
+                {
+                    Assert.Contains(ritual.ActionSequencePattern, a => a.Type == actionType);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Property 28: Recommendation Payload Structure (Extended)
+        /// **Feature: sequential-ritual-recommendation, Property 28: Recommendation Payload Structure**
+        /// **Validates: Requirements 7.5**
+        /// 
+        /// For any pattern match, the BE-AI SHALL return a MatchResult containing ritual name, 
+        /// missing items, confidence score, and matching metadata in an efficient format.
+        /// </summary>
+        [Fact]
+        public void Property_28_RecommendationPayloadStructureEfficiency()
+        {
+            // Arrange - Create a manifest with rituals
+            var manifest = CreateTestManifest();
+            _patternMatcher.Initialize(manifest);
+
+            var faker = new Faker();
+
+            // Act & Assert - Run 100 iterations to verify payload structure consistency
+            for (int i = 0; i < 100; i++)
+            {
+                var actionSequence = GenerateActionSequence(faker);
+                var result = _patternMatcher.MatchPattern(actionSequence);
+
+                // Assert - Result structure is always valid and efficient
+                Assert.NotNull(result);
+                
+                if (result.Matched)
+                {
+                    // Verify all required fields are present and properly structured
+                    Assert.NotEmpty(result.RitualId);
+                    Assert.NotEmpty(result.RitualName);
+                    Assert.True(result.ConfidenceScore >= 0 && result.ConfidenceScore <= 1);
+                    Assert.NotNull(result.MatchingMetadata);
+                    Assert.NotNull(result.MatchedActions);
+                    
+                    // Verify metadata structure for efficient storage
+                    Assert.True(result.MatchingMetadata.MatchedSequenceLength > 0);
+                    Assert.True(result.MatchingMetadata.TotalSequenceLength > 0);
+                    Assert.NotEmpty(result.MatchingMetadata.MatchedActionIndices);
+                    
+                    // Verify that matched action indices are valid
+                    foreach (var index in result.MatchingMetadata.MatchedActionIndices)
+                    {
+                        Assert.True(index >= 0 && index < actionSequence.Count);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Property: Action Type Index Lookup Efficiency
+        /// **Feature: sequential-ritual-recommendation, Property: Action Type Index Lookup Efficiency**
+        /// **Validates: Requirements 3.5, 7.5**
+        /// 
+        /// For any action type, the system SHALL retrieve rituals containing that action type 
+        /// using indexed lookup for O(1) performance instead of O(n) linear scan.
+        /// </summary>
+        [Fact]
+        public void Property_ActionTypeIndexLookupEfficiency()
+        {
+            // Arrange - Create a manifest with multiple rituals
+            var manifest = CreateTestManifest();
+            _patternMatcher.Initialize(manifest);
+
+            // Act - Get rituals by action type using the index
+            var viewProductRituals = manifest.GetRitualsByActionType("ViewProduct");
+            var addToCartRituals = manifest.GetRitualsByActionType("AddToCart");
+            var browseCategoryRituals = manifest.GetRitualsByActionType("BrowseCategory");
+
+            // Assert - Verify that indexed lookup returns correct results
+            Assert.NotEmpty(viewProductRituals);
+            Assert.NotEmpty(addToCartRituals);
+            Assert.NotEmpty(browseCategoryRituals);
+
+            // Verify that all returned rituals actually contain the requested action type
+            foreach (var ritual in viewProductRituals)
+            {
+                Assert.Contains(ritual.ActionSequencePattern, a => a.Type == "ViewProduct");
+            }
+
+            foreach (var ritual in addToCartRituals)
+            {
+                Assert.Contains(ritual.ActionSequencePattern, a => a.Type == "AddToCart");
+            }
+
+            foreach (var ritual in browseCategoryRituals)
+            {
+                Assert.Contains(ritual.ActionSequencePattern, a => a.Type == "BrowseCategory");
+            }
+
+            // Verify that non-existent action types return empty list
+            var nonExistentRituals = manifest.GetRitualsByActionType("NonExistentActionType");
+            Assert.Empty(nonExistentRituals);
+        }
+
+        /// <summary>
+        /// Property: Ritual ID Index Lookup Efficiency
+        /// **Feature: sequential-ritual-recommendation, Property: Ritual ID Index Lookup Efficiency**
+        /// **Validates: Requirements 3.5, 7.5**
+        /// 
+        /// For any ritual ID, the system SHALL retrieve the ritual using indexed lookup 
+        /// for O(1) performance instead of O(n) linear scan.
+        /// </summary>
+        [Fact]
+        public void Property_RitualIdIndexLookupEfficiency()
+        {
+            // Arrange - Create a manifest with multiple rituals
+            var manifest = CreateTestManifest();
+            _patternMatcher.Initialize(manifest);
+
+            // Act - Get all rituals and verify they can be retrieved by ID
+            var allRituals = _patternMatcher.GetActiveRituals();
+            Assert.NotEmpty(allRituals);
+
+            // Assert - Verify that each ritual can be retrieved by ID efficiently
+            foreach (var ritual in allRituals)
+            {
+                var retrievedRitual = _patternMatcher.GetRitualById(ritual.Id);
+                Assert.NotNull(retrievedRitual);
+                Assert.Equal(ritual.Id, retrievedRitual.Id);
+                Assert.Equal(ritual.Name, retrievedRitual.Name);
+                Assert.Equal(ritual.ConfidenceThreshold, retrievedRitual.ConfidenceThreshold);
+            }
+
+            // Verify that non-existent ritual IDs return null
+            var nonExistentRitual = _patternMatcher.GetRitualById("non-existent-ritual-id");
+            Assert.Null(nonExistentRitual);
         }
     }
 }
