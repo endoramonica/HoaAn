@@ -197,7 +197,9 @@ public class CartRepository : GenericRepository<Cart>, ICartRepository
                     ProductId = productId,
                     Quantity = quantity,
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    UpdatedAt = DateTime.UtcNow,
+                    IsDeleted = false, // Explicitly set to false to prevent soft-delete issues
+                    IsActive = true
                 };
                 await _context.CartItems.AddAsync(existingItem);
             }
@@ -409,7 +411,9 @@ public class CartRepository : GenericRepository<Cart>, ICartRepository
                         ProductId = guestItem.ProductId,
                         Quantity = guestItem.Quantity,
                         CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
+                        UpdatedAt = DateTime.UtcNow,
+                        IsDeleted = false, // Explicitly set to false
+                        IsActive = true
                     };
                     await _context.CartItems.AddAsync(newItem);
                 }

@@ -12,6 +12,7 @@ using VietCommerce.Core.Entities.Products;
 using VietCommerce.Core.Enums.Orders;
 using VietCommerce.Core.Enums.Payments;
 using VietCommerce.Core.Models;
+using VietCommerce.Core.Helpers;
 using VietCommerce.Data.Repositories.Interfaces;
 
 namespace VietCommerce.Application.Services.Services
@@ -253,12 +254,22 @@ namespace VietCommerce.Application.Services.Services
                     // Use OrderService to create OrderItem from CartItem
                     // This ensures customization data is properly snapshotted
                     var orderItem = await _orderService.CreateOrderItemFromCartItemAsync(ci, order.Id);
+
+                    // Enforce Cart as source of truth for pricing
+                    // If CartItem has a computed FinalPrice (>0), use it; otherwise fallback to current product price
+                    var fallbackUnitPrice = PriceCalculationHelper.GetCurrentPrice(product);
+                    var unitPrice = ci.FinalPrice > 0 ? ci.FinalPrice : fallbackUnitPrice;
+                    var totalPrice = ci.FinalPrice > 0 ? ci.FinalPrice : ci.Quantity * fallbackUnitPrice;
+                    orderItem.UnitPrice = unitPrice;
+                    orderItem.TotalPrice = totalPrice;
+
                     orderItems.Add(orderItem);
                 }
 
                 if (!orderItems.Any())
                     return ApiResponse<CheckoutResponseDto>.FailureResponse("No valid items in cart INVALID_ITEMS");
 
+                // Calculate order subtotal based on Cart pricing rules
                 order.SubTotal = orderItems.Sum(i => i.TotalPrice);
                 order.TaxAmount = CalculateTax(order.SubTotal);
                 order.DiscountAmount = await CalculateDiscountAsync(dto.CouponCode) ?? 0m;
