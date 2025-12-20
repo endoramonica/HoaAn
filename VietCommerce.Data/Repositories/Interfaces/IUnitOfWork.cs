@@ -70,6 +70,11 @@ public interface IUnitOfWork : IDisposable
     ICampaignImpressionRepository CampaignImpressions { get; }
     ICampaignClickRepository CampaignClicks { get; }
     IVoucherRedemptionRepository VoucherRedemptions { get; }
+
+    // RITUAL RECOMMENDATION REPOSITORIES
+    IActionRepository Actions { get; }
+    IRecommendationLogRepository RecommendationLogs { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task<IDbContextTransaction> BeginTransactionAsync();
     Task CommitTransactionAsync();

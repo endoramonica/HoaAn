@@ -14,6 +14,7 @@ using VietCommerce.Core.Entities.CRM;
 using VietCommerce.Core.Entities.Logistics;
 using VietCommerce.Core.Entities.HRM;
 using VietCommerce.Core.Entities.Tasks;
+using VietCommerce.Core.Entities.Rituals;
 using VietCommerce.Data.Context.Configurations.Notifications;
 using VietCommerce.Data.Context.Configurations.SocialCommunity;
 using VietCommerce.Data.Context.Configurations.Marketing;
@@ -107,6 +108,11 @@ public class AppDbContext : DbContext
     public DbSet<Like> Likes { get; set; }
     public DbSet<Bookmark> Bookmarks { get; set; }
 
+    // Rituals
+    public DbSet<RitualEntity> Rituals { get; set; } = null!;
+    public DbSet<ActionEntity> Actions { get; set; } = null!;
+    public DbSet<RitualDismissalEntity> RitualDismissals { get; set; } = null!;
+    public DbSet<RecommendationLogEntity> RecommendationLogs { get; set; } = null!;
 
     #endregion
 
@@ -141,6 +147,7 @@ public class AppDbContext : DbContext
         ConfigureShiftEntities(modelBuilder);
         ConfigureTaskEntities(modelBuilder);
         ConfigureAuditEntities(modelBuilder);
+        ConfigureRitualEntities(modelBuilder);
 
 
         modelBuilder.Entity<RolePermission>().HasKey(rp => new { rp.RoleId, rp.PermissionId });
@@ -842,6 +849,90 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<AuditLog>()
             .HasIndex(al => new { al.UserId, al.Timestamp });
+    }
+
+    private void ConfigureRitualEntities(ModelBuilder modelBuilder)
+    {
+        // RitualEntity configuration
+        modelBuilder.Entity<RitualEntity>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.HasIndex(r => r.RitualId).IsUnique();
+            entity.HasIndex(r => r.IsActive);
+
+            // One-to-many: Ritual -> Dismissals
+            entity.HasMany(r => r.Dismissals)
+                .WithOne(d => d.Ritual)
+                .HasForeignKey(d => d.RitualId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // One-to-many: Ritual -> RecommendationLogs
+            entity.HasMany(r => r.RecommendationLogs)
+                .WithOne(rl => rl.Ritual)
+                .HasForeignKey(rl => rl.RitualId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ActionEntity configuration
+        modelBuilder.Entity<ActionEntity>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+            entity.HasIndex(a => new { a.UserId, a.SessionId, a.ActionTimestamp });
+            entity.HasIndex(a => a.SessionId);
+            entity.HasIndex(a => a.ActionTimestamp);
+
+            // Many-to-one: Action -> User
+            entity.HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // RitualDismissalEntity configuration
+        modelBuilder.Entity<RitualDismissalEntity>(entity =>
+        {
+            entity.HasKey(d => d.Id);
+            entity.HasIndex(d => new { d.UserId, d.RitualId }).IsUnique();
+            entity.HasIndex(d => d.DismissedAt);
+
+            // Many-to-one: Dismissal -> User
+            entity.HasOne(d => d.User)
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Many-to-one: Dismissal -> Ritual
+            entity.HasOne(d => d.Ritual)
+                .WithMany(r => r.Dismissals)
+                .HasForeignKey(d => d.RitualId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // RecommendationLogEntity configuration
+        modelBuilder.Entity<RecommendationLogEntity>(entity =>
+        {
+            entity.HasKey(rl => rl.Id);
+            entity.HasIndex(rl => new { rl.UserId, rl.DisplayedAt });
+            entity.HasIndex(rl => rl.SessionId);
+            entity.HasIndex(rl => rl.RitualId);
+            entity.HasIndex(rl => rl.UserInteraction);
+
+            // Many-to-one: RecommendationLog -> User
+            entity.HasOne(rl => rl.User)
+                .WithMany()
+                .HasForeignKey(rl => rl.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Many-to-one: RecommendationLog -> Ritual
+            entity.HasOne(rl => rl.Ritual)
+                .WithMany(r => r.RecommendationLogs)
+                .HasForeignKey(rl => rl.RitualId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Precision configuration for ConfidenceScore
+            entity.Property(rl => rl.ConfidenceScore)
+                .HasPrecision(3, 2);
+        });
     }
 
     private void ConfigureManyToManyRelationships(ModelBuilder modelBuilder)

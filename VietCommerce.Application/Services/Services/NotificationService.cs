@@ -1,4 +1,4 @@
-﻿// File: VietCommerce.Application/Services/Services/NotificationService.cs
+// File: VietCommerce.Application/Services/Services/NotificationService.cs
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
@@ -17,16 +17,19 @@ public class NotificationService : BaseService, INotificationService
     private readonly IGenericRepository<Notification> _notificationRepo;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IRealtimeService? _realtime;
 
     public NotificationService(
         ILogger<NotificationService> logger,
         IUnitOfWork unitOfWork,
         IMapper mapper,
-        ICacheService? cacheService = null) : base(logger, cacheService)
+        ICacheService? cacheService = null,
+        IRealtimeService? realtime = null) : base(logger, cacheService)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _notificationRepo = unitOfWork.Notifications;
+        _realtime = realtime;
     }
 
     public async Task<PaginatedResult<NotificationDto>> GetNotificationsAsync(Guid userId, PaginationParams pagination)
@@ -170,6 +173,34 @@ public class NotificationService : BaseService, INotificationService
             }, TimeSpan.FromMinutes(2)); // cache 2 phút
 
         }, $"GetUnreadNotificationCountAsync - UserId: {userId}");
+    }
+
+    public async Task<NotificationDto> CreateNotificationAsync(NotificationCreateDTO dto)
+    {
+        return await ExecuteAsync(async () =>
+        {
+            ValidateId(dto.UserId, nameof(dto.UserId));
+            var entity = new Notification
+            {
+                Id = Guid.NewGuid(),
+                UserId = dto.UserId,
+                Title = string.IsNullOrWhiteSpace(dto.Title) ? null : dto.Title,
+                Message = string.IsNullOrWhiteSpace(dto.Message) ? null : dto.Message,
+                Type = dto.Type,
+                IsRead = dto.IsRead,
+                NotifiedOn = DateTime.UtcNow,
+                PostId = dto.PostId,
+                CommentId = dto.CommentId,
+                ActorCustomerId = dto.ActorCustomerId
+            };
+            await _notificationRepo.AddAsync(entity);
+            await _unitOfWork.SaveChangesAsync();
+            var result = _mapper.Map<NotificationDto>(entity);
+            await InvalidateUserNotificationCacheAsync(dto.UserId);
+            if (_realtime != null)
+                await _realtime.SendNotificationAsync(result);
+            return result;
+        }, "CreateNotificationAsync");
     }
 
     // Helper: Xóa toàn bộ cache liên quan đến user

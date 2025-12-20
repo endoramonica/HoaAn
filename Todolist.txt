@@ -20,3 +20,9 @@ fix loi null parameter key cua redis advanced : them dem thoi gian
 		nhập sai mk mới có 3 lần chưa dẫn đến logic khóa đnagw nhập thì nhập đúng mk  
 		lỗi redis null parameter key
 
+todo list :
+fix redis key 
+eventBus + SignlIR
+trong fe tạo màn hình khi người dùng đăng ký tài khoản mới
+trong fe sữar lỗi lien tục gọi lại authHook
+trong fe triển khai banner và các chương trình khuyến mãi giảm giá

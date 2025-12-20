@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using FluentValidation.AspNetCore;
 //using VietCommerce.Api.Middlewares;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -10,7 +10,10 @@ using StackExchange.Redis;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.SignalR;
+using VietCommerce.Api.Hubs;
 using VietCommerce.Api.Middleware;
+using VietCommerce.Api.Services;
 using VietCommerce.Application.Extension;
 using VietCommerce.Application.Extensions;
 using VietCommerce.Application.Helpers;
@@ -204,6 +207,9 @@ builder.Services.AddHealthChecks()
             : HealthCheckResult.Unhealthy("Redis disconnected");
     });
 
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IRealtimeService, SignalRRealtimeService>();
+
 // ============================================
 // JWT AUTHENTICATION & AUTHORIZATION
 // ============================================
@@ -257,7 +263,8 @@ builder.Services.AddAutoMapper(
     typeof(OrderMappingProfile).Assembly,
     typeof(ProductFavoriteMappingProfile).Assembly,
     typeof(MarketingPostMappingProfile).Assembly,
-    typeof(CampaignMappingProfile).Assembly
+    typeof(CampaignMappingProfile).Assembly,
+    typeof(RitualMappingProfile).Assembly
 );
 
 // ============================================
@@ -348,6 +355,11 @@ builder.Services.AddLogging(logging =>
 // HTTP CLIENT
 // ============================================
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient<IGeminiExplanationService, GeminiExplanationService>()
+    .ConfigureHttpClient(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(30);
+    });
 // ============================================
 // BUILD APPLICATION
 // ============================================
@@ -375,6 +387,7 @@ app.UsePermissionMiddleware();
 // ENDPOINTS MAPPING
 // ============================================
 app.MapControllers();
+app.MapHub<RealtimeHub>("/hubs/realtime");
 app.MapGet("/health", () => new { Status = "Healthy", Timestamp = DateTime.UtcNow });
 app.MapHealthChecks("/health/redis");
 // images middleware

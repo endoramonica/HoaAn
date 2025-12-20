@@ -1,4 +1,4 @@
-﻿// File: VietCommerce.Api/Extensions/ServiceCollectionExtensions.cs
+// File: VietCommerce.Api/Extensions/ServiceCollectionExtensions.cs
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using VietCommerce.Application.Services.Admin_Staff_Manager;
@@ -96,7 +96,14 @@ namespace VietCommerce.Application.Extension
             services.AddScoped<IDiscountCalculationService, DiscountCalculationService>();
             services.AddScoped<IVoucherService, VoucherService>();
             services.AddScoped<IAnalyticsService, AnalyticsService>();
+            services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<ITargetingRulesService, TargetingRulesService>();
+            services.AddScoped<ISequentialPatternMatcher, SequentialPatternMatcher>();
+            services.AddScoped<IRitualManifestLoader, RitualManifestLoader>();
+            services.AddScoped<IRecommendationService, RecommendationService>();
+            services.AddScoped<IGeminiExplanationService, GeminiExplanationService>();
+            services.AddScoped<IActionTrackingService, ActionTrackingService>();
+            services.AddScoped<IUserPreferenceService, UserPreferenceService>();
 
             // RBAC / Auth
             services.AddScoped<IPermissionService, PermissionService>();
@@ -154,6 +161,11 @@ namespace VietCommerce.Application.Extension
             services.AddScoped<IVoucherRedemptionRepository, VoucherRedemptionRepository>();
 
             services.AddScoped<IOrderItemRepository, OrderItemRepository>();
+
+            // RITUAL RECOMMENDATION REPOSITORIES
+            services.AddScoped<IActionRepository, ActionRepository>();
+            services.AddScoped<IRecommendationLogRepository, RecommendationLogRepository>();
+            services.AddScoped<IRitualDismissalRepository, RitualDismissalRepository>();
 
             return services;
         }

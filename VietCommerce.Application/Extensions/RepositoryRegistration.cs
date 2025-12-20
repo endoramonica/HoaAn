@@ -46,6 +46,11 @@ namespace VietCommerce.Application.Extensions
             // Marketing
             services.AddScoped<IMarketingPostRepository, MarketingPostRepository>();
 
+            // Rituals
+            services.AddScoped<IActionRepository, ActionRepository>();
+            services.AddScoped<IRitualDismissalRepository, RitualDismissalRepository>();
+            services.AddScoped<IRecommendationLogRepository, RecommendationLogRepository>();
+
             return services;
         }
     }

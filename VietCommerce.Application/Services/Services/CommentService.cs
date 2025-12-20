@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -10,6 +10,8 @@ using VietCommerce.Application.Services.Services.Interfaces.Identities;
 using VietCommerce.Core.DTOs.Comments;
 using VietCommerce.Core.Models;
 using VietCommerce.Data.Repositories.Interfaces;
+using VietCommerce.Core.DTOs.Notifications;
+using VietCommerce.Core.Enums.Notifications;
 
 namespace VietCommerce.Application.Services.Services
 {
@@ -23,21 +25,22 @@ namespace VietCommerce.Application.Services.Services
         private readonly IMapper _mapper;
         private readonly ICurrentUser _currentUser;
         private readonly ILogger<CommentService> _logger;
-        // TODO: Inject INotificationService
-        // private readonly INotificationService _notificationService;
+        private readonly INotificationService _notificationService;
 
         public CommentService(
             IUnitOfWork unitOfWork,
             ICommentRepository commentRepository,
             IMapper mapper,
             ICurrentUser currentUser,
-            ILogger<CommentService> logger)
+            ILogger<CommentService> logger,
+            INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _commentRepository = commentRepository;
             _mapper = mapper;
             _currentUser = currentUser;
             _logger = logger;
+            _notificationService = notificationService;
         }
 
         #region Create Comment
@@ -91,12 +94,25 @@ namespace VietCommerce.Application.Services.Services
                 var createdComment = await LoadCommentWithDetailsAsync(comment.Id);
                 var responseDto = MapToCommentDto(createdComment, customerId);
 
-                // TODO: Send notification
                 if (postOwnerId.Value != customerId)
                 {
-                    _logger.LogInformation(
-                        "Comment notification should be sent to {PostOwnerId}",
-                        postOwnerId.Value);
+                    var postOwner = await _unitOfWork.Customers.GetByIdAsync(postOwnerId.Value);
+                    var recipientUserId = postOwner?.UserId ?? Guid.Empty;
+                    if (recipientUserId != Guid.Empty)
+                    {
+                        var createNotif = new NotificationCreateDTO
+                        {
+                            UserId = recipientUserId,
+                            Type = NotificationType.PostCommented,
+                            Title = "Bài viết của bạn có bình luận mới",
+                            Message = dto.Content,
+                            IsRead = false,
+                            PostId = dto.PostId,
+                            CommentId = comment.Id,
+                            ActorCustomerId = customerId
+                        };
+                        await _notificationService.CreateNotificationAsync(createNotif);
+                    }
                 }
 
                 return ApiResponse<CommentDto>.SuccessResponse(

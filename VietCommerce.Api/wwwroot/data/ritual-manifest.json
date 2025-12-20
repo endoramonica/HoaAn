@@ -1,0 +1,214 @@
+{
+  "rituals": [
+    {
+      "id": "day-thang",
+      "name": "Đầy Tháng",
+      "actionSequencePattern": [
+        {
+          "type": "ViewProduct",
+          "productCategoryId": "00000000-0000-0000-0000-000000000001",
+          "metadata": null
+        },
+        {
+          "type": "AddToCart",
+          "productCategoryId": null,
+          "metadata": null
+        },
+        {
+          "type": "BrowseCategory",
+          "productCategoryId": "00000000-0000-0000-0000-000000000002",
+          "metadata": null
+        }
+      ],
+      "requiredItems": [
+        {
+          "categoryId": "00000000-0000-0000-0000-000000000001",
+          "productIds": [
+            "00000000-0000-0000-0000-000000000101",
+            "00000000-0000-0000-0000-000000000102"
+          ]
+        },
+        {
+          "categoryId": "00000000-0000-0000-0000-000000000002",
+          "productIds": [
+            "00000000-0000-0000-0000-000000000201",
+            "00000000-0000-0000-0000-000000000202"
+          ]
+        }
+      ],
+      "confidenceThreshold": 0.7,
+      "culturalSignificance": "Đầy Tháng là lễ kỷ niệm một tháng tuổi của em bé trong văn hóa Việt Nam. Đây là dịp để gia đình tổ chức tiệc mừng, chuẩn bị các vật phẩm truyền thống như mâm cúng, hoa quả, và các món ăn đặc biệt.",
+      "sources": [
+        "Vietnamese Traditional Customs",
+        "Cultural Heritage Documentation"
+      ]
+    },
+    {
+      "id": "tet",
+      "name": "Tết Nguyên Đán",
+      "actionSequencePattern": [
+        {
+          "type": "BrowseCategory",
+          "productCategoryId": "00000000-0000-0000-0000-000000000003",
+          "metadata": null
+        },
+        {
+          "type": "ViewProduct",
+          "productCategoryId": "00000000-0000-0000-0000-000000000003",
+          "metadata": null
+        },
+        {
+          "type": "AddToCart",
+          "productCategoryId": null,
+          "metadata": null
+        },
+        {
+          "type": "ViewProduct",
+          "productCategoryId": "00000000-0000-0000-0000-000000000004",
+          "metadata": null
+        }
+      ],
+      "requiredItems": [
+        {
+          "categoryId": "00000000-0000-0000-0000-000000000003",
+          "productIds": [
+            "00000000-0000-0000-0000-000000000301",
+            "00000000-0000-0000-0000-000000000302",
+            "00000000-0000-0000-0000-000000000303"
+          ]
+        },
+        {
+          "categoryId": "00000000-0000-0000-0000-000000000004",
+          "productIds": [
+            "00000000-0000-0000-0000-000000000401",
+            "00000000-0000-0000-0000-000000000402"
+          ]
+        }
+      ],
+      "confidenceThreshold": 0.75,
+      "culturalSignificance": "Tết Nguyên Đán là lễ hội truyền thống lớn nhất của người Việt, đánh dấu sự bắt đầu của năm mới theo lịch âm. Gia đình chuẩn bị các vật phẩm truyền thống như hoa, quả, bánh chưng, bánh tét, và các đồ trang trí.",
+      "sources": [
+        "Vietnamese Lunar New Year Traditions",
+        "Cultural Heritage"
+      ]
+    },
+    {
+      "id": "le-cung-to-tien",
+      "name": "Lễ Cúng Tổ Tiên",
+      "actionSequencePattern": [
+        {
+          "type": "ViewProduct",
+          "productCategoryId": "00000000-0000-0000-0000-000000000005",
+          "metadata": null
+        },
+        {
+          "type": "BrowseCategory",
+          "productCategoryId": "00000000-0000-0000-0000-000000000006",
+          "metadata": null
+        },
+        {
+          "type": "AddToCart",
+          "productCategoryId": null,
+          "metadata": null
+        }
+      ],
+      "requiredItems": [
+        {
+          "categoryId": "00000000-0000-0000-0000-000000000005",
+          "productIds": [
+            "00000000-0000-0000-0000-000000000501",
+            "00000000-0000-0000-0000-000000000502"
+          ]
+        },
+        {
+          "categoryId": "00000000-0000-0000-0000-000000000006",
+          "productIds": [
+            "00000000-0000-0000-0000-000000000601",
+            "00000000-0000-0000-0000-000000000602",
+            "00000000-0000-0000-0000-000000000603"
+          ]
+        }
+      ],
+      "confidenceThreshold": 0.65,
+      "culturalSignificance": "Lễ Cúng Tổ Tiên là một phần quan trọng của đạo Nho và văn hóa Việt Nam. Gia đình thường tổ chức lễ cúng vào các dịp đặc biệt như Tết, Tết Trung Thu, hoặc ngày giỗ của tổ tiên. Các vật phẩm cúng bao gồm hoa, quả, thịt, và các món ăn truyền thống.",
+      "sources": [
+        "Vietnamese Ancestor Worship Traditions",
+        "Confucian Practices"
+      ]
+    },
+    {
+      "id": "le-cung-than-tai",
+      "name": "Lễ Cúng Thần Tài",
+      "actionSequencePattern": [
+        {
+          "type": "BrowseCategory",
+          "productCategoryId": "00000000-0000-0000-0000-000000000007",
+          "metadata": null
+        },
+        {
+          "type": "ViewProduct",
+          "productCategoryId": "00000000-0000-0000-0000-000000000007",
+          "metadata": null
+        },
+        {
+          "type": "AddToCart",
+          "productCategoryId": null,
+          "metadata": null
+        }
+      ],
+      "requiredItems": [
+        {
+          "categoryId": "00000000-0000-0000-0000-000000000007",
+          "productIds": [
+            "00000000-0000-0000-0000-000000000701",
+            "00000000-0000-0000-0000-000000000702",
+            "00000000-0000-0000-0000-000000000703"
+          ]
+        }
+      ],
+      "confidenceThreshold": 0.7,
+      "culturalSignificance": "Lễ Cúng Thần Tài là lễ hội để cầu mong tài lộc và may mắn trong kinh doanh. Thường được tổ chức vào ngày mùng 10 tháng Giêng hoặc ngày mùng 1 tháng Giêng. Các vật phẩm cúng bao gồm hoa, quả, bánh, và các đồ vàng.",
+      "sources": [
+        "Vietnamese Wealth God Worship",
+        "Traditional Beliefs"
+      ]
+    },
+    {
+      "id": "tet-trung-thu",
+      "name": "Tết Trung Thu",
+      "actionSequencePattern": [
+        {
+          "type": "ViewProduct",
+          "productCategoryId": "00000000-0000-0000-0000-000000000008",
+          "metadata": null
+        },
+        {
+          "type": "BrowseCategory",
+          "productCategoryId": "00000000-0000-0000-0000-000000000008",
+          "metadata": null
+        },
+        {
+          "type": "AddToCart",
+          "productCategoryId": null,
+          "metadata": null
+        }
+      ],
+      "requiredItems": [
+        {
+          "categoryId": "00000000-0000-0000-0000-000000000008",
+          "productIds": [
+            "00000000-0000-0000-0000-000000000801",
+            "00000000-0000-0000-0000-000000000802",
+            "00000000-0000-0000-0000-000000000803"
+          ]
+        }
+      ],
+      "confidenceThreshold": 0.72,
+      "culturalSignificance": "Tết Trung Thu là lễ hội truyền thống của trẻ em Việt Nam, diễn ra vào ngày rằm tháng 8 âm lịch. Đây là dịp để gia đình tụ tập, trẻ em được tặng đèn lồng, bánh trung thu, và các đồ chơi truyền thống.",
+      "sources": [
+        "Vietnamese Mid-Autumn Festival",
+        "Children's Traditions"
+      ]
+    }
+  ]
+}

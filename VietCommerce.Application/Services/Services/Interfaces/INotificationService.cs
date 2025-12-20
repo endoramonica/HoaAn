@@ -38,4 +38,5 @@ public interface INotificationService
     /// Đếm số thông báo chưa đọc của user (có cache)
     /// </summary>
     Task<int> GetUnreadNotificationCountAsync(Guid userId);
+    Task<NotificationDto> CreateNotificationAsync(NotificationCreateDTO dto);
 }

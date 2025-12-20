@@ -144,6 +144,12 @@ public class UnitOfWork : IUnitOfWork
     private IVoucherRedemptionRepository? _voucherRedemptions;
     public IVoucherRedemptionRepository VoucherRedemptions => _voucherRedemptions ??= new VoucherRedemptionRepository(_context);
 
+    private IActionRepository? _actions;
+    public IActionRepository Actions => _actions ??= new ActionRepository(_context);
+
+    private IRecommendationLogRepository? _recommendationLogs;
+    public IRecommendationLogRepository RecommendationLogs => _recommendationLogs ??= new RecommendationLogRepository(_context);
+
     public async Task<int> SaveChangesAsync()
     {
         return await _context.SaveChangesAsync();
