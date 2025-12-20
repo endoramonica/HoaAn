@@ -84,12 +84,21 @@ const mergeGuestCart = async () => {
   } catch (error: any) {
     if (error.status === 404 || error.message?.includes('Not Found')) {
       console.log('[useAuth] ℹ️ No guest cart to merge (404)');
-      // Clear sessionId anyway
+      // Clear sessionId anyway - guest cart doesn't exist
       localStorage.removeItem('guest_cart_session_id');
     } else if (error.status === 415) {
       console.error('[useAuth] ❌ Cart merge 415: Backend expects different Content-Type');
+      // ✅ FIXED: Xóa sessionId để tránh retry vô hạn
+      localStorage.removeItem('guest_cart_session_id');
+    } else if (error.status === 401 || error.status === 403) {
+      console.warn('[useAuth] ⚠️ Cart merge failed: Unauthorized (401/403)');
+      // ✅ FIXED: Xóa sessionId vì user không authorized
+      localStorage.removeItem('guest_cart_session_id');
     } else {
-      console.log('[useAuth] ⚠️ Cart merge failed (non-critical):', error.message);
+      console.warn('[useAuth] ⚠️ Cart merge failed (non-critical):', error.message);
+      // ✅ FIXED: Xóa sessionId để tránh retry vô hạn
+      // Nếu merge fail, guest cart vẫn còn nhưng sessionId sẽ được tạo mới lần sau
+      localStorage.removeItem('guest_cart_session_id');
     }
   }
 };

@@ -144,13 +144,18 @@ export function ProductDetailPage() {
       console.log('[ProductDetailPage] Request DTO:', JSON.stringify(dto, null, 2));
 
       // Use cart service which automatically routes to correct endpoint
+      console.log('[ProductDetailPage] 📤 Calling addItem API...');
       await cartService.addItem({
         productId: product.id,
         quantity,
         customizations
       });
+      console.log('[ProductDetailPage] ✅ Item added to cart successfully');
 
+      console.log('[ProductDetailPage] 🔄 Refreshing cart state...');
       await refreshCart();
+      console.log('[ProductDetailPage] ✅ Cart state refreshed');
+      
       toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
       setQuantity(1);
     } catch (error: any) {

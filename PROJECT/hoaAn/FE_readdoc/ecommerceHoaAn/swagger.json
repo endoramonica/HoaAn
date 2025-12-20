@@ -4976,6 +4976,216 @@
         }
       }
     },
+    "/api/v1/Explanation/generate": {
+      "post": {
+        "tags": [
+          "Explanation"
+        ],
+        "summary": "Generates a natural language explanation for a recommendation using Gemini API\r\n\r\nRequirements: 2.1, 2.2, 2.3, 2.5\r\n- Accepts RecommendationPayload from frontend\r\n- Calls GeminiExplanationService to generate explanation\r\n- Returns ExplanationPayload with human-readable text\r\n- Includes fallback logic if Gemini API fails",
+        "requestBody": {
+          "description": "Request containing the recommendation payload",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateExplanationRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateExplanationRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateExplanationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Explanation generated successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateExplanationResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateExplanationResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateExplanationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or recommendation payload",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during explanation generation",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/Explanation/fallback": {
+      "post": {
+        "tags": [
+          "Explanation"
+        ],
+        "summary": "Gets the fallback explanation template for a recommendation\r\nUseful for testing or when Gemini API is not available",
+        "requestBody": {
+          "description": "Request containing the recommendation payload",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateExplanationRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateExplanationRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateExplanationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Fallback explanation generated successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateExplanationResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateExplanationResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateExplanationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or recommendation payload",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/Explanation/status": {
+      "get": {
+        "tags": [
+          "Explanation"
+        ],
+        "summary": "Checks if the Gemini API is configured and available",
+        "responses": {
+          "200": {
+            "description": "Status check successful",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeminiStatusResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeminiStatusResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeminiStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/MixedFeed": {
       "get": {
         "tags": [
@@ -6470,7 +6680,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StringDateTime<>f__AnonymousType8"
+                  "$ref": "#/components/schemas/StringDateTime<>f__AnonymousType9"
                 }
               }
             }
@@ -8309,6 +8519,441 @@
         }
       }
     },
+    "/api/v1/Recommendation/analyze": {
+      "post": {
+        "tags": [
+          "Recommendation"
+        ],
+        "summary": "Analyzes user action sequence to detect ritual patterns and generate recommendations\r\n\r\nRequirements: 1.1, 1.2, 1.3, 1.4, 1.5\r\n- Accepts action sequence from frontend\r\n- Calls RecommendationService to match patterns\r\n- Returns RecommendationPayload with matched ritual and missing items\r\n- Handles invalid sequences gracefully",
+        "requestBody": {
+          "description": "Request containing action sequence and cart items",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeRecommendationRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeRecommendationRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeRecommendationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recommendation generated successfully (may be null if no pattern matched)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyzeRecommendationResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyzeRecommendationResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyzeRecommendationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or action sequence",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during recommendation generation",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (for authenticated endpoint)"
+          }
+        }
+      }
+    },
+    "/api/v1/Recommendation/{logId}/interaction": {
+      "post": {
+        "tags": [
+          "Recommendation"
+        ],
+        "summary": "Records user interaction with a recommendation (viewed, dismissed, clicked)",
+        "parameters": [
+          {
+            "name": "logId",
+            "in": "path",
+            "description": "The recommendation log ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Request containing interaction type",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordInteractionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordInteractionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordInteractionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Interaction recorded successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or interaction type",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recommendation log not found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/UserPreference/dismiss-ritual": {
+      "post": {
+        "tags": [
+          "UserPreference"
+        ],
+        "summary": "Records a dismissal for a ritual recommendation\r\nUsed when user temporarily hides a recommendation\r\n\r\nRequirements: 6.2\r\n- Records dismissal for a user and ritual\r\n- Reduces future recommendations of that type\r\n- Allows user to dismiss without permanently disabling",
+        "requestBody": {
+          "description": "Request containing ritual ID and optional reason",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DismissRitualRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DismissRitualRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DismissRitualRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dismissal recorded successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPreferenceResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPreferenceResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPreferenceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or missing required fields",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (user not authenticated)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during dismissal recording",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/UserPreference/disable-ritual": {
+      "post": {
+        "tags": [
+          "UserPreference"
+        ],
+        "summary": "Disables a ritual for a user in the current session\r\nUsed when user explicitly indicates they're not interested in a ritual\r\n\r\nRequirements: 6.3\r\n- Disables pattern detection for that ritual in the current session\r\n- Prevents recommendations for the disabled ritual\r\n- Allows user to explicitly opt-out of ritual detection",
+        "requestBody": {
+          "description": "Request containing ritual ID",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableRitualRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableRitualRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableRitualRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ritual disabled successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPreferenceResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPreferenceResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPreferenceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or missing required fields",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (user not authenticated)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during ritual disabling",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/Users": {
       "get": {
         "tags": [
@@ -8857,6 +9502,80 @@
   },
   "components": {
     "schemas": {
+      "ActionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the action",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "description": "User ID who performed the action",
+            "format": "uuid"
+          },
+          "sessionId": {
+            "type": "string",
+            "description": "Session ID for tracking actions within a session",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of action performed",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Timestamp when the action was performed",
+            "format": "date-time"
+          },
+          "productId": {
+            "type": "string",
+            "description": "Optional product ID associated with the action",
+            "format": "uuid",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Optional category ID associated with the action",
+            "format": "uuid",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": { },
+            "description": "Additional metadata for the action",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO for tracking user actions in the ritual recommendation system"
+      },
+      "ActionTypeDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of action (e.g., \"ViewProduct\", \"AddToCart\", \"BrowseCategory\")",
+            "nullable": true
+          },
+          "productCategoryId": {
+            "type": "string",
+            "description": "Optional product category ID associated with the action",
+            "format": "uuid",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": { },
+            "description": "Additional metadata for the action type",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO for action type definitions used in ritual pattern matching"
+      },
       "AddPointsRequest": {
         "type": "object",
         "properties": {
@@ -9039,6 +9758,48 @@
           "other"
         ],
         "type": "string"
+      },
+      "AnalyzeRecommendationRequest": {
+        "type": "object",
+        "properties": {
+          "actionSequence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionDto"
+            },
+            "description": "Sequence of user actions to analyze",
+            "nullable": true
+          },
+          "cartItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItemDto"
+            },
+            "description": "Items currently in the user's cart",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for analyzing action sequences"
+      },
+      "AnalyzeRecommendationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the request was successful"
+          },
+          "message": {
+            "type": "string",
+            "description": "Message describing the result",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/RecommendationPayloadDto"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response model for recommendation analysis"
       },
       "ApplyCouponDto": {
         "type": "object",
@@ -9587,6 +10348,57 @@
             },
             "description": "Gets or sets the list of customizations applied to this cart item.\r\nContains details about which options were customized and their quantities.\r\nNull if the product is not customizable or no customizations were applied.",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CartItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cartId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productName": {
+            "type": "string",
+            "nullable": true
+          },
+          "productCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "productImage": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalPrice": {
+            "type": "number",
+            "format": "double",
+            "readOnly": true
+          },
+          "stockAvailable": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "addedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -11239,6 +12051,35 @@
         },
         "additionalProperties": false
       },
+      "DisableRitualRequest": {
+        "type": "object",
+        "properties": {
+          "ritualId": {
+            "type": "string",
+            "description": "The ID of the ritual to disable",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for disabling a ritual"
+      },
+      "DismissRitualRequest": {
+        "type": "object",
+        "properties": {
+          "ritualId": {
+            "type": "string",
+            "description": "The ID of the ritual to dismiss",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Optional reason for dismissal",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for dismissing a ritual recommendation"
+      },
       "DisplayPriceResult": {
         "type": "object",
         "properties": {
@@ -11260,6 +12101,86 @@
           }
         },
         "additionalProperties": false
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message",
+            "nullable": true
+          },
+          "errorCode": {
+            "type": "string",
+            "description": "Machine-readable error code for programmatic handling\r\nExamples: INVALID_DATE_RANGE, NEGATIVE_BUDGET, CAMPAIGN_NOT_DRAFT, etc.",
+            "nullable": true
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Field-level validation errors\r\nKey: field name, Value: array of error messages for that field",
+            "nullable": true
+          },
+          "statusCode": {
+            "type": "integer",
+            "description": "HTTP status code",
+            "format": "int32"
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Timestamp when the error occurred",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Standardized error response format with error codes for programmatic handling\r\nRequirements: 8.1, 8.2, 8.3, 8.4, 8.5"
+      },
+      "ExplanationPayloadDto": {
+        "type": "object",
+        "properties": {
+          "ritualName": {
+            "type": "string",
+            "description": "Name of the ritual being explained",
+            "nullable": true
+          },
+          "culturalContext": {
+            "type": "string",
+            "description": "Cultural context and significance of the ritual",
+            "nullable": true
+          },
+          "itemExplanations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemExplanationDto"
+            },
+            "description": "Explanations for each recommended item",
+            "nullable": true
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Sources or references supporting the explanation",
+            "nullable": true
+          },
+          "generatedBy": {
+            "type": "string",
+            "description": "Indicates whether explanation was generated by Gemini or fallback template",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO for FE-AI explanation output generated by Gemini API"
       },
       "FeaturedPostsDto": {
         "type": "object",
@@ -11315,6 +12236,55 @@
           }
         },
         "additionalProperties": false
+      },
+      "GeminiStatusResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the request was successful"
+          },
+          "isConfigured": {
+            "type": "boolean",
+            "description": "Whether Gemini API is configured"
+          },
+          "message": {
+            "type": "string",
+            "description": "Status message",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response model for Gemini API status check"
+      },
+      "GenerateExplanationRequest": {
+        "type": "object",
+        "properties": {
+          "recommendationPayload": {
+            "$ref": "#/components/schemas/RecommendationPayloadDto"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for generating explanations"
+      },
+      "GenerateExplanationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the request was successful"
+          },
+          "message": {
+            "type": "string",
+            "description": "Message describing the result",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/ExplanationPayloadDto"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response model for explanation generation"
       },
       "GetCartResponseDto": {
         "type": "object",
@@ -11445,6 +12415,33 @@
         },
         "additionalProperties": false
       },
+      "ItemExplanationDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "Product ID being explained",
+            "format": "uuid"
+          },
+          "productName": {
+            "type": "string",
+            "description": "Product name",
+            "nullable": true
+          },
+          "whyNeeded": {
+            "type": "string",
+            "description": "Why this item is needed for the ritual",
+            "nullable": true
+          },
+          "traditionalUsage": {
+            "type": "string",
+            "description": "Traditional usage and cultural significance of the item",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO for explanation of a single recommended item"
+      },
       "LocationPostsDto": {
         "type": "object",
         "properties": {
@@ -11574,6 +12571,32 @@
           }
         },
         "additionalProperties": false
+      },
+      "MatchingMetadataDto": {
+        "type": "object",
+        "properties": {
+          "matchedSequenceLength": {
+            "type": "integer",
+            "description": "Number of actions that matched the pattern",
+            "format": "int32"
+          },
+          "totalSequenceLength": {
+            "type": "integer",
+            "description": "Total length of the action sequence analyzed",
+            "format": "int32"
+          },
+          "matchedActionIndices": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Indices of matched actions in the original sequence",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO for metadata about the pattern matching process"
       },
       "MediaTypeEnum": {
         "enum": [
@@ -12942,7 +13965,7 @@
             "nullable": true
           }
         },
-        "additionalProperties": {}
+        "additionalProperties": { }
       },
       "ProductCreateDto": {
         "required": [
@@ -13687,6 +14710,55 @@
         },
         "additionalProperties": false
       },
+      "RecommendationPayloadDto": {
+        "type": "object",
+        "properties": {
+          "ritualId": {
+            "type": "string",
+            "description": "ID of the detected ritual",
+            "nullable": true
+          },
+          "ritualName": {
+            "type": "string",
+            "description": "Name of the detected ritual",
+            "nullable": true
+          },
+          "confidenceScore": {
+            "type": "number",
+            "description": "Confidence score (0-1) for the recommendation",
+            "format": "double"
+          },
+          "missingItems": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Product IDs that are missing from the user's cart",
+            "nullable": true
+          },
+          "matchingMetadata": {
+            "$ref": "#/components/schemas/MatchingMetadataDto"
+          },
+          "systemReport": {
+            "$ref": "#/components/schemas/SystemReportDto"
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO for BE-AI recommendation output containing matched ritual and missing items"
+      },
+      "RecordInteractionRequest": {
+        "type": "object",
+        "properties": {
+          "interactionType": {
+            "type": "string",
+            "description": "Type of interaction: \"viewed\", \"dismissed\", or \"clicked\"",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for recording user interactions"
+      },
       "RefreshTokenRequestDTO": {
         "type": "object",
         "properties": {
@@ -13885,7 +14957,7 @@
         },
         "additionalProperties": false
       },
-      "StringDateTime<>f__AnonymousType8": {
+      "StringDateTime<>f__AnonymousType9": {
         "type": "object",
         "properties": {
           "status": {
@@ -13898,6 +14970,53 @@
           }
         },
         "additionalProperties": false
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the request was successful"
+          },
+          "message": {
+            "type": "string",
+            "description": "Message describing the result",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Generic success response"
+      },
+      "SystemReportDto": {
+        "type": "object",
+        "properties": {
+          "matchedPattern": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionTypeDto"
+            },
+            "description": "The action sequence pattern that was matched",
+            "nullable": true
+          },
+          "matchingSteps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Step-by-step explanation of the matching process",
+            "nullable": true
+          },
+          "reasonsForMissingItems": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Reasons why each item is missing/recommended",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO for system report containing detailed matching logic"
       },
       "TaggedProductDto": {
         "type": "object",
@@ -14374,6 +15493,22 @@
         },
         "additionalProperties": false
       },
+      "UserPreferenceResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the request was successful"
+          },
+          "message": {
+            "type": "string",
+            "description": "Message describing the result",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response model for user preference operations"
+      },
       "UserStatus": {
         "enum": [
           "active",
@@ -14531,7 +15666,7 @@
   },
   "security": [
     {
-      "Bearer": []
+      "Bearer": [ ]
     }
   ]
 }

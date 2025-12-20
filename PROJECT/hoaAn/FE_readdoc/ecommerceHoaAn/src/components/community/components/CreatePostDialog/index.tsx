@@ -55,7 +55,7 @@ export const CreatePostDialog = () => {
       await createPostMutation.mutateAsync({
         Content: content,
         PhotoFile: photoFile || undefined,
-        NotificationOn: "true",
+        NotificationOn: new Date().toISOString(),
       });
 
       toast.success("Đã đăng bài viết thành công!");

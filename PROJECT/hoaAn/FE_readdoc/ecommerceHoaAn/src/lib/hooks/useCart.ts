@@ -307,6 +307,20 @@ export function useCart(): UseCartReturn {
     }
   }, [isGuest]);
 
+  // ✅ Refresh cart with proper sequencing
+  const refreshCart = useCallback(async () => {
+    console.log('[useCart] 🔄 Refreshing cart...');
+    try {
+      // Fetch cart first, then count
+      await fetchCart();
+      await fetchCartCount();
+      console.log('[useCart] ✅ Cart refreshed successfully');
+    } catch (err: any) {
+      console.error('[useCart] ❌ Error refreshing cart:', err);
+      throw err;
+    }
+  }, [fetchCart, fetchCartCount]);
+
   // ✅ Load cart on mount and when auth status changes
   // CRITICAL: Wait for auth to finish loading before fetching cart
   useEffect(() => {
@@ -325,11 +339,9 @@ export function useCart(): UseCartReturn {
       console.log(`[useCart] 🔄 Loading cart for ${isGuest ? 'guest' : 'user'}...`);
 
       try {
-        // Fetch both cart data and count in parallel
-        await Promise.all([
-          fetchCart(),
-          fetchCartCount()
-        ]);
+        // Fetch cart first, then count (sequential, not parallel)
+        await fetchCart();
+        await fetchCartCount();
 
         console.log('[useCart] ✅ Cart loaded successfully');
       } catch (err: any) {
@@ -346,7 +358,7 @@ export function useCart(): UseCartReturn {
     return () => {
       isMounted = false;
     };
-  }, [authLoading, isAuthenticated, isGuest]);
+  }, [authLoading, isAuthenticated, isGuest, fetchCart, fetchCartCount]);
 
   return {
     // ✅ NEW: Full cart object for checkout
@@ -372,7 +384,7 @@ export function useCart(): UseCartReturn {
     clearCart,
     applyCoupon,
     removeCoupon,
-    refreshCart: fetchCart,
+    refreshCart,
     validateCart,
   };
 }

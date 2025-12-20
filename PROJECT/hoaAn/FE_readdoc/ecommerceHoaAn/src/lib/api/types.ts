@@ -15,7 +15,6 @@ export interface LoginRequest {
 
 export interface GoogleLoginRequest {
   idToken: string;
-  accessToken?: string;
 }
 
 export interface RegisterRequest {

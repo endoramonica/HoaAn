@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import wishlistService from "../services/wishlistService"; // Import service tự viết
+import { useAuth } from "./useAuth";
 import type { WishlistItemDto } from "../api/types";
 
 export const useWishlist = () => {
+  const { isAuthenticated } = useAuth();
   const [wishlistItems, setWishlistItems] = useState<WishlistItemDto[]>([]);
   const [wishlistCount, setWishlistCount] = useState<number>(0); // Badge count
   const [loading, setLoading] = useState(false);
@@ -129,11 +131,21 @@ export const useWishlist = () => {
 
   // ===============================
   // Mount: load count trước, list sau
+  // ✅ FIXED: Chỉ load khi user authenticated
   // ===============================
   useEffect(() => {
+    if (!isAuthenticated) {
+      console.log("[useWishlist] User not authenticated, skipping wishlist load");
+      setWishlistCount(0);
+      setWishlistItems([]);
+      return;
+    }
+
+    // Try to load wishlist, but don't fail if user is not authenticated
+    // The service will handle 401 gracefully
     loadWishlistCount(); // Badge hiển thị ngay
     loadWishlist(); // Load list chi tiết
-  }, [loadWishlistCount, loadWishlist]);
+  }, [isAuthenticated, loadWishlistCount, loadWishlist]);
 
   return {
     // State

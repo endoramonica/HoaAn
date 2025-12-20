@@ -13,11 +13,20 @@ const axiosInstance = axios.create({
 });
 
 // Add auth token to requests
+// ✅ FIXED: Chỉ gửi Authorization header khi có token hợp lệ
 axiosInstance.interceptors.request.use((config) => {
   const token = tokenStorage.getAccessToken();
-  if (token) {
+
+  // ✅ CRITICAL: Kiểm tra token hợp lệ trước khi gửi
+  if (token && token.trim() && token !== 'null' && token !== 'undefined') {
     config.headers.Authorization = `Bearer ${token}`;
+    console.log('[Orval Client] ✅ Token attached');
+  } else {
+    // ❌ Không gửi Authorization header nếu token không hợp lệ
+    delete config.headers.Authorization;
+    console.warn('[Orval Client] ⚠️ No valid token - skipping Authorization header');
   }
+
   return config;
 });
 

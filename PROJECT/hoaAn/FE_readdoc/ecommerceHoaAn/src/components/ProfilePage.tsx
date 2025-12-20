@@ -127,8 +127,15 @@ export function ProfilePage() {
   }, [user?.customerId]);
 
   // Load orders from API
+  // ✅ FIXED: Chỉ load khi user authenticated
   useEffect(() => {
     const loadOrders = async () => {
+      if (!user) {
+        console.log("[ProfilePage] User not authenticated, skipping orders load");
+        setOrdersLoading(false);
+        return;
+      }
+
       try {
         setOrdersLoading(true);
         setOrdersError(null);
@@ -146,11 +153,18 @@ export function ProfilePage() {
     };
 
     loadOrders();
-  }, []);
+  }, [user]);
 
   // Load addresses from API
+  // ✅ FIXED: Chỉ load khi user authenticated
   useEffect(() => {
     const loadAddresses = async () => {
+      if (!user) {
+        console.log("[ProfilePage] User not authenticated, skipping addresses load");
+        setAddressesLoading(false);
+        return;
+      }
+
       try {
         setAddressesLoading(true);
         setAddressesError(null);
@@ -167,7 +181,7 @@ export function ProfilePage() {
     };
 
     loadAddresses();
-  }, []);
+  }, [user]);
 
   const [notifications, setNotifications] = useState({
     orderUpdates: true,

@@ -210,16 +210,23 @@ const processQueue = (error: any, token: string | null = null) => {
 
 /**
  * Request Interceptor - Tự động attach JWT token
+ * ✅ FIXED: Chỉ gửi Authorization header khi có token hợp lệ
  */
 apiClient.interceptors.request.use(
   (config) => {
     const token = tokenStorage.getAccessToken();
 
-    if (token) {
+    // ✅ CRITICAL FIX: Chỉ attach Authorization nếu token tồn tại và hợp lệ
+    if (token && token.trim() && token !== 'null' && token !== 'undefined') {
       config.headers.Authorization = `Bearer ${token}`;
       console.log('[API Request] ✅ Token attached to', config.method?.toUpperCase(), config.url);
     } else {
-      console.warn('[API Request] ⚠️ No token available for', config.method?.toUpperCase(), config.url);
+      // ❌ Không gửi Authorization header nếu không có token
+      // Điều này tránh backend nhận "Bearer null" hoặc "Bearer undefined"
+      console.warn('[API Request] ⚠️ No valid token for', config.method?.toUpperCase(), config.url, '- Skipping Authorization header');
+
+      // Xóa Authorization header nếu nó tồn tại
+      delete config.headers.Authorization;
     }
 
     // Logging request (dev only)

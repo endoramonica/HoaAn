@@ -254,23 +254,14 @@ class AuthService {
 
       console.log('[AuthService] 🔍 Google login request:', {
         hasIdToken: !!request.idToken,
-        hasAccessToken: !!request.accessToken,
       });
 
-      // Extract user info from Google token
-      const googleUserInfo = request.idToken
-        ? extractGoogleUserInfo(request.idToken)
-        : null;
-
-      console.log('[AuthService] 📦 Google user info:', googleUserInfo);
-
       // Prepare request for backend
+      // ✅ FIXED: Send only idToken (string) as per OAuth standard
+      // Backend will verify token with Google and decode to get email, name, avatarUrl
       const socialLoginRequest = {
         provider: 'Google',
         idToken: request.idToken,
-        email: googleUserInfo?.email,
-        name: googleUserInfo?.name,
-        avatarUrl: googleUserInfo?.picture,
       };
 
       console.log('[AuthService] 📤 Sending to backend:', socialLoginRequest);

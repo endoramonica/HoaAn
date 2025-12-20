@@ -197,7 +197,7 @@ export default function CommunityPage({
       const formData = {
         Content: newPost.content,
         PhotoFile: newPost.photoFile || undefined,
-        NotificationOn: "true",
+        NotificationOn: new Date().toISOString(),
       };
 
       const response = await postsService.postApiV1Posts(formData);

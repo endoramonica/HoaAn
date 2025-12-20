@@ -81,7 +81,10 @@ export default function App() {
   }
 
   return (
-    <GoogleOAuthProvider clientId={googleClientId || ''}>
+    <GoogleOAuthProvider 
+      clientId={googleClientId || ''}
+      onScriptLoad={() => console.log('[App] Google OAuth script loaded')}
+    >
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
           <AppProvider>

@@ -8,15 +8,20 @@ import axios from 'axios';
 
 /**
  * ✅ Helper: Get token từ sessionStorage hoặc localStorage
+ * ✅ FIXED: Validate token trước khi return
  */
 const getAuthToken = (): string | null => {
   // Priority 1: sessionStorage (current session)
   const sessionToken = sessionStorage.getItem('authToken');
-  if (sessionToken) return sessionToken;
+  if (sessionToken && sessionToken.trim() && sessionToken !== 'null' && sessionToken !== 'undefined') {
+    return sessionToken;
+  }
 
   // Priority 2: localStorage (remember me)
   const localToken = localStorage.getItem('authToken');
-  if (localToken) return localToken;
+  if (localToken && localToken.trim() && localToken !== 'null' && localToken !== 'undefined') {
+    return localToken;
+  }
 
   return null;
 };
@@ -50,9 +55,13 @@ export const configureApiCredentials = () => {
     axios.interceptors.request.use(
       (config) => {
         const token = getAuthToken();
+        // ✅ FIXED: Chỉ gửi Authorization nếu token hợp lệ
         if (token && !config.headers.Authorization) {
           config.headers.Authorization = `Bearer ${token}`;
           console.log('[API Config] 🔑 Token attached to Axios request');
+        } else if (!token) {
+          // ❌ Xóa Authorization header nếu không có token
+          delete config.headers.Authorization;
         }
         return config;
       },
@@ -88,7 +97,7 @@ window.fetch = new Proxy(originalFetch, {
     // Merge headers
     const headers = new Headers(config.headers || {});
 
-    // Thêm Authorization nếu có token
+    // Thêm Authorization nếu có token hợp lệ
     if (token && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`);
 
@@ -98,6 +107,9 @@ window.fetch = new Proxy(originalFetch, {
           url.substring(url.indexOf('/api/'))
         );
       }
+    } else if (!token && headers.has('Authorization')) {
+      // ❌ Xóa Authorization header nếu không có token
+      headers.delete('Authorization');
     }
 
     return target.call(thisArg, url, {
