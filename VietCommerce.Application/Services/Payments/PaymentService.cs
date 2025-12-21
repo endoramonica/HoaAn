@@ -17,6 +17,7 @@ using VietCommerce.Core.Enums.Orders;
 using VietCommerce.Core.Enums.Payments;
 using VietCommerce.Core.Models;
 using VietCommerce.Data.Repositories.Interfaces;
+using System.Globalization;
 
 namespace VietCommerce.Application.Services.Payments
 {
@@ -33,18 +34,21 @@ namespace VietCommerce.Application.Services.Payments
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ICurrentUser _currentUser;
+        private readonly IVnpayService _vnpayService;
 
         public PaymentService(
             ILogger<PaymentService> logger,
             ICacheService cacheService,
             IUnitOfWork unitOfWork,
             IMapper mapper,
-            ICurrentUser currentUser)
+            ICurrentUser currentUser,
+            IVnpayService vnpayService)
             : base(logger, cacheService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _currentUser = currentUser;
+            _vnpayService = vnpayService;
         }
 
         #region Processing
@@ -67,13 +71,13 @@ namespace VietCommerce.Application.Services.Payments
                     var paymentMethod = await EnsurePaymentMethodAsync(request.PaymentType);
 
                     var payment = await CreatePaymentAsync(order, paymentMethod, request.Amount);
-                    payment.Status = PaymentMethodType.CONFIRMED;
+                    payment.Status = PaymentStatus.Paid;
                     payment.PaidAt = DateTime.UtcNow;
 
                     payment.PaymentTransactions.Add(new PaymentTransaction
                     {
                         TransactionId = GenerateTransactionCode(request.PaymentType.ToString()),
-                        Status =PaymentMethodType.CONFIRMED,
+                        Status = PaymentMethodType.CONFIRMED,
                         GatewayResponse = "Manual payment success",
                         Amount = request.Amount,
                         TransactionDate = DateTime.UtcNow
@@ -103,7 +107,7 @@ namespace VietCommerce.Application.Services.Payments
                 var paymentMethod = await EnsurePaymentMethodAsync(PaymentMethodType.CASH);
                 var payment = await CreatePaymentAsync(order, paymentMethod, request.AmountDue);
 
-                payment.Status = PaymentMethodType.CONFIRMED;
+                payment.Status = PaymentStatus.Paid;
                 payment.PaidAt = DateTime.UtcNow;
 
                 payment.PaymentTransactions.Add(new PaymentTransaction
@@ -146,7 +150,7 @@ namespace VietCommerce.Application.Services.Payments
                 var amount = order.TotalAmount - GetPaidAmount(order);
                 var payment = await CreatePaymentAsync(order, paymentMethod, amount);
 
-                payment.Status = PaymentMethodType.CONFIRMED;
+                payment.Status = PaymentStatus.Paid;
                 payment.PaidAt = DateTime.UtcNow;
 
                 payment.PaymentTransactions.Add(new PaymentTransaction
@@ -177,13 +181,13 @@ namespace VietCommerce.Application.Services.Payments
             {
                 var payment = await EnsurePaymentAsync(paymentId);
                 ThrowIf(payment.Amount < request.Amount, "Refund amount vượt quá số tiền thanh toán");
-                ThrowIf(payment.Status == PaymentMethodType.REFUNDED, "Payment này đã được hoàn tiền");
+                ThrowIf(payment.Status == PaymentStatus.Cancelled, "Payment này đã được hoàn tiền");
 
-                payment.Status = PaymentMethodType.REFUNDED;
+                payment.Status = PaymentStatus.Cancelled;
 
                 payment.PaymentTransactions.Add(new PaymentTransaction
                 {
-                    TransactionId = GenerateTransactionCode(nameof(PaymentMethodType.REFUNDED)),
+                    TransactionId = GenerateTransactionCode(nameof(PaymentStatus.Cancelled)),
                     Status = PaymentMethodType.REFUNDED,
                     Amount = -request.Amount,
                     TransactionDate = DateTime.UtcNow,
@@ -214,12 +218,12 @@ namespace VietCommerce.Application.Services.Payments
             await ExecuteAsync(async () =>
             {
                 var payment = await EnsurePaymentAsync(paymentId);
-                ThrowIf(payment.Status == PaymentMethodType.VOID, "Payment đã void");
+                ThrowIf(payment.Status == PaymentStatus.Cancelled, "Payment đã void");
 
-                payment.Status = PaymentMethodType.VOID;
+                payment.Status = PaymentStatus.Cancelled;
                 payment.PaymentTransactions.Add(new PaymentTransaction
                 {
-                    TransactionId = GenerateTransactionCode(nameof(PaymentMethodType.VOID)),
+                    TransactionId = GenerateTransactionCode(nameof(PaymentStatus.Cancelled)),
                     Status = PaymentMethodType.VOID,
                     Amount = 0,
                     GatewayResponse = $"Voided: {reason}",
@@ -321,7 +325,281 @@ namespace VietCommerce.Application.Services.Payments
 
         #endregion
 
-        #region Helpers
+        #region VNPay Callback Processing
+
+        /// <summary>
+        /// Processes VNPay IPN callback with comprehensive validation and error handling.
+        /// Validates signature, amount, and idempotency before updating payment and order status.
+        /// </summary>
+        public async Task<PaymentCallbackResult> ProcessVNPayCallbackAsync(IDictionary<string, string> callbackData)
+        {
+            ValidateNotNull(callbackData, nameof(callbackData));
+
+            return await ExecuteAsync(async () =>
+            {
+                // Extract callback data
+                var txnRef = _vnpayService.GetTransactionRef(callbackData);
+                var responseCode = _vnpayService.GetResponseCode(callbackData);
+                var callbackAmount = _vnpayService.GetAmount(callbackData);
+                var transactionNo = callbackData.TryGetValue("vnp_TransactionNo", out var txnNo) ? txnNo : string.Empty;
+
+                _logger.LogInformation(
+                    "Processing VNPay callback. TxnRef: {TxnRef}, ResponseCode: {ResponseCode}, Amount: {Amount}",
+                    txnRef, responseCode, callbackAmount);
+
+                // Validate secure hash signature
+                if (!callbackData.TryGetValue("vnp_SecureHash", out var secureHash))
+                {
+                    _logger.LogWarning("VNPay callback missing secure hash. TxnRef: {TxnRef}", txnRef);
+                    return new PaymentCallbackResult
+                    {
+                        Success = false,
+                        OrderId = txnRef,
+                        Message = "Invalid callback: missing secure hash"
+                    };
+                }
+
+                if (!_vnpayService.ValidateSignature(callbackData, secureHash))
+                {
+                    _logger.LogWarning(
+                        "VNPay signature validation failed. TxnRef: {TxnRef}, ResponseCode: {ResponseCode}",
+                        txnRef, responseCode);
+                    return new PaymentCallbackResult
+                    {
+                        Success = false,
+                        OrderId = txnRef,
+                        Message = "Invalid callback: signature validation failed"
+                    };
+                }
+
+                // Get order
+                if (!Guid.TryParse(txnRef, out var orderId))
+                {
+                    _logger.LogWarning("Invalid order ID format in VNPay callback. TxnRef: {TxnRef}", txnRef);
+                    return new PaymentCallbackResult
+                    {
+                        Success = false,
+                        OrderId = txnRef,
+                        Message = "Invalid order ID format"
+                    };
+                }
+
+                var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
+                if (order == null)
+                {
+                    _logger.LogWarning("Order not found for VNPay callback. OrderId: {OrderId}", orderId);
+                    return new PaymentCallbackResult
+                    {
+                        Success = false,
+                        OrderId = txnRef,
+                        Message = "Order not found"
+                    };
+                }
+
+                // Get or create payment record
+                var payment = order.Payments?.FirstOrDefault() ??
+                    new Payment { OrderId = orderId, Amount = order.TotalAmount };
+
+                // Validate amount matches
+                if (callbackAmount != order.TotalAmount)
+                {
+                    _logger.LogWarning(
+                        "VNPay callback amount mismatch. OrderId: {OrderId}, Expected: {Expected}, Got: {Got}",
+                        orderId, order.TotalAmount, callbackAmount);
+
+                    payment.Status = PaymentStatus.Failed;
+                    payment.ResponseCode = responseCode;
+                    payment.ErrorMessage = $"Amount mismatch: expected {order.TotalAmount}, got {callbackAmount}";
+
+                    _unitOfWork.Payments.Update(payment);
+                    await _unitOfWork.SaveChangesAsync();
+
+                    return new PaymentCallbackResult
+                    {
+                        Success = false,
+                        OrderId = txnRef,
+                        ResponseCode = responseCode,
+                        Message = "Payment amount does not match order amount"
+                    };
+                }
+
+                // Check for duplicate callbacks (idempotency)
+                if (payment.ResponseCode != null && payment.TransactionRef == transactionNo)
+                {
+                    _logger.LogInformation(
+                        "Duplicate VNPay callback detected. OrderId: {OrderId}, TransactionNo: {TransactionNo}",
+                        orderId, transactionNo);
+
+                    // Return success but don't re-process
+                    return new PaymentCallbackResult
+                    {
+                        Success = true,
+                        OrderId = txnRef,
+                        ResponseCode = responseCode,
+                        TransactionId = transactionNo,
+                        Message = "Callback already processed"
+                    };
+                }
+
+                // Update payment record
+                payment.OrderId = orderId;
+                payment.Amount = order.TotalAmount;
+                payment.TransactionRef = transactionNo;
+                payment.ResponseCode = responseCode;
+
+                // Determine payment status based on response code
+                var isSuccessful = responseCode == "00";
+                payment.Status = isSuccessful ? PaymentStatus.Paid : PaymentStatus.Failed;
+
+                if (isSuccessful)
+                {
+                    payment.PaidAt = DateTime.UtcNow;
+                    _logger.LogInformation(
+                        "VNPay payment successful. OrderId: {OrderId}, TransactionNo: {TransactionNo}",
+                        orderId, transactionNo);
+                }
+                else
+                {
+                    payment.ErrorMessage = GetVNPayErrorMessage(responseCode);
+                    _logger.LogWarning(
+                        "VNPay payment failed. OrderId: {OrderId}, ResponseCode: {ResponseCode}, Error: {Error}",
+                        orderId, responseCode, payment.ErrorMessage);
+                }
+
+                // Update or create payment record
+                if (payment.Id == Guid.Empty)
+                {
+                    await _unitOfWork.Payments.AddAsync(payment);
+                }
+                else
+                {
+                    _unitOfWork.Payments.Update(payment);
+                }
+
+                // Update order status based on payment result
+                await UpdateOrderPaymentStatusAsync(orderId.ToString(), isSuccessful ? "Paid" : "Failed");
+
+                await _unitOfWork.SaveChangesAsync();
+                await InvalidatePaymentCachesAsync(orderId);
+
+                return new PaymentCallbackResult
+                {
+                    Success = true,
+                    OrderId = txnRef,
+                    ResponseCode = responseCode,
+                    TransactionId = transactionNo,
+                    Message = isSuccessful ? "Payment successful" : "Payment failed"
+                };
+            }, nameof(ProcessVNPayCallbackAsync));
+        }
+
+        /// <summary>
+        /// Retrieves the current payment status for an order.
+        /// </summary>
+        public async Task<PaymentStatusDto> GetPaymentStatusAsync(string orderId)
+        {
+            ValidateNotEmpty(orderId, nameof(orderId));
+
+            return await ExecuteAsync(async () =>
+            {
+                if (!Guid.TryParse(orderId, out var orderGuid))
+                {
+                    _logger.LogWarning("Invalid order ID format. OrderId: {OrderId}", orderId);
+                    return new PaymentStatusDto
+                    {
+                        OrderId = orderId,
+                        Status = "unknown",
+                        ErrorMessage = "Invalid order ID format"
+                    };
+                }
+
+                var order = await _unitOfWork.Orders.GetByIdAsync(orderGuid);
+                if (order == null)
+                {
+                    _logger.LogWarning("Order not found. OrderId: {OrderId}", orderId);
+                    return new PaymentStatusDto
+                    {
+                        OrderId = orderId,
+                        Status = "unknown",
+                        ErrorMessage = "Order not found"
+                    };
+                }
+
+                var payment = order.Payments?.FirstOrDefault();
+                if (payment == null)
+                {
+                    _logger.LogWarning("Payment record not found for order. OrderId: {OrderId}", orderId);
+                    return new PaymentStatusDto
+                    {
+                        OrderId = orderId,
+                        Status = "pending",
+                        Amount = order.TotalAmount
+                    };
+                }
+
+                return new PaymentStatusDto
+                {
+                    OrderId = orderId,
+                    Status = payment.Status.ToString().ToLower(),
+                    TransactionId = payment.TransactionRef,
+                    ResponseCode = payment.ResponseCode,
+                    ErrorMessage = payment.ErrorMessage,
+                    PaidAt = payment.PaidAt,
+                    Amount = payment.Amount
+                };
+            }, nameof(GetPaymentStatusAsync));
+        }
+
+        /// <summary>
+        /// Updates the order status based on payment result.
+        /// </summary>
+        public async Task UpdateOrderPaymentStatusAsync(string orderId, string status)
+        {
+            ValidateNotEmpty(orderId, nameof(orderId));
+            ValidateNotEmpty(status, nameof(status));
+
+            await ExecuteAsync(async () =>
+            {
+                if (!Guid.TryParse(orderId, out var orderGuid))
+                {
+                    _logger.LogWarning("Invalid order ID format. OrderId: {OrderId}", orderId);
+                    return;
+                }
+
+                var order = await _unitOfWork.Orders.GetByIdAsync(orderGuid);
+                if (order == null)
+                {
+                    _logger.LogWarning("Order not found for status update. OrderId: {OrderId}", orderId);
+                    return;
+                }
+
+                // Update order status based on payment result
+                var newStatus = status.ToLower() switch
+                {
+                    "paid" => OrderStatus.Confirmed,
+                    "failed" => OrderStatus.Cancelled,
+                    _ => order.Status
+                };
+
+                if (newStatus != order.Status)
+                {
+                    order.Status = newStatus;
+                    if (newStatus == OrderStatus.Confirmed)
+                    {
+                        order.CompletedAt = DateTime.UtcNow;
+                    }
+
+                    _unitOfWork.Orders.Update(order);
+                    await _unitOfWork.SaveChangesAsync();
+
+                    _logger.LogInformation(
+                        "Order status updated. OrderId: {OrderId}, NewStatus: {NewStatus}",
+                        orderId, newStatus);
+                }
+            }, nameof(UpdateOrderPaymentStatusAsync));
+        }
+
+        #endregion
 
         private async Task<Order> EnsureOrderAsync(Guid orderId)
         {
@@ -346,7 +624,7 @@ namespace VietCommerce.Application.Services.Payments
                 OrderId = order.Id,
                 MethodId = method.Id,
                 Amount = amount,
-                Status = PaymentMethodType.PENDING,
+                Status = PaymentStatus.Pending,
                 PaymentMethod = method,
                 Order = order
             };
@@ -382,7 +660,7 @@ namespace VietCommerce.Application.Services.Payments
         private decimal GetPaidAmount(Order order)
         {
             return order.Payments?
-                       .Where(p => p.Status == PaymentMethodType.CONFIRMED)
+                       .Where(p => p.Status == PaymentStatus.Paid)
                        .Sum(p => p.Amount) ?? 0m;
         }
 
@@ -410,7 +688,27 @@ namespace VietCommerce.Application.Services.Payments
                 (!filters.ToDate.HasValue || payment.CreatedAt <= filters.ToDate.Value);
         }
 
-        #endregion
+        /// <summary>
+        /// Maps VNPay response codes to user-friendly error messages.
+        /// </summary>
+        private string GetVNPayErrorMessage(string responseCode)
+        {
+            return responseCode switch
+            {
+                "01" => "Bank system error. Please try again later.",
+                "02" => "Your card is locked. Please contact your bank.",
+                "03" => "Your card has expired. Please use another card.",
+                "04" => "Transaction declined. Please try another card.",
+                "05" => "Insufficient funds. Please check your balance.",
+                "06" => "Incorrect OTP. Please try again.",
+                "07" => "Payment timeout. Please try again.",
+                "09" => "Card not registered for online payment.",
+                "10" => "You cancelled the payment. Click retry to try again.",
+                "11" => "Invalid payment amount. Please contact support.",
+                "12" => "Payment gateway error. Please contact support.",
+                _ => $"Payment failed. Please contact support. (Code: {responseCode})"
+            };
+        }
     }
 }
 

@@ -28,12 +28,12 @@ namespace VietCommerce.Data.Repositories.Interfaces
         /// <summary>
         /// Cập nhật trạng thái Payment và tạo PaymentTransaction mới
         /// </summary>
-        Task<bool> UpdatePaymentStatusAsync(Guid paymentId, PaymentMethodType status, string? transactionId = null, string? gatewayResponse = null);
+        Task<bool> UpdatePaymentStatusAsync(Guid paymentId, PaymentStatus status, string? transactionId = null, string? gatewayResponse = null);
 
         /// <summary>
         /// Lấy danh sách Payments theo Status
         /// </summary>
-        Task<IEnumerable<Payment>> GetPaymentsByStatusAsync(PaymentMethodType status);
+        Task<IEnumerable<Payment>> GetPaymentsByStatusAsync(PaymentStatus status);
 
         /// <summary>
         /// Lấy Payment với thông tin đầy đủ (Order, PaymentMethod, Transactions)

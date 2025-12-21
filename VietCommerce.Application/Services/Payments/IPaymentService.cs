@@ -23,5 +23,10 @@ namespace VietCommerce.Application.Services.Payments
 
         // Query
         Task<PaginatedResult<PaymentDto>> GetPaymentHistoryAsync(PaginationParams pagination, PaymentFilters filters);
+
+        // VNPay Callback Processing
+        Task<PaymentCallbackResult> ProcessVNPayCallbackAsync(IDictionary<string, string> callbackData);
+        Task<PaymentStatusDto> GetPaymentStatusAsync(string orderId);
+        Task UpdateOrderPaymentStatusAsync(string orderId, string status);
     }
 }

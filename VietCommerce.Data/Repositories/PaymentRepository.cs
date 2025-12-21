@@ -50,7 +50,7 @@ namespace VietCommerce.Data.Repositories
 
         public async Task<bool> UpdatePaymentStatusAsync(
             Guid paymentId,
-            PaymentMethodType status,
+            PaymentStatus status,
             string? transactionId = null,
             string? gatewayResponse = null)
         {
@@ -65,8 +65,8 @@ namespace VietCommerce.Data.Repositories
             payment.Status = status;
             payment.UpdatedAt = DateTime.UtcNow;
 
-            // Update PaidAt if status is CONFIRMED
-            if (status == PaymentMethodType.CONFIRMED)
+            // Update PaidAt if status is Paid
+            if (status == PaymentStatus.Paid)
             {
                 payment.PaidAt = DateTime.UtcNow;
             }
@@ -79,7 +79,7 @@ namespace VietCommerce.Data.Repositories
                     Id = Guid.NewGuid(),
                     PaymentId = paymentId,
                     TransactionId = transactionId,
-                    Status = status,
+                    Status = PaymentMethodType.CONFIRMED,
                     GatewayResponse = gatewayResponse,
                     TransactionDate = DateTime.UtcNow,
                     Amount = payment.Amount,
@@ -94,7 +94,7 @@ namespace VietCommerce.Data.Repositories
             return true;
         }
 
-        public async Task<IEnumerable<Payment>> GetPaymentsByStatusAsync(PaymentMethodType status)
+        public async Task<IEnumerable<Payment>> GetPaymentsByStatusAsync(PaymentStatus status)
         {
             return await _dbSet
                 .Include(p => p.Order)
@@ -119,7 +119,7 @@ namespace VietCommerce.Data.Repositories
         {
             return await _dbSet
                 .AnyAsync(p => p.OrderId == orderId &&
-                              p.Status == PaymentMethodType.CONFIRMED);
+                              p.Status == PaymentStatus.Paid);
         }
 
         public async Task<IEnumerable<PaymentTransaction>> GetPaymentTransactionsByOrderIdAsync(Guid orderId)

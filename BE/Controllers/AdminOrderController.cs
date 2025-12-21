@@ -83,7 +83,7 @@ namespace VietCommerce.AdminApi.Controllers
             /// </summary>
             /// <param name="filter">Filter options</param>
             [HttpGet]
-            [Authorize(Roles = "Admin, Seller")]
+            [Authorize(Roles = "Administrator, Seller")]
             [ProducesResponseType(typeof(ApiResponse<PaginatedResult<OrderDetailDto>>), StatusCodes.Status200OK)]
             [ProducesResponseType(typeof(ApiResponse<PaginatedResult<OrderDetailDto>>), StatusCodes.Status403Forbidden)]
             public async Task<ActionResult<ApiResponse<PaginatedResult<OrderDetailDto>>>> GetAllOrders(

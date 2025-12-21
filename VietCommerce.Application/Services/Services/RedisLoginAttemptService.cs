@@ -55,12 +55,13 @@ namespace VietCommerce.Application.Services.Services
         {
             if (string.IsNullOrWhiteSpace(email))
             {
-                // 🚨 THAY ĐỔI ĐỂ LOG CẢ STACK TRACE
-                _logger.LogWarning(new ArgumentNullException(nameof(email)), "⚠️ GetKey called with null or empty email. Source: {Source}", new System.Diagnostics.StackFrame(1)?.GetMethod()?.DeclaringType?.FullName);
+                _logger.LogError("❌ GetKey called with null or empty email");
                 return null;
             }
 
-            return $"login_attempt:{email.Trim().ToLower()}";
+            var key = $"login_attempt:{email.Trim().ToLower()}";
+            _logger.LogDebug("🔑 Generated login key for email: {Email}", email);
+            return key;
         }
 
         // ================================
@@ -74,23 +75,35 @@ namespace VietCommerce.Application.Services.Services
                 return (false, string.Empty);
             }
 
-            var key = GetKey(email);
-            if (string.IsNullOrEmpty(key))
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                _logger.LogWarning("⚠️ IsLockedAsync called with null/empty email");
                 return (false, string.Empty);
+            }
 
             try
             {
+                // ✅ Sanitize email
+                var sanitizedEmail = email.Trim().ToLower();
+
+                var key = GetKey(email);
+                if (string.IsNullOrEmpty(key))
+                {
+                    _logger.LogWarning("⚠️ Failed to generate key for email: {Email}", sanitizedEmail);
+                    return (false, string.Empty);
+                }
+
                 var value = await _db.StringGetAsync(key);
                 if (value.IsNullOrEmpty)
                 {
-                    _logger.LogDebug("🔓 No lock record found for {Email}", email);
+                    _logger.LogDebug("🔓 No lock record found for {Email}", sanitizedEmail);
                     return (false, string.Empty);
                 }
 
                 var attempt = JsonSerializer.Deserialize<LoginAttemptDto>(value.ToString());
                 if (attempt == null)
                 {
-                    _logger.LogWarning("⚠️ Invalid attempt data for {Email}", email);
+                    _logger.LogWarning("⚠️ Invalid attempt data for {Email}", sanitizedEmail);
                     return (false, string.Empty);
                 }
 
@@ -102,7 +115,7 @@ namespace VietCommerce.Application.Services.Services
                     var message = $"Tài khoản tạm thời bị khóa, thử lại sau {remaining} phút.";
 
                     _logger.LogWarning("🚫 Account locked: {Email} | Count: {Count} | Level: {Level} | TTL: {TTL}m",
-                        email, attempt.FailedCount, attempt.LockLevel, remaining);
+                        sanitizedEmail, attempt.FailedCount, attempt.LockLevel, remaining);
 
                     return (true, message);
                 }
@@ -117,6 +130,7 @@ namespace VietCommerce.Application.Services.Services
         }
 
         // ================================
+        // ================================
         // Increase failed count
         // ================================
         public async Task<int> IncreaseFailedCountAsync(string email)
@@ -127,12 +141,24 @@ namespace VietCommerce.Application.Services.Services
                 return 0;
             }
 
-            var key = GetKey(email);
-            if (string.IsNullOrEmpty(key))
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                _logger.LogWarning("⚠️ IncreaseFailedCountAsync called with null/empty email");
                 return 0;
+            }
 
             try
             {
+                // ✅ Sanitize email
+                var sanitizedEmail = email.Trim().ToLower();
+
+                var key = GetKey(email);
+                if (string.IsNullOrEmpty(key))
+                {
+                    _logger.LogError("❌ Failed to generate key for email: {Email}", email);
+                    return 0;
+                }
+
                 LoginAttemptDto attempt;
                 var value = await _db.StringGetAsync(key);
 
@@ -140,25 +166,25 @@ namespace VietCommerce.Application.Services.Services
                 {
                     attempt = new LoginAttemptDto
                     {
-                        Email = email,
+                        Email = sanitizedEmail,  // ✅ Use sanitized email
                         FailedCount = 1,
                         LockLevel = 0
                     };
-                    _logger.LogInformation("🆕 First failed attempt for {Email}", email);
+                    _logger.LogInformation("🆕 First failed attempt for {Email}", sanitizedEmail);
                 }
                 else
                 {
                     attempt = JsonSerializer.Deserialize<LoginAttemptDto>(value.ToString())
-                        ?? new LoginAttemptDto { Email = email, FailedCount = 1, LockLevel = 0 };
+                        ?? new LoginAttemptDto { Email = sanitizedEmail, FailedCount = 1, LockLevel = 0 };
 
                     attempt.FailedCount++;
-                    _logger.LogWarning("⚠️ Failed attempt #{Count} for {Email}", attempt.FailedCount, email);
+                    _logger.LogWarning("⚠️ Failed attempt #{Count} for {Email}", attempt.FailedCount, sanitizedEmail);
                 }
 
                 if (attempt.FailedCount >= MaxFailedAttempts && attempt.FailedCount % MaxFailedAttempts == 0)
                 {
                     attempt.LockLevel = Math.Min(attempt.LockLevel + 1, LockDurations.Length - 1);
-                    _logger.LogWarning("🔒 Lock level increased to {Level} for {Email}", attempt.LockLevel, email);
+                    _logger.LogWarning("🔒 Lock level increased to {Level} for {Email}", attempt.LockLevel, sanitizedEmail);
                 }
 
                 var ttl = LockDurations[Math.Min(attempt.LockLevel, LockDurations.Length - 1)];
@@ -167,7 +193,7 @@ namespace VietCommerce.Application.Services.Services
                 await _db.StringSetAsync(key, serialized, ttl);
 
                 _logger.LogInformation("💾 Saved login attempt: {Email} | Count: {Count} | Level: {Level} | TTL: {TTL}m",
-                    email, attempt.FailedCount, attempt.LockLevel, ttl.TotalMinutes);
+                    sanitizedEmail, attempt.FailedCount, attempt.LockLevel, ttl.TotalMinutes);
 
                 return attempt.FailedCount;
             }
@@ -189,21 +215,30 @@ namespace VietCommerce.Application.Services.Services
                 return;
             }
 
-            var key = GetKey(email);
-            if (string.IsNullOrEmpty(key))
+            if (string.IsNullOrWhiteSpace(email))
             {
-                _logger.LogWarning("⚠️ ResetAsync skipped due to null key for {Email}", email);
+                _logger.LogWarning("⚠️ ResetAsync called with null/empty email");
                 return;
             }
 
             try
             {
+                // ✅ Sanitize email
+                var sanitizedEmail = email.Trim().ToLower();
+
+                var key = GetKey(email);
+                if (string.IsNullOrEmpty(key))
+                {
+                    _logger.LogError("❌ Failed to generate key for email: {Email}", sanitizedEmail);
+                    return;
+                }
+
                 var deleted = await _db.KeyDeleteAsync(key);
 
                 if (deleted)
-                    _logger.LogInformation("✅ Login attempt counter reset for {Email}", email);
+                    _logger.LogInformation("✅ Login attempt counter reset for {Email}", sanitizedEmail);
                 else
-                    _logger.LogDebug("ℹ️ No counter to reset for {Email}", email);
+                    _logger.LogDebug("ℹ️ No counter to reset for {Email}", sanitizedEmail);
             }
             catch (Exception ex)
             {

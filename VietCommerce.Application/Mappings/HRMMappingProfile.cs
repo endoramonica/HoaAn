@@ -75,9 +75,9 @@ public class HRMMappingProfile : Profile
         // Shift → ShiftDto
         CreateMap<Shift, ShiftDto>()
             .ForMember(dest => dest.StaffName, opt => opt.MapFrom(src =>
-                src.Staff.Name)) // ✅ User.Name vẫn đúng vì Staff là User
+                src.Staff != null ? src.Staff.Name : null)) // ✅ Handle null Staff
             .ForMember(dest => dest.StoreName, opt => opt.MapFrom(src =>
-                src.Store.Name));
+                src.Store != null ? src.Store.Name : null)); // ✅ Handle null Store
 
         // OpenShiftRequest → Shift
         CreateMap<OpenShiftRequest, Shift>()

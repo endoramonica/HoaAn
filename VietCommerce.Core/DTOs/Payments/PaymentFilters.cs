@@ -9,7 +9,7 @@ namespace VietCommerce.Core.DTOs.Payments;
 public class PaymentFilters
 {
     public Guid? OrderId { get; set; }
-    public PaymentMethodType? Status { get; set; }
+    public PaymentStatus? Status { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
     public PaymentMethodType? PaymentType { get; set; }

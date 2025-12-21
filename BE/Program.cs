@@ -348,7 +348,7 @@ builder.Services.AddFluentValidationClientsideAdapters();
 //builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddCustomValidation();
-builder.Services.AddAllServices();
+builder.Services.AddAllServices(builder.Configuration);
 
 // ================================================================
 // 8️⃣ CORS CONFIGURATION

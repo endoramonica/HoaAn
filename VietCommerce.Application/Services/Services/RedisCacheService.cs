@@ -48,6 +48,12 @@ namespace VietCommerce.Application.Services.Services
         {
             try
             {
+                if (string.IsNullOrEmpty(key))
+                {
+                    _logger.LogWarning("⚠️ GetAsync called with null or empty key");
+                    return default;
+                }
+
                 var fullKey = GetFullKey(key);
                 var value = await _db.StringGetAsync(fullKey);
 
@@ -79,6 +85,12 @@ namespace VietCommerce.Application.Services.Services
         {
             try
             {
+                if (string.IsNullOrEmpty(key))
+                {
+                    _logger.LogWarning("⚠️ SetAsync called with null or empty key");
+                    return;
+                }
+
                 var fullKey = GetFullKey(key);
                 string serialized;
 
@@ -100,6 +112,12 @@ namespace VietCommerce.Application.Services.Services
         {
             try
             {
+                if (string.IsNullOrEmpty(key))
+                {
+                    _logger.LogWarning("⚠️ RemoveAsync called with null or empty key");
+                    return;
+                }
+
                 var fullKey = GetFullKey(key);
                 await _db.KeyDeleteAsync(fullKey);
                 _logger.LogDebug("Cache REMOVE: {Key}", fullKey);
@@ -114,6 +132,12 @@ namespace VietCommerce.Application.Services.Services
         {
             try
             {
+                if (string.IsNullOrEmpty(key))
+                {
+                    _logger.LogWarning("⚠️ ExistsAsync called with null or empty key");
+                    return false;
+                }
+
                 var fullKey = GetFullKey(key);
                 return await _db.KeyExistsAsync(fullKey);
             }
@@ -128,6 +152,12 @@ namespace VietCommerce.Application.Services.Services
         {
             try
             {
+                if (string.IsNullOrEmpty(key))
+                {
+                    _logger.LogWarning("⚠️ TryGetValueAsync called with null or empty key");
+                    return (false, default);
+                }
+
                 var fullKey = GetFullKey(key);
                 var value = await _db.StringGetAsync(fullKey);
 
@@ -164,6 +194,12 @@ namespace VietCommerce.Application.Services.Services
         {
             try
             {
+                if (string.IsNullOrEmpty(pattern))
+                {
+                    _logger.LogWarning("⚠️ RemoveByPatternAsync called with null or empty pattern");
+                    return;
+                }
+
                 var fullPattern = GetFullKey(pattern);
                 var server = _redis.GetServer(_redis.GetEndPoints().First());
 
@@ -186,6 +222,12 @@ namespace VietCommerce.Application.Services.Services
         {
             try
             {
+                if (string.IsNullOrEmpty(channel))
+                {
+                    _logger.LogWarning("⚠️ PublishAsync called with null or empty channel");
+                    return;
+                }
+
                 var subscriber = _redis.GetSubscriber();
                 var serialized = JsonSerializer.Serialize(message);
                 await subscriber.PublishAsync(channel, serialized);
@@ -201,6 +243,12 @@ namespace VietCommerce.Application.Services.Services
         {
             try
             {
+                if (string.IsNullOrEmpty(channel))
+                {
+                    _logger.LogWarning("⚠️ SubscribeAsync called with null or empty channel");
+                    return;
+                }
+
                 var subscriber = _redis.GetSubscriber();
                 await subscriber.SubscribeAsync(channel, (ch, message) =>
                 {

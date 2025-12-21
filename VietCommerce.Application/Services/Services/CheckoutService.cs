@@ -1,4 +1,4 @@
-// File: VietCommerce.Application.Services/Services/CheckoutService.cs
+﻿// File: VietCommerce.Application.Services/Services/CheckoutService.cs
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -206,8 +206,9 @@ namespace VietCommerce.Application.Services.Services
                     customerId = await GetCustomerIdAsync();
                     LogInfo("✅ Using CustomerId: {CustomerId}", customerId);
                 }
-                catch (UnauthorizedAccessException)
+                catch (UnauthorizedAccessException ex)
                 {
+                    LogError("❌ Failed to get CustomerId", ex);
                     // If customer doesn't exist, create one
                     var customer = await _unitOfWork.Customers.EnsureCustomerExistsAsync(userId, storeId);
                     customerId = customer.Id;
@@ -216,13 +217,24 @@ namespace VietCommerce.Application.Services.Services
 
                 var cart = await _unitOfWork.Carts.GetCartWithItemsAsync(dto.CartId);
                 if (cart == null)
+                {
+                    LogError("❌ Cart not found for CartId: {CartId}", null, dto.CartId);
                     return ApiResponse<CheckoutResponseDto>.FailureResponse("Cart not found CART_NOT_FOUND");
+                }
                 if (cart.UserId != userId)
+                {
+                    LogError("❌ Cart belongs to different user. CartUserId: {CartUserId}, CurrentUserId: {CurrentUserId}", null, cart.UserId, userId);
                     return ApiResponse<CheckoutResponseDto>.FailureResponse("Unauthorized cart access UNAUTHORIZED_CART");
+                }
 
                 var cartItems = await _unitOfWork.Carts.GetCartItemsAsync(dto.CartId);
                 if (cartItems == null || !cartItems.Any())
+                {
+                    LogError("❌ Cart is empty. CartId: {CartId}, ItemCount: {ItemCount}", null, dto.CartId, cartItems?.Count ?? 0);
                     return ApiResponse<CheckoutResponseDto>.FailureResponse("Cart is empty EMPTY_CART");
+                }
+
+                LogInfo("✅ Cart validation passed. CartId: {CartId}, ItemCount: {ItemCount}", dto.CartId, cartItems.Count);
 
                 var order = new Order
                 {
@@ -244,15 +256,18 @@ namespace VietCommerce.Application.Services.Services
                     var product = await _unitOfWork.Products.GetByIdAsync(ci.ProductId);
                     if (product == null)
                     {
-                        LogWarning("Product {ProductId} not found in cart", ci.ProductId);
+                        LogWarning("⚠️ Product not found in cart. ProductId: {ProductId}", ci.ProductId);
                         continue;
                     }
 
                     if (product.Stock < ci.Quantity)
                     {
+                        LogError("❌ Insufficient stock. ProductId: {ProductId}, Required: {Required}, Available: {Available}", null, ci.ProductId, ci.Quantity, product.Stock);
                         return ApiResponse<CheckoutResponseDto>.FailureResponse(
                             $"Insufficient stock for {product.Name} INSUFFICIENT_STOCK");
                     }
+
+                    LogInfo("✅ Product validated. ProductId: {ProductId}, Stock: {Stock}", ci.ProductId, product.Stock);
 
                     // Use OrderService to create OrderItem from CartItem
                     // This ensures customization data is properly snapshotted
@@ -299,15 +314,19 @@ namespace VietCommerce.Application.Services.Services
                 };
 
                 var paymentMethodId = await GetPaymentMethodIdAsync(dto.PaymentMethod);
+                LogInfo("✅ Payment method resolved. PaymentMethod: {PaymentMethod}, MethodId: {MethodId}", dto.PaymentMethod, paymentMethodId);
+
                 var payment = new Payment
                 {
                     Id = Guid.NewGuid(),
                     OrderId = order.Id,
                     MethodId = paymentMethodId,
                     Amount = order.TotalAmount,
-                    Status = PaymentMethodType.PENDING,
+                    Status = PaymentStatus.Pending,
                     CreatedAt = DateTime.UtcNow
                 };
+
+                LogInfo("✅ Payment record created. PaymentId: {PaymentId}, Amount: {Amount}, Status: {Status}", payment.Id, payment.Amount, payment.Status);
 
                 await _unitOfWork.Orders.AddAsync(order);
                 await _unitOfWork.OrderItems.AddRangeAsync(orderItems);
@@ -315,10 +334,19 @@ namespace VietCommerce.Application.Services.Services
                 await _unitOfWork.OrderStatusHistories.AddAsync(statusHistory);
                 await _unitOfWork.Payments.AddAsync(payment);
 
+                LogInfo("✅ All entities added to UnitOfWork. OrderId: {OrderId}, ItemCount: {ItemCount}", order.Id, orderItems.Count);
+
                 await _unitOfWork.SaveChangesAsync();
+                LogInfo("✅ SaveChanges successful for Order and related entities");
+
                 await _unitOfWork.Carts.ClearCartItemsAsync(dto.CartId);
+                LogInfo("✅ Cart items cleared. CartId: {CartId}", dto.CartId);
+
                 await _unitOfWork.SaveChangesAsync();
+                LogInfo("✅ SaveChanges successful for cart clearing");
+
                 await transaction.CommitAsync();
+                LogInfo("✅ Transaction committed successfully");
 
                 LogInfo("✅ Transaction committed. Order {OrderNumber} created for user {UserId}, CustomerId={CustomerId}",
                     order.OrderNumber, userId, customerId);
@@ -407,8 +435,18 @@ namespace VietCommerce.Application.Services.Services
             {
                 await transaction.RollbackAsync();
                 LogError("❌ Checkout failed for user {UserId}, cart {CartId}", ex, userId, dto.CartId);
-                return ApiResponse<CheckoutResponseDto>.FailureResponse(
-                    "Checkout failed. Please try again. CHECKOUT_ERROR");
+                LogError("Exception Message: {Message}", ex, ex.Message);
+                LogError("Exception Type: {Type}", ex, ex.GetType().Name);
+                LogError("Stack Trace: {StackTrace}", ex, ex.StackTrace);
+
+                // ✅ Return detailed error message instead of generic error
+                var errorMessage = $"Checkout failed: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorMessage += $" | Inner: {ex.InnerException.Message}";
+                }
+
+                return ApiResponse<CheckoutResponseDto>.FailureResponse(errorMessage);
             }
         }
 

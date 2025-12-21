@@ -217,6 +217,7 @@ public class ShiftService : BaseService, IShiftService
             await EnsurePermissionAsync(PERMISSION_VIEW_OWN);
 
             ValidateNotNull(request, nameof(request));
+            ValidateId(request.StoreId, nameof(request.StoreId));
 
             var userId = _currentUser.UserId;
             LogInfo("➕ Mở ca làm việc mới - User: {UserId}", userId);
@@ -226,14 +227,23 @@ public class ShiftService : BaseService, IShiftService
             ThrowIf(currentShift != null,
                 $"Bạn đang có ca làm việc đang mở (ShiftId: {currentShift!.Id}). Vui lòng đóng ca trước khi mở ca mới.");
 
-            // Map and create
-            var shift = _mapper.Map<Shift>(request);
-            shift.UserId = userId;
-            shift.Status = ShiftStatus.Open;
-            shift.StartTime = DateTime.UtcNow;
-            shift.CreatedAt = DateTime.UtcNow;
-            shift.UpdatedAt = DateTime.UtcNow;
-            //shift.CreatedBy = userId;
+            // Create shift directly without mapping to avoid null navigation properties
+            var shift = new Shift
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                StoreId = request.StoreId,
+                OpeningCash = request.OpeningCash,
+                Notes = request.Notes,
+                Status = ShiftStatus.Open,
+                StartTime = DateTime.UtcNow,
+                EndTime = null,
+                ClosingCash = null,
+                TotalSales = 0,
+                TotalTransactions = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
             await _unitOfWork.Shifts.AddAsync(shift);
             await _unitOfWork.SaveChangesAsync();
@@ -340,7 +350,7 @@ public class ShiftService : BaseService, IShiftService
                 shift.Status == ShiftStatus.Closed && request.Status != ShiftStatus.Closed
                 , "Không thể mở lại ca đã đóng" // Nguyên tắc: ca đã đóng không được mở lại
                 );
-            
+
 
             // Nếu hợp lệ thì update status
             shift.Status = request.Status;

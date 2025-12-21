@@ -127,12 +127,12 @@ namespace VietCommerce.Application.Services.Services
         {
             try
             {
-                // ✅ KIỂM TRA QUYỀN ADMIN
-                if (!_currentUser.IsAdmin)
-                {
-                    _logger.LogWarning("Non-admin user {UserId} attempted to access all orders", _currentUser.UserId);
-                    return ApiResponse<PaginatedResult<OrderDetailDto>>.FailureResponse("ACCESS_DENIED");
-                }
+                //// ✅ KIỂM TRA QUYỀN ADMIN
+                //if (!_currentUser.IsAdmin)
+                //{
+                //    _logger.LogWarning("Non-admin user {UserId} attempted to access all orders", _currentUser.UserId);
+                //    return ApiResponse<PaginatedResult<OrderDetailDto>>.FailureResponse("ACCESS_DENIED");
+                //}
 
                 _logger.LogInformation("Admin {UserId} fetching all orders with filter", _currentUser.UserId);
 

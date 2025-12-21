@@ -15,9 +15,9 @@ namespace VietCommerce.AdminAPI.Controllers
     [Authorize]
     public class PaymentController : ControllerBase
     {
-        private readonly IPaymentService _paymentService;
+        private readonly VietCommerce.Application.Services.Payments.IPaymentService _paymentService;
 
-        public PaymentController(IPaymentService paymentService)
+        public PaymentController(VietCommerce.Application.Services.Payments.IPaymentService paymentService)
         {
             _paymentService = paymentService;
         }

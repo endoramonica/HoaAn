@@ -1210,7 +1210,7 @@ namespace VietCommerce.Application.Services.Services
                 ShippingFee = 0,
                 TotalAmount = subTotal,
                 CreatedAt = cart.CreatedAt,
-                UpdatedAt = cart.UpdatedAt
+                UpdatedAt = cart.UpdatedAt ?? DateTime.UtcNow
             };
         }
 
@@ -1253,7 +1253,7 @@ namespace VietCommerce.Application.Services.Services
                 AvgRating = cartItem.Product?.AvgRating ?? 0,
                 ReviewCount = cartItem.Product?.ReviewCount ?? 0,
                 CreatedAt = cartItem.CreatedAt,
-                UpdatedAt = cartItem.UpdatedAt,
+                UpdatedAt = cartItem.UpdatedAt ?? DateTime.UtcNow,
                 BasePrice = cartItem.BasePrice,
                 CustomizationPrice = cartItem.CustomizationPrice,
                 FinalPrice = cartItem.FinalPrice,

@@ -379,31 +379,117 @@ public class CartRepository : GenericRepository<Cart>, ICartRepository
 
     #region Customer & Session Management
 
+    //public async Task MergeGuestCartToUserCartAsync(string sessionId, Guid userId)
+    //{
+    //    try
+    //    {
+    //        var guestCart = await GetBySessionIdAsync(sessionId);
+    //        if (guestCart == null || !guestCart.CartItems.Any())
+    //            return;
+
+    //        var userCart = await GetOrCreateCartByUserIdAsync(userId);
+
+    //        foreach (var guestItem in guestCart.CartItems)
+    //        {
+    //            var existingItem = userCart.CartItems
+    //                .FirstOrDefault(ci => ci.ProductId == guestItem.ProductId && !ci.IsDeleted);
+
+    //            if (existingItem != null)
+    //            {
+    //                // Merge: Cộng dồn quantity
+    //                existingItem.Quantity += guestItem.Quantity;
+    //                existingItem.UpdatedAt = DateTime.UtcNow;
+    //                _context.CartItems.Update(existingItem);
+    //            }
+    //            else
+    //            {
+    //                // Add new item
+    //                var newItem = new CartItem
+    //                {
+    //                    Id = Guid.NewGuid(),
+    //                    CartId = userCart.Id,
+    //                    ProductId = guestItem.ProductId,
+    //                    Quantity = guestItem.Quantity,
+    //                    CreatedAt = DateTime.UtcNow,
+    //                    UpdatedAt = DateTime.UtcNow,
+    //                    IsDeleted = false, // Explicitly set to false
+    //                    IsActive = true
+    //                };
+    //                await _context.CartItems.AddAsync(newItem);
+    //            }
+    //        }
+
+    //        // Soft delete guest cart
+    //        guestCart.IsDeleted = true;
+    //        guestCart.DeletedAt = DateTime.UtcNow;
+    //        guestCart.IsActive = false;
+    //        _context.Carts.Update(guestCart);
+
+    //        await _context.SaveChangesAsync();
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        throw new InvalidOperationException($"Error merging guest cart (session: {sessionId}) to user cart (user: {userId})", ex);
+    //    }
+    //}
     public async Task MergeGuestCartToUserCartAsync(string sessionId, Guid userId)
     {
         try
         {
+            // ✅ Validate input parameters
+            if (string.IsNullOrWhiteSpace(sessionId))
+                throw new ArgumentException("Session ID cannot be empty", nameof(sessionId));
+
+            if (userId == Guid.Empty)
+                throw new ArgumentException("User ID cannot be empty", nameof(userId));
+
+            // ✅ Get guest cart with validation
             var guestCart = await GetBySessionIdAsync(sessionId);
             if (guestCart == null || !guestCart.CartItems.Any())
                 return;
 
+            // ✅ Filter and validate guest cart items BEFORE processing
+            var validGuestItems = guestCart.CartItems
+                .Where(item =>
+                    item.ProductId != Guid.Empty &&
+                    item.ProductId != null &&
+                    item.Quantity > 0 &&
+                    !item.IsDeleted)
+                .ToList();
+
+            // ✅ If no valid items, just cleanup guest cart and exit
+            if (!validGuestItems.Any())
+            {
+                await SoftDeleteGuestCartAsync(guestCart);
+                return;
+            }
+
+            // ✅ Get or create user cart with validation
             var userCart = await GetOrCreateCartByUserIdAsync(userId);
 
-            foreach (var guestItem in guestCart.CartItems)
+            if (userCart == null || userCart.Id == Guid.Empty)
+                throw new InvalidOperationException($"Failed to create or retrieve valid cart for user {userId}");
+
+            // ✅ Process valid items with additional safety checks
+            foreach (var guestItem in validGuestItems)
             {
+                // Double-check ProductId (defensive programming)
+                if (guestItem.ProductId == Guid.Empty || guestItem.ProductId == null)
+                    continue;
+
                 var existingItem = userCart.CartItems
                     .FirstOrDefault(ci => ci.ProductId == guestItem.ProductId && !ci.IsDeleted);
 
                 if (existingItem != null)
                 {
-                    // Merge: Cộng dồn quantity
+                    // ✅ Merge: Add quantities together
                     existingItem.Quantity += guestItem.Quantity;
                     existingItem.UpdatedAt = DateTime.UtcNow;
                     _context.CartItems.Update(existingItem);
                 }
                 else
                 {
-                    // Add new item
+                    // ✅ Create new cart item with full validation
                     var newItem = new CartItem
                     {
                         Id = Guid.NewGuid(),
@@ -412,25 +498,49 @@ public class CartRepository : GenericRepository<Cart>, ICartRepository
                         Quantity = guestItem.Quantity,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow,
-                        IsDeleted = false, // Explicitly set to false
+                        IsDeleted = false,
                         IsActive = true
                     };
+
                     await _context.CartItems.AddAsync(newItem);
                 }
             }
 
-            // Soft delete guest cart
-            guestCart.IsDeleted = true;
-            guestCart.DeletedAt = DateTime.UtcNow;
-            guestCart.IsActive = false;
-            _context.Carts.Update(guestCart);
+            // ✅ Soft delete guest cart after successful merge
+            await SoftDeleteGuestCartAsync(guestCart);
 
+            // ✅ Update user cart timestamp
+            await UpdateCartTimestampAsync(userCart.Id);
+
+            // ✅ Save all changes in one transaction
             await _context.SaveChangesAsync();
+        }
+        catch (ArgumentException)
+        {
+            // Re-throw argument exceptions without wrapping
+            throw;
+        }
+        catch (KeyNotFoundException)
+        {
+            // Re-throw key not found exceptions without wrapping
+            throw;
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Error merging guest cart (session: {sessionId}) to user cart (user: {userId})", ex);
+            throw new InvalidOperationException(
+                $"Error merging guest cart (session: {sessionId}) to user cart (user: {userId})",
+                ex);
         }
+    }
+
+    // ✅ Helper method to soft delete guest cart (reusable)
+    private async Task SoftDeleteGuestCartAsync(Cart guestCart)
+    {
+        guestCart.IsDeleted = true;
+        guestCart.DeletedAt = DateTime.UtcNow;
+        guestCart.IsActive = false;
+        _context.Carts.Update(guestCart);
+        await _context.SaveChangesAsync();
     }
 
     public async Task LinkCartToCustomerAsync(Guid cartId, Guid customerId)

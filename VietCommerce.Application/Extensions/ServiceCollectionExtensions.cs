@@ -1,5 +1,6 @@
 // File: VietCommerce.Api/Extensions/ServiceCollectionExtensions.cs
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using VietCommerce.Application.Services.Admin_Staff_Manager;
 using VietCommerce.Application.Services.EndUser;
@@ -50,10 +51,19 @@ namespace VietCommerce.Application.Extension
         /// <summary>
         /// Register application services and repositories
         /// </summary>
-        public static IServiceCollection AddAllServices(this IServiceCollection services)
+        public static IServiceCollection AddAllServices(this IServiceCollection services, IConfiguration configuration = null)
         {
             // Http accessor
             services.AddHttpContextAccessor();
+
+            // VNPay Configuration
+            if (configuration != null)
+            {
+                services.Configure<VnpayConfig>(configuration.GetSection("Vnpay"));
+            }
+
+            // HttpClient for external API calls
+            services.AddHttpClient<IGeminiExplanationService, GeminiExplanationService>();
 
             // Generic
             services.AddScoped(typeof(IGenericServices<>), typeof(GenericServices<>));
@@ -77,7 +87,7 @@ namespace VietCommerce.Application.Extension
             services.AddScoped<IWishlistService, WishlistService>();
             services.AddScoped<IAddressService, AddressService>();
             services.AddScoped<IVnpayService, VnpayService>();
-            services.AddScoped<IPaymentService, PaymentService>();
+            services.AddScoped<VietCommerce.Application.Services.Payments.IPaymentService, PaymentService>();
             services.AddScoped<ISupplierService, SupplierService>();
             services.AddScoped<IStockTransferService, StockTransferService>();
             services.AddScoped<IEmployeeService, EmployeeService>();
@@ -101,7 +111,6 @@ namespace VietCommerce.Application.Extension
             services.AddScoped<ISequentialPatternMatcher, SequentialPatternMatcher>();
             services.AddScoped<IRitualManifestLoader, RitualManifestLoader>();
             services.AddScoped<IRecommendationService, RecommendationService>();
-            services.AddScoped<IGeminiExplanationService, GeminiExplanationService>();
             services.AddScoped<IActionTrackingService, ActionTrackingService>();
             services.AddScoped<IUserPreferenceService, UserPreferenceService>();
 
