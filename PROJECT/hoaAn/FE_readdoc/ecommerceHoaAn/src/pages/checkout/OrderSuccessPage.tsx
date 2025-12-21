@@ -29,6 +29,12 @@ interface OrderSuccessPageProps {
     orderId: string; 
     orderNumber: string;
     paymentMethod?: string;
+    vnpayResponseCode?: string;
+    vnpayTransactionRef?: string;
+    vnpayTransactionNo?: string;
+    vnpayAmount?: string;
+    vnpayOrderInfo?: string;
+    vnpayTransactionDate?: string;
   };
 }
 
@@ -115,6 +121,30 @@ export const OrderSuccessPage = ({ orderData }: OrderSuccessPageProps) => {
 
   const formatPrice = (price?: number) => {
     return new Intl.NumberFormat('vi-VN').format(price || 0) + '₫';
+  };
+
+  const formatVNPayAmount = (amountStr?: string) => {
+    if (!amountStr) return '0₫';
+    // VNPay amount is in VND * 100
+    const amount = Number(amountStr) / 100;
+    return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
+  };
+
+  const formatTransactionDate = (dateStr?: string) => {
+    if (!dateStr) return 'N/A';
+    // VNPay format: YYYYMMDDHHmmss
+    try {
+      const year = dateStr.substring(0, 4);
+      const month = dateStr.substring(4, 6);
+      const day = dateStr.substring(6, 8);
+      const hour = dateStr.substring(8, 10);
+      const minute = dateStr.substring(10, 12);
+      const second = dateStr.substring(12, 14);
+
+      return `${day}/${month}/${year} ${hour}:${minute}:${second}`;
+    } catch {
+      return dateStr;
+    }
   };
 
   const getStatusBadge = (status?: string) => {
@@ -242,6 +272,44 @@ export const OrderSuccessPage = ({ orderData }: OrderSuccessPageProps) => {
                 <p className="text-sm text-[#92400E]">
                   ⚠️ Vui lòng chuyển khoản trong vòng 24h để giữ đơn hàng
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* VNPay Transaction Details */}
+        {orderData?.vnpayTransactionNo && (
+          <Card className="mb-6 border-2 border-[#92400E]/20">
+            <CardHeader className="bg-gradient-to-br from-[#92400E]/5 to-[#F59E0B]/5">
+              <CardTitle className="text-[#92400E] flex items-center">
+                <CreditCard className="mr-2 h-5 w-5" />
+                Chi Tiết Giao Dịch VNPay
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="space-y-3 bg-white p-4 rounded-lg border border-[#92400E]/20">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-[#92400E]/70">Mã giao dịch VNPay</p>
+                    <p className="text-sm text-[#92400E] font-mono break-all">{orderData.vnpayTransactionNo}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-[#92400E]/70">Mã tham chiếu</p>
+                    <p className="text-sm text-[#92400E] font-mono break-all">{orderData.vnpayTransactionRef}</p>
+                  </div>
+                </div>
+                {orderData.vnpayAmount && (
+                  <div>
+                    <p className="text-xs text-[#92400E]/70">Số tiền thanh toán</p>
+                    <p className="text-lg text-[#DC2626]">{formatVNPayAmount(orderData.vnpayAmount)}</p>
+                  </div>
+                )}
+                {orderData.vnpayTransactionDate && (
+                  <div>
+                    <p className="text-xs text-[#92400E]/70">Thời gian giao dịch</p>
+                    <p className="text-sm text-[#92400E]">{formatTransactionDate(orderData.vnpayTransactionDate)}</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

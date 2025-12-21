@@ -6,8 +6,10 @@
  * OpenAPI spec version: v1
  */
 
-export interface StringDateTimeFAnonymousType8 {
-  /** @nullable */
-  status?: string | null;
-  timestamp?: string;
+/**
+ * Request model for disabling a ritual
+ */
+export interface DisableRitualRequest {
+  /** The ID of the ritual to disable */
+  ritualId?: string;
 }

@@ -11,6 +11,8 @@ import type {
   AddToWishlistRequest,
   AddressResponseDtoApiResponse,
   AddressResponseDtoListApiResponse,
+  AnalyzeRecommendationRequest,
+  AnalyzeRecommendationResponse,
   ApplyCouponDto,
   ApplyVoucherDto,
   BooleanApiResponse,
@@ -48,8 +50,13 @@ import type {
   CustomerWithUserDtoApiResponse,
   DecimalApiResponse,
   DeductPointsRequest,
+  DisableRitualRequest,
+  DismissRitualRequest,
   FeaturedPostsDtoApiResponse,
   ForgotPasswordRequestDTO,
+  GeminiStatusResponse,
+  GenerateExplanationRequest,
+  GenerateExplanationResponse,
   GetApiV1AnalyticsCampaignIdStatsParams,
   GetApiV1AuthVerifyEmailParams,
   GetApiV1CategoryExistsParams,
@@ -107,13 +114,15 @@ import type {
   ProductListDtoListApiResponse,
   ProductListDtoPaginatedResultApiResponse,
   ProductUpdateDto,
+  RecordInteractionRequest,
   RefreshTokenRequestDTO,
   RegisterRequestDTO,
   RelatedPostsDtoApiResponse,
   ResetPasswordRequestDTO,
   SaveCommentDto,
   SocialLoginRequestDTO,
-  StringDateTimeFAnonymousType8,
+  StringDateTimeFAnonymousType11,
+  SuccessResponse,
   ToggleWishlistResponseApiResponse,
   TrackClickDto,
   TrackImpressionDto,
@@ -126,6 +135,7 @@ import type {
   UpdateInteractionRequest,
   UpdatePostDto,
   UpdateTierRequest,
+  UserPreferenceResponse,
   UserUpdateDTO,
   WeatherForecast,
   WishlistItemDtoApiResponse,
@@ -1289,6 +1299,53 @@ const getApiV1CustomerAdminIdLoyaltyHistory = (
     }
   
 /**
+ * @summary Generates a natural language explanation for a recommendation using Gemini API
+
+Requirements: 2.1, 2.2, 2.3, 2.5
+- Accepts RecommendationPayload from frontend
+- Calls GeminiExplanationService to generate explanation
+- Returns ExplanationPayload with human-readable text
+- Includes fallback logic if Gemini API fails
+ */
+const postApiV1ExplanationGenerate = (
+    generateExplanationRequest: GenerateExplanationRequest,
+ ) => {
+      return apiClient<GenerateExplanationResponse>(
+      {url: `/api/v1/Explanation/generate`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: generateExplanationRequest
+    },
+      );
+    }
+  
+/**
+ * @summary Gets the fallback explanation template for a recommendation
+Useful for testing or when Gemini API is not available
+ */
+const postApiV1ExplanationFallback = (
+    generateExplanationRequest: GenerateExplanationRequest,
+ ) => {
+      return apiClient<GenerateExplanationResponse>(
+      {url: `/api/v1/Explanation/fallback`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: generateExplanationRequest
+    },
+      );
+    }
+  
+/**
+ * @summary Checks if the Gemini API is configured and available
+ */
+const getApiV1ExplanationStatus = (
+    
+ ) => {
+      return apiClient<GeminiStatusResponse>(
+      {url: `/api/v1/Explanation/status`, method: 'GET'
+    },
+      );
+    }
+  
+/**
  * @summary Lấy mixed feed với thuật toán trộn thông minh
 Marketing posts xuất hiện mỗi N community posts (default: 1 marketing mỗi 4 community posts)
  */
@@ -1525,17 +1582,37 @@ const postApiV1OrderBulkUpdateStatus = (
 const getHealth = (
     
  ) => {
-      return apiClient<StringDateTimeFAnonymousType8>(
+      return apiClient<StringDateTimeFAnonymousType11>(
       {url: `/health`, method: 'GET'
     },
       );
     }
   
+/**
+ * @summary Handles VNPay IPN (Instant Payment Notification) callback.
+Validates secure hash signature and processes payment callback.
+Requirements: 1.3, 1.4, 1.5, 5.1, 5.5
+ */
 const getApiV1PaymentVnpayIpn = (
     
  ) => {
       return apiClient<void>(
       {url: `/api/v1/payment/vnpay/ipn`, method: 'GET'
+    },
+      );
+    }
+  
+/**
+ * @summary Retrieves the current payment status for an order.
+Extracts orderId from route parameter and returns PaymentStatusDto with current status.
+Handles non-existent orders gracefully.
+Requirements: 4.4, 4.5
+ */
+const getApiV1PaymentStatusOrderId = (
+    orderId: string,
+ ) => {
+      return apiClient<void>(
+      {url: `/api/v1/payment/status/${orderId}`, method: 'GET'
     },
       );
     }
@@ -1817,6 +1894,81 @@ const getApiV1ProductFavorites = (
       );
     }
   
+/**
+ * @summary Analyzes user action sequence to detect ritual patterns and generate recommendations
+
+Requirements: 1.1, 1.2, 1.3, 1.4, 1.5
+- Accepts action sequence from frontend
+- Calls RecommendationService to match patterns
+- Returns RecommendationPayload with matched ritual and missing items
+- Handles invalid sequences gracefully
+ */
+const postApiV1RecommendationAnalyze = (
+    analyzeRecommendationRequest: AnalyzeRecommendationRequest,
+ ) => {
+      return apiClient<AnalyzeRecommendationResponse>(
+      {url: `/api/v1/Recommendation/analyze`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: analyzeRecommendationRequest
+    },
+      );
+    }
+  
+/**
+ * @summary Records user interaction with a recommendation (viewed, dismissed, clicked)
+ */
+const postApiV1RecommendationLogIdInteraction = (
+    logId: string,
+    recordInteractionRequest: RecordInteractionRequest,
+ ) => {
+      return apiClient<SuccessResponse>(
+      {url: `/api/v1/Recommendation/${logId}/interaction`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: recordInteractionRequest
+    },
+      );
+    }
+  
+/**
+ * @summary Records a dismissal for a ritual recommendation
+Used when user temporarily hides a recommendation
+
+Requirements: 6.2
+- Records dismissal for a user and ritual
+- Reduces future recommendations of that type
+- Allows user to dismiss without permanently disabling
+ */
+const postApiV1UserPreferenceDismissRitual = (
+    dismissRitualRequest: DismissRitualRequest,
+ ) => {
+      return apiClient<UserPreferenceResponse>(
+      {url: `/api/v1/UserPreference/dismiss-ritual`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: dismissRitualRequest
+    },
+      );
+    }
+  
+/**
+ * @summary Disables a ritual for a user in the current session
+Used when user explicitly indicates they're not interested in a ritual
+
+Requirements: 6.3
+- Disables pattern detection for that ritual in the current session
+- Prevents recommendations for the disabled ritual
+- Allows user to explicitly opt-out of ritual detection
+ */
+const postApiV1UserPreferenceDisableRitual = (
+    disableRitualRequest: DisableRitualRequest,
+ ) => {
+      return apiClient<UserPreferenceResponse>(
+      {url: `/api/v1/UserPreference/disable-ritual`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: disableRitualRequest
+    },
+      );
+    }
+  
 const getApiV1Users = (
     params?: GetApiV1UsersParams,
  ) => {
@@ -1985,7 +2137,7 @@ const getApiV1WishlistCount = (
       );
     }
   
-return {postApiV1AnalyticsCampaignIdTrackImpression,postApiV1AnalyticsCampaignIdTrackClick,getApiV1AnalyticsCampaignIdStats,postApiV1AuthRegister,getApiV1AuthVerifyEmail,postApiV1AuthLogin,postApiV1AuthLoginGoogle,postApiV1AuthRefreshToken,postApiV1AuthLogout,postApiV1AuthChangePassword,postApiV1AuthForgotPassword,postApiV1AuthResetPassword,getApiV1Cart,getApiV1CartSummary,postApiV1CartAdd,postApiV1CartAddWithCustomizations,putApiV1CartUpdateItem,putApiV1CartItemsCartItemIdCustomizations,deleteApiV1CartItemsCartItemId,getApiV1CartItemsCartItemId,deleteApiV1CartClear,postApiV1CartValidate,getApiV1CartItemCount,getApiV1CartGuest,getApiV1CartGuestSummary,postApiV1CartGuestAdd,putApiV1CartGuestItemsCartItemId,deleteApiV1CartGuestItemsCartItemId,deleteApiV1CartGuestClear,postApiV1CartGuestValidate,getApiV1CartGuestItemCount,postApiV1CartMerge,postApiV1CartApplyVoucher,postApiV1CartRemoveVoucher,postApiV1CartGuestApplyVoucher,postApiV1CartGuestRemoveVoucher,postApiV1CartCouponApply,postApiV1CartCouponRemove,putApiV1CartShipping,getApiV1CategoryId,putApiV1CategoryId,deleteApiV1CategoryId,getApiV1Category,postApiV1Category,patchApiV1CategoryIdSoftDelete,getApiV1CategoryStoreStoreId,getApiV1CategoryActiveList,getApiV1CategoryParentIdSubcategories,getApiV1CategoryIdDetails,getApiV1CategoryHierarchyStoreId,getApiV1CategoryPagedList,getApiV1CategoryCountByStoreStoreId,getApiV1CategoryExists,patchApiV1CategoryIdStatus,postApiV1CheckoutProcess,getApiV1CheckoutOrderId,getApiV1CheckoutMyOrders,postApiV1CheckoutOrderIdCancel,postApiV1Comments,putApiV1CommentsCommentId,deleteApiV1CommentsCommentId,getApiV1CommentsCommentId,getApiV1CommentsPostPostId,getApiV1CommentsCommentIdReplies,postApiV1CommentsSave,getApiV1CustomerAddresses,postApiV1CustomerAddresses,getApiV1CustomerAddressesId,putApiV1CustomerAddressesId,deleteApiV1CustomerAddressesId,postApiV1CustomerAddressesIdSetDefault,getApiV1CustomerAdmin,postApiV1CustomerAdmin,getApiV1CustomerAdminId,putApiV1CustomerAdminId,deleteApiV1CustomerAdminId,getApiV1CustomerAdminSearch,getApiV1CustomerAdminIdStatistics,getApiV1CustomerAdminIdOrders,getApiV1CustomerAdminIdOrdersSummary,getApiV1CustomerAdminIdAddresses,getApiV1CustomerAdminAddressesAddressId,putApiV1CustomerAdminAddressesAddressId,deleteApiV1CustomerAdminAddressesAddressId,postApiV1CustomerAdminAddresses,putApiV1CustomerAdminIdAddressesAddressIdDefault,getApiV1CustomerAdminIdInteractions,getApiV1CustomerAdminInteractionsInteractionId,putApiV1CustomerAdminInteractionsInteractionId,deleteApiV1CustomerAdminInteractionsInteractionId,postApiV1CustomerAdminInteractions,putApiV1CustomerAdminInteractionsInteractionIdComplete,getApiV1CustomerAdminInteractionsUpcoming,postApiV1CustomerAdminIdLoyaltyAdd,postApiV1CustomerAdminIdLoyaltyDeduct,putApiV1CustomerAdminIdTier,getApiV1CustomerAdminIdLoyaltyHistory,getApiV1MixedFeed,getApiV1MixedFeedLocationLocation,getApiV1MixedFeedFeatured,getApiV1MixedFeedProductProductId,postApiV1MixedFeedPostIdTrack,getApiV1OrderId,getApiV1OrderMyOrders,getApiV1Order,getApiV1OrderStatusStatus,getApiV1OrderOrderIdStatusHistory,putApiV1OrderOrderIdStatus,postApiV1OrderOrderIdCancel,getApiV1OrderOrderIdCanChangeStatus,getApiV1OrderStatsCount,getApiV1OrderStatsRevenue,postApiV1OrderBulkUpdateStatus,getHealth,getApiV1PaymentVnpayIpn,postApiV1Posts,putApiV1PostsPostId,deleteApiV1PostsPostId,getApiV1PostsPostId,getApiV1PostsFeed,getApiV1PostsCustomerCustomerId,getApiV1PostsSearch,postApiV1PostsPostIdLike,postApiV1PostsPostIdBookmark,postApiV1Product,getApiV1Product,putApiV1ProductId,deleteApiV1ProductId,getApiV1ProductId,getApiV1ProductSlugSlug,getApiV1ProductStoreStoreId,getApiV1ProductCategoryCategoryId,patchApiV1ProductIdStock,getApiV1ProductIdStock,patchApiV1ProductIdActive,patchApiV1ProductIdFeatured,postApiV1ProductIdView,postApiV1ProductIdFavorite,getApiV1ProductFavorites,getApiV1Users,getApiV1UsersId,putApiV1UsersId,postApiV1UsersIdDeactivate,postApiV1UsersIdActivate,getWeatherForecast,getApiV1Wishlist,postApiV1Wishlist,deleteApiV1WishlistId,deleteApiV1WishlistProductProductId,getApiV1WishlistCheckProductId,postApiV1WishlistToggle,deleteApiV1WishlistClear,postApiV1WishlistMoveToCart,getApiV1WishlistCount}};
+return {postApiV1AnalyticsCampaignIdTrackImpression,postApiV1AnalyticsCampaignIdTrackClick,getApiV1AnalyticsCampaignIdStats,postApiV1AuthRegister,getApiV1AuthVerifyEmail,postApiV1AuthLogin,postApiV1AuthLoginGoogle,postApiV1AuthRefreshToken,postApiV1AuthLogout,postApiV1AuthChangePassword,postApiV1AuthForgotPassword,postApiV1AuthResetPassword,getApiV1Cart,getApiV1CartSummary,postApiV1CartAdd,postApiV1CartAddWithCustomizations,putApiV1CartUpdateItem,putApiV1CartItemsCartItemIdCustomizations,deleteApiV1CartItemsCartItemId,getApiV1CartItemsCartItemId,deleteApiV1CartClear,postApiV1CartValidate,getApiV1CartItemCount,getApiV1CartGuest,getApiV1CartGuestSummary,postApiV1CartGuestAdd,putApiV1CartGuestItemsCartItemId,deleteApiV1CartGuestItemsCartItemId,deleteApiV1CartGuestClear,postApiV1CartGuestValidate,getApiV1CartGuestItemCount,postApiV1CartMerge,postApiV1CartApplyVoucher,postApiV1CartRemoveVoucher,postApiV1CartGuestApplyVoucher,postApiV1CartGuestRemoveVoucher,postApiV1CartCouponApply,postApiV1CartCouponRemove,putApiV1CartShipping,getApiV1CategoryId,putApiV1CategoryId,deleteApiV1CategoryId,getApiV1Category,postApiV1Category,patchApiV1CategoryIdSoftDelete,getApiV1CategoryStoreStoreId,getApiV1CategoryActiveList,getApiV1CategoryParentIdSubcategories,getApiV1CategoryIdDetails,getApiV1CategoryHierarchyStoreId,getApiV1CategoryPagedList,getApiV1CategoryCountByStoreStoreId,getApiV1CategoryExists,patchApiV1CategoryIdStatus,postApiV1CheckoutProcess,getApiV1CheckoutOrderId,getApiV1CheckoutMyOrders,postApiV1CheckoutOrderIdCancel,postApiV1Comments,putApiV1CommentsCommentId,deleteApiV1CommentsCommentId,getApiV1CommentsCommentId,getApiV1CommentsPostPostId,getApiV1CommentsCommentIdReplies,postApiV1CommentsSave,getApiV1CustomerAddresses,postApiV1CustomerAddresses,getApiV1CustomerAddressesId,putApiV1CustomerAddressesId,deleteApiV1CustomerAddressesId,postApiV1CustomerAddressesIdSetDefault,getApiV1CustomerAdmin,postApiV1CustomerAdmin,getApiV1CustomerAdminId,putApiV1CustomerAdminId,deleteApiV1CustomerAdminId,getApiV1CustomerAdminSearch,getApiV1CustomerAdminIdStatistics,getApiV1CustomerAdminIdOrders,getApiV1CustomerAdminIdOrdersSummary,getApiV1CustomerAdminIdAddresses,getApiV1CustomerAdminAddressesAddressId,putApiV1CustomerAdminAddressesAddressId,deleteApiV1CustomerAdminAddressesAddressId,postApiV1CustomerAdminAddresses,putApiV1CustomerAdminIdAddressesAddressIdDefault,getApiV1CustomerAdminIdInteractions,getApiV1CustomerAdminInteractionsInteractionId,putApiV1CustomerAdminInteractionsInteractionId,deleteApiV1CustomerAdminInteractionsInteractionId,postApiV1CustomerAdminInteractions,putApiV1CustomerAdminInteractionsInteractionIdComplete,getApiV1CustomerAdminInteractionsUpcoming,postApiV1CustomerAdminIdLoyaltyAdd,postApiV1CustomerAdminIdLoyaltyDeduct,putApiV1CustomerAdminIdTier,getApiV1CustomerAdminIdLoyaltyHistory,postApiV1ExplanationGenerate,postApiV1ExplanationFallback,getApiV1ExplanationStatus,getApiV1MixedFeed,getApiV1MixedFeedLocationLocation,getApiV1MixedFeedFeatured,getApiV1MixedFeedProductProductId,postApiV1MixedFeedPostIdTrack,getApiV1OrderId,getApiV1OrderMyOrders,getApiV1Order,getApiV1OrderStatusStatus,getApiV1OrderOrderIdStatusHistory,putApiV1OrderOrderIdStatus,postApiV1OrderOrderIdCancel,getApiV1OrderOrderIdCanChangeStatus,getApiV1OrderStatsCount,getApiV1OrderStatsRevenue,postApiV1OrderBulkUpdateStatus,getHealth,getApiV1PaymentVnpayIpn,getApiV1PaymentStatusOrderId,postApiV1Posts,putApiV1PostsPostId,deleteApiV1PostsPostId,getApiV1PostsPostId,getApiV1PostsFeed,getApiV1PostsCustomerCustomerId,getApiV1PostsSearch,postApiV1PostsPostIdLike,postApiV1PostsPostIdBookmark,postApiV1Product,getApiV1Product,putApiV1ProductId,deleteApiV1ProductId,getApiV1ProductId,getApiV1ProductSlugSlug,getApiV1ProductStoreStoreId,getApiV1ProductCategoryCategoryId,patchApiV1ProductIdStock,getApiV1ProductIdStock,patchApiV1ProductIdActive,patchApiV1ProductIdFeatured,postApiV1ProductIdView,postApiV1ProductIdFavorite,getApiV1ProductFavorites,postApiV1RecommendationAnalyze,postApiV1RecommendationLogIdInteraction,postApiV1UserPreferenceDismissRitual,postApiV1UserPreferenceDisableRitual,getApiV1Users,getApiV1UsersId,putApiV1UsersId,postApiV1UsersIdDeactivate,postApiV1UsersIdActivate,getWeatherForecast,getApiV1Wishlist,postApiV1Wishlist,deleteApiV1WishlistId,deleteApiV1WishlistProductProductId,getApiV1WishlistCheckProductId,postApiV1WishlistToggle,deleteApiV1WishlistClear,postApiV1WishlistMoveToCart,getApiV1WishlistCount}};
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -2088,6 +2240,9 @@ export type PostApiV1CustomerAdminIdLoyaltyAddResult = NonNullable<Awaited<Retur
 export type PostApiV1CustomerAdminIdLoyaltyDeductResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1CustomerAdminIdLoyaltyDeduct']>>>
 export type PutApiV1CustomerAdminIdTierResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['putApiV1CustomerAdminIdTier']>>>
 export type GetApiV1CustomerAdminIdLoyaltyHistoryResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1CustomerAdminIdLoyaltyHistory']>>>
+export type PostApiV1ExplanationGenerateResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1ExplanationGenerate']>>>
+export type PostApiV1ExplanationFallbackResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1ExplanationFallback']>>>
+export type GetApiV1ExplanationStatusResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1ExplanationStatus']>>>
 export type GetApiV1MixedFeedResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1MixedFeed']>>>
 export type GetApiV1MixedFeedLocationLocationResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1MixedFeedLocationLocation']>>>
 export type GetApiV1MixedFeedFeaturedResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1MixedFeedFeatured']>>>
@@ -2106,6 +2261,7 @@ export type GetApiV1OrderStatsRevenueResult = NonNullable<Awaited<ReturnType<Ret
 export type PostApiV1OrderBulkUpdateStatusResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1OrderBulkUpdateStatus']>>>
 export type GetHealthResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getHealth']>>>
 export type GetApiV1PaymentVnpayIpnResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1PaymentVnpayIpn']>>>
+export type GetApiV1PaymentStatusOrderIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1PaymentStatusOrderId']>>>
 export type PostApiV1PostsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1Posts']>>>
 export type PutApiV1PostsPostIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['putApiV1PostsPostId']>>>
 export type DeleteApiV1PostsPostIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['deleteApiV1PostsPostId']>>>
@@ -2130,6 +2286,10 @@ export type PatchApiV1ProductIdFeaturedResult = NonNullable<Awaited<ReturnType<R
 export type PostApiV1ProductIdViewResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1ProductIdView']>>>
 export type PostApiV1ProductIdFavoriteResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1ProductIdFavorite']>>>
 export type GetApiV1ProductFavoritesResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1ProductFavorites']>>>
+export type PostApiV1RecommendationAnalyzeResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1RecommendationAnalyze']>>>
+export type PostApiV1RecommendationLogIdInteractionResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1RecommendationLogIdInteraction']>>>
+export type PostApiV1UserPreferenceDismissRitualResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1UserPreferenceDismissRitual']>>>
+export type PostApiV1UserPreferenceDisableRitualResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['postApiV1UserPreferenceDisableRitual']>>>
 export type GetApiV1UsersResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1Users']>>>
 export type GetApiV1UsersIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['getApiV1UsersId']>>>
 export type PutApiV1UsersIdResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getVietCommerceAPI>['putApiV1UsersId']>>>

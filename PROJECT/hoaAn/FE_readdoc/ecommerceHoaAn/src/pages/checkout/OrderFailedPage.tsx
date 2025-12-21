@@ -24,6 +24,12 @@ interface OrderFailedPageProps {
     orderNumber?: string;
     reason?: string;
     errorCode?: string;
+    vnpayResponseCode?: string;
+    vnpayTransactionRef?: string;
+    vnpayTransactionNo?: string;
+    vnpayAmount?: string;
+    vnpayOrderInfo?: string;
+    vnpayTransactionDate?: string;
   };
 }
 
@@ -32,6 +38,15 @@ export const OrderFailedPage = ({ errorData }: OrderFailedPageProps) => {
   const [errorReason, setErrorReason] = useState('');
 
   useEffect(() => {
+    // Log payment failure for audit trail
+    console.log('[OrderFailedPage] ❌ Payment failed:', {
+      timestamp: new Date().toISOString(),
+      orderId: errorData?.orderId,
+      responseCode: errorData?.vnpayResponseCode,
+      transactionId: errorData?.vnpayTransactionNo,
+      reason: errorData?.reason,
+    });
+
     if (errorData?.reason) {
       setErrorReason(errorData.reason);
     } else {
@@ -41,7 +56,32 @@ export const OrderFailedPage = ({ errorData }: OrderFailedPageProps) => {
     }
   }, [errorData]);
 
+  const formatVNPayAmount = (amountStr?: string) => {
+    if (!amountStr) return '0₫';
+    // VNPay amount is in VND * 100
+    const amount = Number(amountStr) / 100;
+    return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
+  };
+
+  const formatTransactionDate = (dateStr?: string) => {
+    if (!dateStr) return 'N/A';
+    // VNPay format: YYYYMMDDHHmmss
+    try {
+      const year = dateStr.substring(0, 4);
+      const month = dateStr.substring(4, 6);
+      const day = dateStr.substring(6, 8);
+      const hour = dateStr.substring(8, 10);
+      const minute = dateStr.substring(10, 12);
+      const second = dateStr.substring(12, 14);
+
+      return `${day}/${month}/${year} ${hour}:${minute}:${second}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
   const handleRetry = () => {
+    console.log('[OrderFailedPage] 🔄 Retrying payment for order:', errorData?.orderId);
     if (errorData?.orderId) {
       navigate('checkout');
     } else {
@@ -81,6 +121,50 @@ export const OrderFailedPage = ({ errorData }: OrderFailedPageProps) => {
                 <p className="text-xs text-[#92400E]/60 mt-2">
                   Đơn hàng của bạn vẫn được lưu và chờ thanh toán
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* VNPay Transaction Details */}
+        {errorData?.vnpayTransactionNo && (
+          <Card className="mb-6 border-2 border-[#92400E]/20">
+            <CardHeader className="bg-gradient-to-br from-[#92400E]/5 to-[#F59E0B]/5">
+              <CardTitle className="text-[#92400E] flex items-center">
+                <CreditCard className="mr-2 h-5 w-5" />
+                Chi Tiết Giao Dịch VNPay
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="space-y-3 bg-white p-4 rounded-lg border border-[#92400E]/20">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-[#92400E]/70">Mã giao dịch VNPay</p>
+                    <p className="text-sm text-[#92400E] font-mono break-all">{errorData.vnpayTransactionNo}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-[#92400E]/70">Mã tham chiếu</p>
+                    <p className="text-sm text-[#92400E] font-mono break-all">{errorData.vnpayTransactionRef}</p>
+                  </div>
+                </div>
+                {errorData.vnpayResponseCode && (
+                  <div>
+                    <p className="text-xs text-[#92400E]/70">Mã lỗi VNPay</p>
+                    <p className="text-sm text-[#DC2626] font-mono">{errorData.vnpayResponseCode}</p>
+                  </div>
+                )}
+                {errorData.vnpayAmount && (
+                  <div>
+                    <p className="text-xs text-[#92400E]/70">Số tiền thanh toán</p>
+                    <p className="text-lg text-[#DC2626]">{formatVNPayAmount(errorData.vnpayAmount)}</p>
+                  </div>
+                )}
+                {errorData.vnpayTransactionDate && (
+                  <div>
+                    <p className="text-xs text-[#92400E]/70">Thời gian giao dịch</p>
+                    <p className="text-sm text-[#92400E]">{formatTransactionDate(errorData.vnpayTransactionDate)}</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

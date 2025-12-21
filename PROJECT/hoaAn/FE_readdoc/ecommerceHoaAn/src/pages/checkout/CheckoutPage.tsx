@@ -385,38 +385,53 @@ export const CheckoutPage = ({ onNavigate }: CheckoutPageProps) => {
       // ✅ Handle payment based on method using enum
       if (selectedPaymentMethod === PaymentMethod.cod || selectedPaymentMethod === PaymentMethod.cash) {
         // COD - Navigate to success immediately
+        console.log('[CheckoutPage] 💵 COD payment selected - navigating to success');
         onNavigate('success', { 
           orderId: result.orderId || '', 
           orderNumber: result.orderNumber || '' 
         });
       } else if (selectedPaymentMethod === PaymentMethod.banK_TRANSFER) {
         // Bank Transfer - Show banking info
+        console.log('[CheckoutPage] 🏛️ Bank transfer selected - navigating to success with banking info');
         onNavigate('success', { 
           orderId: result.orderId || '', 
           orderNumber: result.orderNumber || '',
           paymentMethod: 'BankTransfer',
         });
       } else {
-        // Online payment (Credit Card, E-Wallet) - Create payment and redirect
-        const paymentResponse = await paymentService.createPayment({
-          orderId: result.orderId || '',
-          amount: result.totalAmount || 0,
-          paymentMethod: selectedPaymentMethod as any, // Cast to bypass type mismatch
-          returnUrl: `${window.location.origin}/checkout?step=success&orderId=${result.orderId}&orderNumber=${result.orderNumber}`,
-          cancelUrl: `${window.location.origin}/checkout?step=failed&orderId=${result.orderId}&reason=Payment cancelled`,
+        // Online payment (Credit Card/VNPay, E-Wallet/Momo/ZaloPay) - Use payment URL from checkout response
+        console.log('[CheckoutPage] 🔗 Online payment selected - using payment URL from checkout');
+        console.log('[CheckoutPage] 📋 Payment details:', {
+          orderId: result.orderId,
+          amount: result.totalAmount,
+          paymentMethod: selectedPaymentMethod,
+          hasPaymentUrl: !!result.paymentUrl,
         });
 
-        if (paymentResponse.paymentUrl) {
+        if (result.paymentUrl) {
+          console.log('[CheckoutPage] 🔄 Redirecting to payment gateway:', {
+            paymentUrl: result.paymentUrl.substring(0, 50) + '...',
+            orderId: result.orderId,
+            orderNumber: result.orderNumber,
+          });
+
           toast.success('Đang chuyển đến cổng thanh toán...');
           
-          // Save pending order info
+          // Save pending order info to sessionStorage for later retrieval
           sessionStorage.setItem('pendingOrderId', result.orderId || '');
           sessionStorage.setItem('pendingOrderNumber', result.orderNumber || '');
           
+          console.log('[CheckoutPage] 💾 Saved pending order info to sessionStorage:', {
+            pendingOrderId: result.orderId,
+            pendingOrderNumber: result.orderNumber,
+          });
+          
           // Redirect to payment gateway
-          window.location.href = paymentResponse.paymentUrl;
+          console.log('[CheckoutPage] 🚀 Executing redirect to payment gateway');
+          window.location.href = result.paymentUrl;
         } else {
-          // Payment processed without redirect
+          // No payment URL - navigate to success
+          console.log('[CheckoutPage] ⚠️ No payment URL in response - navigating to success');
           onNavigate('success', { 
             orderId: result.orderId, 
             orderNumber: result.orderNumber 

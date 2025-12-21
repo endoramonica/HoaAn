@@ -39,7 +39,12 @@ This implementation plan converts the VNPay Payment Integration design into a se
   - Add logging for all signature validation attempts
   - _Requirements: 1.3, 3.2, 3.3_
 
-- [ ] 4. Backend: Create PaymentService for callback processing
+- [x] 4. Backend: Create PaymentService for callback processing
+
+
+
+
+
   - Create IPaymentService interface with ProcessVNPayCallbackAsync, GetPaymentStatusAsync, UpdateOrderPaymentStatusAsync
   - Implement ProcessVNPayCallbackAsync to:
     - Validate secure hash signature
@@ -52,8 +57,12 @@ This implementation plan converts the VNPay Payment Integration design into a se
   - Implement UpdateOrderPaymentStatusAsync to update Order status
   - Add comprehensive logging and error handling
   - _Requirements: 1.3, 1.4, 1.5, 3.4, 4.2, 4.3, 5.2, 5.4, 5.5_
+-
 
-- [ ] 5. Backend: Implement VNPay IPN callback handler
+- [x] 5. Backend: Implement VNPay IPN callback handler
+
+
+
   - In PaymentWebhookController.VnpayIpn():
     - Extract query parameters from request
     - Call VnpayService.ValidateSignature()
@@ -63,7 +72,12 @@ This implementation plan converts the VNPay Payment Integration design into a se
     - Return HTTP 200 "OK" for successful processing
   - _Requirements: 1.3, 1.4, 1.5, 5.1, 5.5_
 
-- [ ] 6. Backend: Implement payment status retrieval endpoint
+- [x] 6. Backend: Implement payment status retrieval endpoint
+
+
+
+
+
   - In PaymentWebhookController.GetPaymentStatus():
     - Extract orderId from route parameter
     - Call PaymentService.GetPaymentStatusAsync()
@@ -93,10 +107,23 @@ This implementation plan converts the VNPay Payment Integration design into a se
   - **Property 9: Payment Status Retrieval**
   - **Validates: Requirements 4.4, 4.5**
 
-- [ ] 7. Backend: Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 7. Backend: Checkpoint - Ensure all tests pass
 
-- [ ] 8. Frontend: Create PaymentStatusPoller hook
+
+
+
+
+
+  - Ensure all tests pass, ask the user if questions arise.
+-
+
+- [x] 8. Frontend: Create PaymentStatusPoller hook
+
+
+
+
+
+
   - Create usePaymentStatusPoller hook
   - Implement pollPaymentStatus() function that:
     - Calls GET /api/v1/payment/status/{orderId} repeatedly
@@ -106,8 +133,12 @@ This implementation plan converts the VNPay Payment Integration design into a se
   - Implement cancelPolling() to stop polling
   - Add error handling and logging
   - _Requirements: 4.5_
+-
 
-- [ ] 9. Frontend: Enhance CheckoutPage for VNPay redirect
+- [X] 9. Frontend: Enhance CheckoutPage for VNPay redirect
+
+
+
   - In handlePlaceOrder():
     - After successful checkout, check if paymentMethod is VNPay
     - If VNPay: call paymentService.createPayment() with order details
@@ -116,18 +147,85 @@ This implementation plan converts the VNPay Payment Integration design into a se
   - Add logging for payment redirect
   - _Requirements: 1.1, 2.1_
 
-- [ ] 10. Frontend: Create OrderResultPage component
-  - Create OrderResultPage component that:
-    - Extracts VNPay response parameters from URL (vnp_ResponseCode, vnp_TxnRef, etc.)
-    - Displays success page if response code is "00"
-    - Displays failed page if response code is not "00"
-    - Shows appropriate error message based on response code
-    - Provides retry button for failed payments
-  - Implement error message mapping for all VNPay response codes
-  - Add logging for payment results
+
+- [X] 10. Frontend: Xử lý kết quả thanh toán VNPay (OrderSuccess / OrderFailed)
+
+
+
+
+
+
+Sử dụng các page đã có:
+
+OrderSuccessPage
+
+OrderFailedPage
+
+Luồng xử lý chung:
+
+Trích xuất các tham số phản hồi từ VNPay thông qua URL:
+
+vnp_ResponseCode
+
+vnp_TxnRef
+
+vnp_Amount
+
+vnp_OrderInfo
+
+(và các tham số VNPay liên quan khác nếu cần)
+
+Dựa vào vnp_ResponseCode để điều hướng:
+
+"00" → chuyển đến OrderSuccessPage
+
+Khác "00" → chuyển đến OrderFailedPage
+
+OrderSuccessPage:
+
+Hiển thị trạng thái thanh toán thành công
+
+Hiển thị thông tin đơn hàng (mã giao dịch, số tiền, nội dung thanh toán)
+
+Có nút quay về trang đơn hàng / trang chủ
+
+OrderFailedPage:
+
+Hiển thị trạng thái thanh toán thất bại
+
+Hiển thị thông báo lỗi tương ứng với vnp_ResponseCode
+
+Cung cấp nút Retry / Thanh toán lại
+
+Cho phép người dùng quay lại trang checkout
+
+Mapping mã lỗi VNPay:
+
+Xây dựng bảng ánh xạ (VNPayResponseCode → Error Message)
+
+Hiển thị message rõ ràng, thân thiện với người dùng
+
+Logging & tracking:
+
+Log kết quả thanh toán (success / failed)
+
+Ghi nhận:
+
+Mã đơn hàng (vnp_TxnRef)
+
+Mã phản hồi (vnp_ResponseCode)
+
+Thời gian phản hồi
+
+Phục vụ debug, đối soát và audit giao dịch sau này
   - _Requirements: 2.1, 2.2, 2.3, 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ] 11. Frontend: Implement payment status polling in OrderResultPage
+- [x] 11. Frontend: Implement payment status polling in OrderResultPage
+
+
+
+
+
   - In OrderResultPage:
     - Use usePaymentStatusPoller hook to poll payment status
     - Start polling when component mounts
@@ -136,7 +234,11 @@ This implementation plan converts the VNPay Payment Integration design into a se
     - Handle polling timeout gracefully
   - _Requirements: 4.5_
 
-- [ ] 12. Frontend: Implement retry functionality
+- [x] 12. Frontend: Implement retry functionality
+
+
+
+
   - In OrderResultPage failed page:
     - Add retry button that calls handleRetry()
     - handleRetry() should:
@@ -151,10 +253,15 @@ This implementation plan converts the VNPay Payment Integration design into a se
   - **Property 11: Retry Functionality**
   - **Validates: Requirements 2.4**
 
-- [ ] 13. Frontend: Checkpoint - Ensure all tests pass
+- [] 13. Frontend: Checkpoint - Ensure all tests pass
+
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 14. Integration: Update CheckoutService to create Payment record
+- [x] 14. Integration: Update CheckoutService to create Payment record
+
+
+
+
   - In CheckoutService.CheckoutAsync():
     - After creating Order, create Payment record with status Pending
     - Store Payment.OrderId = order.Id
@@ -162,7 +269,11 @@ This implementation plan converts the VNPay Payment Integration design into a se
     - Store Payment.MethodId from payment method lookup
   - _Requirements: 4.1_
 
-- [ ] 15. Integration: Update CheckoutPage to handle all payment methods
+- [x] 15. Integration: Update CheckoutPage to handle all payment methods
+
+
+
+
   - Ensure CheckoutPage correctly handles:
     - COD: Navigate to success immediately
     - BankTransfer: Navigate to success with banking info
@@ -171,6 +282,7 @@ This implementation plan converts the VNPay Payment Integration design into a se
   - _Requirements: 1.1, 2.1_
 
 - [ ] 16. Integration: Test complete payment flow
+
   - Test checkout → VNPay redirect → callback → order update flow
   - Test payment status polling
   - Test retry after failed payment
@@ -180,5 +292,6 @@ This implementation plan converts the VNPay Payment Integration design into a se
   - _Requirements: 1.1, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 4.1, 4.2, 4.3, 4.4, 4.5_
 
 - [ ] 17. Final Checkpoint - Ensure all tests pass
+
   - Ensure all tests pass, ask the user if questions arise.
 

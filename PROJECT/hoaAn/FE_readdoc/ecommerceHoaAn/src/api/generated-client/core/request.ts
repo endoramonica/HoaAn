@@ -18,8 +18,7 @@ export const isString = (value: any): value is string => {
 };
 
 export const isStringWithValue = (value: any): value is string => {
-    // ✅ FIXED: Kiểm tra không chỉ empty string mà còn 'null' và 'undefined'
-    return isString(value) && value !== '' && value !== 'null' && value !== 'undefined';
+    return isString(value) && value !== '';
 };
 
 export const isBlob = (value: any): value is Blob => {

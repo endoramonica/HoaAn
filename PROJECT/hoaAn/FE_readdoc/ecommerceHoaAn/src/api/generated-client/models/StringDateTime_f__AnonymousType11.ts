@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type StringDateTime_f__AnonymousType8 = {
+export type StringDateTime_f__AnonymousType11 = {
     status?: string | null;
     timestamp?: string;
 };
