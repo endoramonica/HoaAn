@@ -17,6 +17,7 @@ import { useActiveCategories } from '../lib/hooks/useCategories';
 import { getVietCommerceAPI } from '../../Api/generated-orval';
 import type { AddToCartDto } from '../../Api/generated-orval/schemas';
 import { vietCommerceProductService } from '../lib/services/vietCommerceProductService';
+import { getActionTrackingService } from '../lib/services/actionTrackingService';
 import { type ProductListDto, type ProductFilterDto } from '@/api';
 import { 
   Flower2, 
@@ -44,6 +45,7 @@ interface ProductsPageProps {
 
 export function ProductsPage({}: ProductsPageProps) {
   const navigate = useNavigate();
+  const actionTracking = getActionTrackingService();
   
   // UI State
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -174,6 +176,7 @@ export function ProductsPage({}: ProductsPageProps) {
   };
 
   const handleViewProductDetail = (productId: string) => {
+    actionTracking.trackAction('ViewProduct', {}, productId, selectedCategory !== 'all' ? selectedCategory : 'all');
     navigate(`/product/${productId}`);
   };
 
@@ -235,6 +238,9 @@ export function ProductsPage({}: ProductsPageProps) {
   const handleAddToCart = async (productId: string, productName: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    
+    // Track add to cart action
+    actionTracking.trackAction('AddToCart', {}, productId, selectedCategory !== 'all' ? selectedCategory : 'all');
     
     if (cartLoading.has(productId)) {
       return;
@@ -329,7 +335,10 @@ export function ProductsPage({}: ProductsPageProps) {
                   categories.map((category) => (
                     <button
                       key={category.id}
-                      onClick={() => setSelectedCategory(category.id)}
+                      onClick={() => {
+                        actionTracking.trackAction('BrowseCategory', {}, undefined, category.id);
+                        setSelectedCategory(category.id);
+                      }}
                       className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
                         selectedCategory === category.id
                           ? 'bg-amber-100 text-amber-900 border-2 border-amber-300'

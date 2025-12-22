@@ -9,6 +9,7 @@ import { Badge } from './ui/badge';
 
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { CategoryCarousel, CategoryProductsSection } from './carousel';
+import { getActionTrackingService } from '@/lib/services/actionTrackingService';
 
 import { 
   Flower2, 
@@ -34,6 +35,7 @@ import {
 
 export function HomePage() {
   const navigate = useNavigate();
+  const actionTracking = getActionTrackingService();
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [loaded, setLoaded] = useState(false);
@@ -370,7 +372,15 @@ export function HomePage() {
                   </div>
                 </div>
                 
-                <Button className="w-full bg-red-600 hover:bg-red-700 text-white py-3 text-lg">
+                <Button 
+                  className="w-full bg-red-600 hover:bg-red-700 text-white py-3 text-lg"
+                  onClick={() => {
+                    // Track ViewProduct action for featured product
+                    actionTracking.trackAction('ViewProduct', { featured: true }, 'featured-product-1', 'ritual-items');
+                    // Navigate to product detail
+                    navigate('/products/featured-product-1');
+                  }}
+                >
                   Mua ngay - Giao tận nơi
                 </Button>
               </CardContent>
@@ -411,7 +421,15 @@ export function HomePage() {
             <div ref={instanceRef} className="keen-slider rounded-lg overflow-hidden">
               {ceremonyTypes.map((ceremony, index) => (
                 <div key={index} className="keen-slider__slide">
-                  <Card className="overflow-hidden group cursor-pointer hover:shadow-xl transition-all duration-300 h-full">
+                  <Card 
+                    className="overflow-hidden group cursor-pointer hover:shadow-xl transition-all duration-300 h-full"
+                    onClick={() => {
+                      // Track BrowseCategory action
+                      actionTracking.trackAction('BrowseCategory', { ceremonyType: ceremony.name }, undefined, `ceremony-${index}`);
+                      // Navigate to products filtered by ceremony
+                      navigate(`/products?ceremony=${encodeURIComponent(ceremony.name)}`);
+                    }}
+                  >
                     <div className="relative h-64">
                       <ImageWithFallback
                         src={ceremony.image}

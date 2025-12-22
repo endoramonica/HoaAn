@@ -27,11 +27,13 @@ import {
 } from "lucide-react";
 import { vietCommerceProductService } from "../lib/services/vietCommerceProductService";
 import { useApp } from "../lib/contexts/AppContext";
+import { getActionTrackingService } from "../lib/services/actionTrackingService";
 import type { ProductListDto, ProductFilterDto } from "../lib/services/vietCommerceProductService";
 
 export function ServicesPage() {
   const navigate = useNavigate();
   const { setSelectedServiceProductId } = useApp();
+  const actionTracking = getActionTrackingService();
   const [services, setServices] = useState<ProductListDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -261,6 +263,8 @@ export function ServicesPage() {
                       <div className="flex gap-2">
                         <Button
                           onClick={() => {
+                            // Track ViewProduct action for service
+                            actionTracking.trackAction('ViewProduct', { serviceType: service.serviceCategory }, service.id, service.categoryId);
                             // Set the service product ID in context
                             if (service.id) {
                               setSelectedServiceProductId(service.id);
@@ -273,9 +277,11 @@ export function ServicesPage() {
                           Đặt dịch vụ
                         </Button>
                         <Button
-                          onClick={() =>
-                            navigate(`/services/${service.id}`)
-                          }
+                          onClick={() => {
+                            // Track ViewProduct action for service detail
+                            actionTracking.trackAction('ViewProduct', { serviceType: service.serviceCategory }, service.id, service.categoryId);
+                            navigate(`/services/${service.id}`);
+                          }}
                           variant="outline"
                           className="border-amber-300 text-amber-700 hover:bg-amber-50"
                         >
@@ -405,7 +411,11 @@ export function ServicesPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  onClick={() => navigate("/contact")}
+                  onClick={() => {
+                    // Track BrowseCategory action for service consultation
+                    actionTracking.trackAction('BrowseCategory', { action: 'schedule-consultation' }, undefined, 'services');
+                    navigate("/contact");
+                  }}
                   className="border-amber-300 text-amber-700 hover:bg-amber-50 px-8 py-3"
                 >
                   <Calendar className="w-5 h-5 mr-2" />

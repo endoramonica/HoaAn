@@ -27,6 +27,7 @@ import {
 import { toast } from 'sonner';
 import { vietCommerceProductService } from '../lib/services/vietCommerceProductService';
 import { useApp } from '../lib/contexts/AppContext';
+import { getActionTrackingService } from '../lib/services/actionTrackingService';
 import { OptionSelector } from './service/OptionSelector';
 import { customizationStateService } from '../lib/services/customizationStateService';
 import type { ProductListDto, ProductDetailDto } from '../lib/services/vietCommerceProductService';
@@ -35,6 +36,7 @@ export function ServiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { setSelectedServiceProductId } = useApp();
+  const actionTracking = getActionTrackingService();
   const [service, setService] = useState<ProductDetailDto | null>(null);
   const [relatedServices, setRelatedServices] = useState<ProductListDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,6 +66,9 @@ export function ServiceDetailPage() {
           setError('Dịch vụ không tìm thấy');
         } else {
           setService(serviceDetail);
+          
+          // Track ViewProduct action for service detail
+          actionTracking.trackAction('ViewProduct', { serviceType: serviceDetail.categoryName }, serviceDetail.id, serviceDetail.categoryId);
           
           // Load saved customization state if exists
           const savedState = customizationStateService.getCustomizationState(id);
@@ -502,6 +507,8 @@ export function ServiceDetailPage() {
               size="lg"
               className="bg-red-600 hover:bg-red-700 text-white py-6 text-base font-semibold"
               onClick={() => {
+                // Track AddToCart action for service booking
+                actionTracking.trackAction('AddToCart', { action: 'book-service' }, service?.id, service?.categoryId);
                 if (service.id) {
                   setSelectedServiceProductId(service.id);
                   navigate('/calendar');
@@ -542,7 +549,11 @@ export function ServiceDetailPage() {
                     >
                       <Card
                         className="border-2 border-amber-200 hover:shadow-lg transition-shadow cursor-pointer h-full"
-                        onClick={() => navigate(`/services/${relService.id}`)}
+                        onClick={() => {
+                          // Track ViewProduct action for related service
+                          actionTracking.trackAction('ViewProduct', { serviceType: relService.serviceCategory }, relService.id, relService.categoryId);
+                          navigate(`/services/${relService.id}`);
+                        }}
                       >
                         <div className="relative overflow-hidden">
                           <ImageWithFallback

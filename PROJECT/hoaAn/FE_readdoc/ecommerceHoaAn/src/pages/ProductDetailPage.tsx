@@ -11,12 +11,14 @@ import { useCart } from '../lib/hooks/useCart';
 import { useWishlist } from '../lib/hooks/useWishlist';
 import { customizationStateService } from '../lib/services/customizationStateService';
 import { cartService } from '../lib/services/cartService';
+import { getActionTrackingService } from '../lib/services/actionTrackingService';
 import type { ProductDetailDto } from '../../Api/generated-orval/schemas';
 import type { AddToCartDto } from '../../Api/generated-orval/schemas';
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const actionTracking = getActionTrackingService();
   
   const [product, setProduct] = useState<ProductDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,6 +50,10 @@ export function ProductDetailPage() {
         const data = await productService.getProductById(id);
         console.log('[ProductDetailPage] Product loaded:', data);
         console.log('[ProductDetailPage] Customizable options:', data.customizableOptions);
+        
+        // Track product view
+        actionTracking.trackAction('ViewProduct', {}, id, data.categoryId);
+        
         setProduct(data);
         setCurrentImageIndex(0);
         
@@ -116,6 +122,9 @@ export function ProductDetailPage() {
 
     try {
       setIsAddingToCart(true);
+      
+      // Track add to cart action
+      actionTracking.trackAction('AddToCart', { quantity }, product.id, product.categoryId);
       
       // Build customizations array from user selections
       const customizations = product.customizableOptions?.map(option => {
@@ -852,7 +861,10 @@ export function ProductDetailPage() {
                 <Card
                   key={relatedProduct.id}
                   className="group cursor-pointer border-2 border-gray-100 hover:border-rose-200 hover:shadow-xl transition-all duration-300 overflow-hidden rounded-2xl"
-                  onClick={() => navigate(`/product/${relatedProduct.id}`)}
+                  onClick={() => {
+                    actionTracking.trackAction('ViewProduct', {}, relatedProduct.id, product?.categoryId);
+                    navigate(`/product/${relatedProduct.id}`);
+                  }}
                 >
                   <CardContent className="p-0">
                     <div className="relative aspect-square bg-gray-50 overflow-hidden">

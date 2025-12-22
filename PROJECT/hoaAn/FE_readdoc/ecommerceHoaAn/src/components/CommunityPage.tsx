@@ -23,6 +23,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { PostCard } from "@/components/community/components/PostCard";
+import { getActionTrackingService } from "@/lib/services/actionTrackingService";
 
 interface CommunityPageProps {
   onBack: () => void;
@@ -60,6 +61,7 @@ export default function CommunityPage({
   const [searchQuery, setSearchQuery] = useState("");
   const [showNewPostDialog, setShowNewPostDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const actionTracking = getActionTrackingService();
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -149,6 +151,9 @@ export default function CommunityPage({
 
   // Handle post updates from PostCard
   const handlePostUpdate = (postId: string, updates: any) => {
+    // Track ViewProduct action when post is viewed/updated
+    actionTracking.trackAction('ViewProduct', { postType: 'community-post' }, postId, 'community');
+    
     setPosts((prev) =>
       prev.map((post) =>
         post.id === postId ? { ...post, ...updates } : post
@@ -203,6 +208,9 @@ export default function CommunityPage({
       const response = await postsService.postApiV1Posts(formData);
 
       if (response.data) {
+        // Track AddToCart action for post submission (engagement)
+        actionTracking.trackAction('AddToCart', { action: 'submit-post' }, response.data.id, 'community');
+        
         setPosts((prev) => [response.data, ...prev]);
         setNewPost({ content: "", photoFile: null, previewUrl: null });
         setShowNewPostDialog(false);

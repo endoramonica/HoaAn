@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -21,16 +21,28 @@ import {
   MapPin,
   Loader2,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import { useCart } from "../lib/hooks/useCart";
 import { CartItemCustomizations } from "./CartItemCustomizations";
 import { CustomizationEditor } from "./CustomizationEditor";
 import { toast } from "sonner";
+import { getActionTrackingService } from "../lib/services/actionTrackingService";
+import { getRecommendationService } from "../lib/services/recommendationService";
+import { getUserPreferenceService } from "../lib/services/userPreferenceService";
+import { RitualRecommendation } from "./RitualRecommendation";
 
 export function CartPage() {
   const navigate = useNavigate();
   const [promoCode, setPromoCode] = useState("");
   const [editingCustomizationId, setEditingCustomizationId] = useState<string | null>(null);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [isGeneratingRecommendations, setIsGeneratingRecommendations] = useState(false);
+  
+  // Initialize services
+  const actionTracking = getActionTrackingService();
+  const recommendationService = getRecommendationService();
+  const userPreferenceService = getUserPreferenceService();
   
   // ✅ useCart tự động xử lý guest/user dựa trên useAuth
   // ✅ Backend tự động lấy sessionId từ HTTP-only cookie
@@ -48,6 +60,54 @@ export function CartPage() {
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN").format(price) + "₫";
+  };
+
+  // Subscribe to action changes and generate recommendations
+  useEffect(() => {
+    const generateRecommendation = async () => {
+      try {
+        setIsGeneratingRecommendations(true);
+        const sequence = actionTracking.getActionSequenceObject();
+        
+        // Only generate if we have actions
+        if (sequence.actions.length > 0) {
+          const recs = await recommendationService.generateRecommendations(sequence);
+          setRecommendations(recs || []);
+        }
+      } catch (err) {
+        console.error('Error generating recommendations:', err);
+      } finally {
+        setIsGeneratingRecommendations(false);
+      }
+    };
+
+    // Subscribe to action changes
+    const unsubscribe = actionTracking.subscribe(() => {
+      generateRecommendation();
+    });
+
+    // Generate initial recommendations
+    generateRecommendation();
+
+    return unsubscribe;
+  }, []);
+
+  const handleDismissRecommendation = (ritualId: string) => {
+    userPreferenceService.dismissRitual(ritualId);
+    setRecommendations(prev => prev.filter(r => r.id !== ritualId));
+    toast.info('Đã ẩn gợi ý này');
+  };
+
+  const handleDisableRitual = (ritualId: string) => {
+    userPreferenceService.disableRitual(ritualId);
+    setRecommendations(prev => prev.filter(r => r.id !== ritualId));
+    toast.info('Đã tắt gợi ý này');
+  };
+
+  const handleAddRecommendationToCart = (ritual: any) => {
+    // Track AddToCart action for recommended ritual
+    actionTracking.trackAction('AddToCart', { source: 'recommendation' }, ritual.id, 'ritual-items');
+    toast.success(`Đã thêm "${ritual.name}" vào giỏ hàng`);
   };
 
   const handleUpdateQuantity = async (cartItemId: string, newQuantity: number) => {
@@ -406,6 +466,30 @@ export function CartPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Ritual Recommendations Section */}
+            {recommendations.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-amber-900">
+                    <Sparkles className="w-5 h-5 text-yellow-500" />
+                    Gợi ý nghi lễ phù hợp
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Dựa trên hành động mua sắm của bạn, chúng tôi gợi ý những nghi lễ phù hợp
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <RitualRecommendation
+                    recommendations={recommendations}
+                    onDismiss={handleDismissRecommendation}
+                    onDisable={handleDisableRitual}
+                    onAddToCart={handleAddRecommendationToCart}
+                    isLoading={isGeneratingRecommendations}
+                  />
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Order Summary */}

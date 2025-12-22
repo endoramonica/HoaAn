@@ -156,6 +156,17 @@ This implementation plan converts the Sequential Ritual Recommendation System de
 
 ---
 
+## Phase 2.5: Ritual Manifest Data Verification
+
+- [ ] 8.5 Verify and update ritual-manifest.json with actual product IDs
+  - Location: `BackEnd/VietCommerce.Api/wwwroot/data/ritual-manifest.json`
+  - Verify product IDs for each ritual match actual catalog
+  - Rituals to include: Tết, Tết Nguyên Tiêu, Đầy Tháng, Cổ Truyền, Ông Công Ông Táo
+  - Update categoryIds and productIds with real data from database
+  - _Requirements: 7.1, 7.2, 7.3_
+
+---
+
 ## Phase 3: Frontend Explanation Engine (FE-AI with Gemini)
 
 
@@ -436,3 +447,211 @@ This implementation plan converts the Sequential Ritual Recommendation System de
   - Provided code examples and best practices
   - _Requirements: All frontend integration requirements_ 
 
+---
+
+## Phase 8: Frontend Implementation (Action Tracking & Recommendation Display)
+
+- [ ] 27. Create ActionTrackingService
+  - File: `src/services/actionTrackingService.ts`
+  - Implement trackAction() method to capture user interactions
+  - Implement getActionSequence() to retrieve recent actions
+  - Implement clearActionSequence() for navigation
+  - Implement getSessionId() for session management
+  - Store actions in session state
+  - _Requirements: 1.1, 5.3, 5.4_
+
+- [ ] 28. Integrate action tracking into HomePage
+  - File: `src/pages/HomePage.tsx`
+  - Track "BrowseCategory" events
+  - Track "ViewProduct" events for featured products
+  - Initialize ActionTrackingService on mount
+  - _Requirements: 1.1, 5.3_
+
+- [ ] 29. Integrate action tracking into ServicePage
+  - File: `src/pages/ServicePage.tsx`
+  - Track "BrowseCategory" events
+  - Track "ViewProduct" events
+  - Initialize ActionTrackingService on mount
+  - _Requirements: 1.1, 5.3_
+
+- [ ] 30. Integrate action tracking into ProductPage
+  - File: `src/pages/ProductPage.tsx`
+  - Track "ViewProduct" when product details load
+  - Track "AddToCart" when user adds to cart
+  - Track "BrowseCategory" for related products
+  - Initialize ActionTrackingService on mount
+  - _Requirements: 1.1, 5.3_
+
+- [ ] 31. Integrate action tracking into CommunityPage (TaggedProduct)
+  - File: `src/pages/CommunityPage.tsx` or `src/components/TaggedProduct.tsx`
+  - Track "ViewProduct" for tagged products
+  - Track "AddToCart" for tagged products
+  - Initialize ActionTrackingService on mount
+  - _Requirements: 1.1, 5.3_
+
+- [ ] 32. Create RecommendationService
+  - File: `src/services/recommendationService.ts`
+  - Implement callBeAiAnalysis() to call `POST /api/recommendations/analyze`
+  - Implement callFeAiExplanation() to call `POST /api/explanations/generate`
+  - Implement caching with 15-minute TTL
+  - Implement error handling with retry logic (max 3 retries)
+  - Implement timeout handling (5 second timeout)
+  - Silent fail on errors (no user-facing error display)
+  - _Requirements: 1.3, 1.4, 2.1, 2.2, 2.3_
+
+- [ ] 33. Integrate RecommendationService with ActionTrackingService
+  - File: `src/services/recommendationService.ts`
+  - Listen to action tracking events
+  - Trigger recommendation analysis on action sequence changes
+  - Implement real-time analysis (not batch)
+  - Use SignalR for real-time updates
+  - _Requirements: 1.1, 5.3_
+
+- [ ] 34. Create RitualRecommendation component
+  - File: `src/components/RitualRecommendation.tsx`
+  - Display ritual name with confidence score badge
+  - Display cultural explanation section
+  - Display missing items as carousel slider
+  - Show item cards with: image, name, price, reason, "Add to Cart" button
+  - Implement "Dismiss" button
+  - Implement "Disable Ritual" button
+  - Responsive design for mobile/tablet/desktop
+  - Smooth carousel animations
+  - _Requirements: 2.1, 2.2, 2.3, 2.5_
+
+- [ ] 35. Create CarouselSlider component (if not exists)
+  - File: `src/components/CarouselSlider.tsx`
+  - Support touch/mouse navigation
+  - Auto-scroll capability
+  - Responsive to screen size
+  - Smooth transitions
+  - _Requirements: 2.1_
+
+- [ ] 36. Integrate RitualRecommendation into CartPage
+  - File: `src/pages/CartPage.tsx`
+  - Add recommendation section below cart items (Section 3)
+  - Display as carousel slider
+  - Handle "Add to Cart" for recommended items
+  - Handle dismiss and disable actions
+  - Show loading state while fetching
+  - Silent fail on errors
+  - _Requirements: 2.1, 2.2, 2.3, 2.5_
+
+- [ ] 37. Implement real-time updates with SignalR
+  - File: `src/pages/CartPage.tsx`
+  - Connect to SignalR hub for real-time updates
+  - Listen for recommendation update events
+  - Update UI when new recommendations arrive
+  - Handle connection errors gracefully
+  - _Requirements: 1.1, 5.3_
+
+- [ ] 38. Create UserPreferenceService
+  - File: `src/services/userPreferenceService.ts`
+  - Implement recordDismissal() to call `POST /api/preferences/dismiss-ritual`
+  - Implement disableRitual() to call `POST /api/preferences/disable-ritual`
+  - Implement isRitualDisabled() to check if ritual is disabled
+  - Implement getDismissalCount() to get dismissal count
+  - Implement getDismissalHistory() to get history
+  - Store preferences in session storage (per session only)
+  - _Requirements: 6.2, 6.3_
+
+- [ ] 39. Integrate dismissal handling
+  - File: `src/components/RitualRecommendation.tsx`
+  - Handle "Dismiss" button click
+  - Call recordDismissal() API
+  - Remove recommendation from display
+  - Show confirmation message
+  - _Requirements: 6.2_
+
+- [ ] 40. Integrate disable ritual handling
+  - File: `src/components/RitualRecommendation.tsx`
+  - Handle "Disable Ritual" button click
+  - Call disableRitual() API
+  - Stop showing recommendations for this ritual
+  - Show confirmation message
+  - _Requirements: 6.3_
+
+- [ ] 41. Create dismissal history UI
+  - File: `src/components/DismissalHistory.tsx`
+  - Display list of dismissed rituals
+  - Show dismissal count for each ritual
+  - Display dismissal history
+  - _Requirements: 6.3_
+
+- [ ] 42. Checkpoint - Ensure all frontend services work
+  - Ensure all tests pass, ask the user if questions arise.
+
+---
+
+## Phase 9: Frontend Testing
+
+- [ ]* 43. Write unit tests for ActionTrackingService
+  - File: `src/services/__tests__/actionTrackingService.test.ts`
+  - Test action tracking functionality
+  - Test sequence management
+  - Test session ID generation
+  - _Requirements: 1.1, 5.3_
+
+- [ ]* 44. Write unit tests for RecommendationService
+  - File: `src/services/__tests__/recommendationService.test.ts`
+  - Test API calls
+  - Test caching logic
+  - Test error handling and retries
+  - Test timeout handling
+  - _Requirements: 1.3, 1.4, 2.1_
+
+- [ ]* 45. Write unit tests for UserPreferenceService
+  - File: `src/services/__tests__/userPreferenceService.test.ts`
+  - Test dismissal recording
+  - Test ritual disabling
+  - Test preference retrieval
+  - _Requirements: 6.2, 6.3_
+
+- [ ]* 46. Write component tests for RitualRecommendation
+  - File: `src/components/__tests__/RitualRecommendation.test.tsx`
+  - Test rendering
+  - Test user interactions
+  - Test callbacks
+  - _Requirements: 2.1, 2.2, 2.3_
+
+- [ ]* 47. Write component tests for CarouselSlider
+  - File: `src/components/__tests__/CarouselSlider.test.tsx`
+  - Test navigation
+  - Test responsiveness
+  - Test accessibility
+  - _Requirements: 2.1_
+
+- [ ]* 48. Write integration tests for ritual recommendation flow
+  - File: `src/__tests__/integration/ritualRecommendation.integration.test.ts`
+  - Test end-to-end flow: Action → BE-AI → FE-AI → Display
+  - Test with multiple concurrent user sessions
+  - Test real-time updates
+  - _Requirements: All integration requirements_
+
+- [ ] 49. Checkpoint - Ensure all frontend tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+---
+
+## Phase 10: Frontend Documentation and Deployment
+
+- [ ] 50. Create frontend implementation documentation
+  - File: `src/docs/RITUAL_RECOMMENDATION_FRONTEND.md`
+  - Document architecture overview
+  - Document service descriptions
+  - Document component descriptions
+  - Document integration points
+  - Document configuration guide
+  - Document troubleshooting guide
+  - _Requirements: All frontend requirements_
+
+- [ ] 51. Update README with frontend setup
+  - File: `README.md`
+  - Add frontend setup instructions
+  - Add environment variables needed
+  - Add how to run frontend
+  - Add troubleshooting section
+  - _Requirements: All frontend requirements_
+
+- [ ] 52. Final checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
